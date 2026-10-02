@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>三麻 ノーマル華4 オンライン</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700;800&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg1:#0f3135; --bg2:#061518;
+  --felt1:#2f8a74; --felt2:#1e6354; --felt3:#123f37;
+  --wood1:#5a3a22; --wood2:#8a5c34;
+  --ivory:#fbf7ea; --ivory2:#ece2c6;
+  --edge:#2b9a6f; --edge2:#1a6b4c;
+  --gold:#f0c65e; --gold2:#b8862f;
+  --text:#f3f6f1; --muted:#a8c4bb;
+  --red:#e0533f; --blue:#3f74d6; --teal:#2fa38a;
+  --panel:rgba(8,20,22,.9);
+  --hw:min(calc((100vw - 26px) / 15.6), 56px, calc(100dvh * .12));
+  --handH:calc(var(--hw) * 1.34 + 26px);
+  --bw:min(calc(100vw - 14px), calc(100dvh - var(--handH) - 96px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)), 720px);
+  --rt:calc(var(--bw) * 0.047);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg1:#0c2a2e; --bg2:#041113; } }
+:root[data-theme="dark"]{ --bg1:#0c2a2e; --bg2:#041113; }
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;min-height:100%;background:radial-gradient(ellipse at 50% 30%, var(--bg1) 0%, var(--bg2) 80%);color:var(--text);
+  font-family:"Zen Kaku Gothic New",system-ui,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:14px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+html,body{overflow:hidden}
+.app{height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:grid;grid-template-rows:1fr auto;justify-items:center;padding:6px 6px 4px;position:relative}
+.bw{display:flex;align-items:center;justify-content:center;min-height:0;width:100%}
+.bottom{width:100%;display:flex;flex-direction:column;align-items:center}
+
+/* ===== 卓 ===== */
+.board{position:relative;width:var(--bw);height:var(--bw);border-radius:22px;overflow:hidden;
+  background:radial-gradient(circle at 50% 50%, var(--felt1) 0%, var(--felt2) 48%, var(--felt3) 100%);
+  box-shadow:inset 0 0 0 5px var(--wood1), inset 0 0 0 8px var(--wood2), inset 0 0 40px rgba(0,0,0,.45), 0 14px 34px rgba(0,0,0,.55)}
+.layer{position:absolute;inset:0;pointer-events:none}
+.layer.r{transform:rotate(-90deg)} .layer.l{transform:rotate(90deg)}
+.box{position:absolute;left:32%;top:32%;width:36%;height:36%;background:var(--panel);border-radius:14px;
+  border:1px solid rgba(240,198,94,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.box .rl{font-family:"Shippori Mincho B1",serif;font-weight:800;font-size:calc(var(--bw) * .048);letter-spacing:.06em;line-height:1.1}
+.box .sub{font-size:calc(var(--bw) * .024);color:var(--muted)}
+.box .rest{font-size:calc(var(--bw) * .026);color:var(--gold);font-weight:700}
+.sc{position:absolute;left:32%;width:36%;top:calc(68% - var(--bw) * .068);display:flex;align-items:baseline;justify-content:center;gap:5px;
+  font-size:calc(var(--bw) * .032);font-weight:900;font-variant-numeric:tabular-nums;color:#dfe8e4}
+.sc .wd{font-family:"Shippori Mincho B1",serif;color:var(--gold);font-size:1.05em}
+.sc .cp{font-size:.72em;font-weight:700;color:var(--muted)}
+.sc.on{color:#fff}
+.turnbar{position:absolute;left:36%;width:28%;top:calc(68% - var(--bw) * .012);height:calc(var(--bw) * .007);border-radius:4px;background:var(--gold);box-shadow:0 0 10px var(--gold)}
+.stick{position:absolute;left:43%;width:14%;top:calc(68% + var(--bw) * .006);height:calc(var(--bw) * .013);border-radius:4px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.4)}
+.stick::after{content:"";position:absolute;left:50%;top:50%;width:calc(var(--bw) * .009);height:calc(var(--bw) * .009);border-radius:50%;background:var(--red);transform:translate(-50%,-50%)}
+.rvg{position:absolute;top:calc(68% + var(--bw) * .03);left:50%;transform:translateX(-50%);display:grid;grid-template-columns:repeat(6,var(--rt));gap:1px 1px;width:calc(var(--rt) * 6 + 5px);justify-items:center}
+.edge{position:absolute;bottom:2.4%;left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:1px;white-space:nowrap}
+.edge .ex{display:flex;gap:1px;margin-left:calc(var(--rt) * .5)}
+.edge .meld{display:flex;align-items:flex-end;gap:0;margin-left:calc(var(--rt) * .25)}
+.sd{position:relative;display:inline-block;flex:none;width:calc(var(--rt) * 1.34 + 2px);height:calc(var(--rt) + 1px);margin-bottom:calc(var(--rt) * .07)}
+.sd.st{height:calc(var(--rt) * 2 + 3px)}
+.sd .t{position:absolute;left:calc((var(--rt) * .34 + 2px) / 2);transform:rotate(-90deg);margin:0}
+.nm{position:absolute;bottom:calc(2.4% + var(--rt) * 1.5);left:50%;transform:translateX(-50%);font-size:calc(var(--bw) * .022);color:rgba(255,255,255,.65);font-weight:700}
+.dora{position:absolute;top:3.2%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:4px;
+  background:var(--panel);padding:5px 9px;border-radius:10px;border:1px solid rgba(240,198,94,.3)}
+.dora .lb{font-size:calc(var(--bw) * .024);color:var(--gold);font-weight:900;margin-right:3px}
+
+/* ===== 牌 ===== */
+.t{--w:var(--hw);position:relative;display:inline-block;width:var(--w);height:calc(var(--w) * 1.34);flex:none;
+  background:linear-gradient(180deg,var(--ivory) 0%, var(--ivory) 70%, var(--ivory2) 100%);
+  border-radius:calc(var(--w) * .13);
+  box-shadow:0 calc(var(--w) * .09) 0 var(--edge), 0 calc(var(--w) * .09 + 1px) 0 var(--edge2), 0 calc(var(--w) * .12) calc(var(--w) * .18) rgba(0,0,0,.45);
+  margin-bottom:calc(var(--w) * .1)}
+.t svg{position:absolute;inset:4% 6%;width:88%;height:92%;display:block}
+.t.rv{--w:var(--rt);box-shadow:0 calc(var(--w) * .07) 0 var(--edge), 0 calc(var(--w) * .1) calc(var(--w) * .12) rgba(0,0,0,.35);margin-bottom:calc(var(--w) * .07)}
+.t.rv.rot{transform:rotate(90deg) scale(.9)}
+.t.rv.gone{opacity:.35}
+.t.big{--w:calc(var(--rt) * 1.25)}
+.t.back{background:linear-gradient(180deg,#38b886,#239267);box-shadow:0 calc(var(--w) * .07) 0 #f3ead0, 0 calc(var(--w) * .1) calc(var(--w) * .12) rgba(0,0,0,.35)}
+.t.gold{background:linear-gradient(180deg,#fdf7e2 0%,#f8edc6 70%,#eedca6 100%);
+  box-shadow:inset 0 0 0 calc(var(--w) * .035) rgba(196,150,52,.85), 0 calc(var(--w) * .09) 0 var(--edge), 0 calc(var(--w) * .09 + 1px) 0 var(--edge2), 0 calc(var(--w) * .12) calc(var(--w) * .18) rgba(0,0,0,.45)}
+.t.rv.gold{box-shadow:inset 0 0 0 calc(var(--w) * .04) rgba(196,150,52,.85), 0 calc(var(--w) * .07) 0 var(--edge), 0 calc(var(--w) * .1) calc(var(--w) * .12) rgba(0,0,0,.35)}
+.t.red{background:linear-gradient(180deg,#fff1ec 0%,#fbe0d8 100%)}
+
+/* ===== 手牌・操作 ===== */
+.acts{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;min-height:50px;align-items:center}
+.hand{display:flex;justify-content:center;align-items:flex-end;gap:2px;min-height:var(--handH);padding-top:6px}
+.hand .t{cursor:pointer;transition:transform .09s ease}
+.hand .t:hover{transform:translateY(-7px)}
+.hand .t.drawn{margin-left:calc(var(--hw) * .35)}
+.hand .t.sel,.hand .t.sel:hover{transform:translateY(-14px) !important;box-shadow:0 0 0 2px var(--gold), 0 calc(var(--w) * .09) 0 var(--edge), 0 6px 14px rgba(0,0,0,.5)}
+.hand .t.dim{filter:brightness(.55) saturate(.6);cursor:not-allowed}
+.hand .t.dim:hover{transform:none}
+.hand .t:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.hint{font-size:12px;color:var(--muted);min-height:18px;text-align:center;flex:1}
+.subrow{display:flex;align-items:center;width:100%;gap:8px;padding:0 4px}
+.subrow .sp{width:86px}
+.tog{width:86px;font-size:12px;padding:3px 8px;min-height:30px;letter-spacing:0;background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,.25);box-shadow:none}
+.tog.on{background:linear-gradient(180deg,#3cc3a2,#1f8b72);color:#fff;border-color:transparent}
+button{font:inherit;font-weight:900;border:0;border-radius:999px;padding:9px 22px;min-height:44px;cursor:pointer;color:#fff;letter-spacing:.06em;
+  box-shadow:0 4px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.35);font-size:16px}
+button:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.35)}
+button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.b-win{background:linear-gradient(180deg,#ff7a56,#d53a25)}
+.b-riichi{background:linear-gradient(180deg,#ffb43d,#e07a10)}
+.b-pon{background:linear-gradient(180deg,#5b8ff0,#2d5fc4)}
+.b-kita{background:linear-gradient(180deg,#3cc3a2,#1f8b72)}
+.b-skip{background:linear-gradient(180deg,#6e7f7b,#4a5855)}
+.b-gold{background:linear-gradient(180deg,#f6d27a,#c99a3a);color:#3a2808}
+
+/* ===== 結果 2ページ ===== */
+.card.res{padding:14px 16px 0}
+.pg{display:none} .pg.on{display:block}
+.p1top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;padding-right:84px}
+.rnm{font-size:12px;color:var(--muted);font-weight:700}
+.who2{font-size:16px;font-weight:900;color:#fff;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.who2 .kind{font-family:"Shippori Mincho B1",serif;font-size:30px;color:var(--gold);letter-spacing:.06em;line-height:1.1}
+.who2 .from{font-size:13px;color:var(--muted)}
+.p1hand .whand{--rt:min(calc((100vw - 70px) / 15.3), 40px);margin:12px 0 20px}
+.p1hand .nukirow{--rt:min(calc((100vw - 70px) / 15.3), 34px)}
+.p1foot{margin-top:6px}
+.pgnav{position:sticky;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px -16px 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,rgba(11,31,29,.6),#0b1f1d 35%)}
+.card .pgnav button{width:auto;margin:0;flex:none}
+.dots{display:flex;gap:6px}
+.dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25)}
+.dots i.on{background:var(--gold)}
+.ncards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 6px}
+.ncard{border-radius:14px;padding:10px 6px;text-align:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.ncard.posb{background:rgba(95,224,160,.1);border-color:rgba(95,224,160,.35)}
+.ncard.negb{background:rgba(255,138,122,.08);border-color:rgba(255,138,122,.25)}
+.ncard .cv{font-size:min(8vw,34px);font-weight:900;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ncard .cv small{font-size:.45em;margin-left:2px}
+.ncard .pv{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.ncard .tot{font-size:11px;color:var(--muted);margin-top:4px}
+.ncard .tot b{color:var(--gold)}
+.p2dice{margin-top:8px}
+.p2dice .dstage{margin:8px 0}
+.msg{color:var(--gold);font-weight:700;margin:8px 0 0}
+.pgnav .nr{display:flex;gap:8px}
+.pgnav > span:empty{width:60px}
+.ov2{z-index:40}
+.card.res{display:flex;flex-direction:column;overflow:hidden;position:relative}
+.card.res .skip{position:absolute;top:10px;right:12px;float:none;margin:0}
+.card.res .pg.on{display:flex;flex-direction:column;flex:1;min-height:0}
+.card.res .pg .pgnav{margin-top:auto}
+.pgin{overflow:auto;min-height:0;flex:1}
+.bc{background:rgba(255,255,255,.05);border-radius:10px;padding:8px 10px}
+.bch{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:700;margin-bottom:4px}
+.bch b{color:#5fe0a0;font-size:17px} .bch small{color:var(--muted);font-size:11px}
+.bcl{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px}
+.bi{display:flex;justify-content:space-between;font-size:13px;border-bottom:1px solid rgba(255,255,255,.06);padding:2px 0}
+.bi b{color:var(--gold);font-variant-numeric:tabular-nums} .bi b small{font-size:10px;color:var(--muted);margin-left:2px;font-weight:600}
+.p1foot .fr{margin-top:10px}
+.p1dice .dstage{margin:8px 0 0}
+.ymn{display:inline-block;margin-right:8px;font-size:18px;font-weight:900;color:#fff}
+.p1foot .fr .bd{margin:0}
+.p1foot .fr .bdh{font-size:12px}
+.p1foot .fr .card table.bt,.p1foot .fr table.bt{font-size:12px}
+/* 横向き */
+@media (orientation: landscape) and (max-height: 560px){
+  :root{ --hw:min(calc((100vw - 40px) / 16), 58px, calc(100dvh * .15)); --handH:calc(var(--hw) * 1.34 + 18px);
+         --bw:min(calc(100dvh - var(--handH) - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)), calc(100vw - 280px)); }
+  .acts{position:absolute;right:max(14px, env(safe-area-inset-right,0px));bottom:calc(var(--handH) + 14px);flex-direction:column;align-items:flex-end;min-height:0}
+  .subrow{position:absolute;left:max(14px, env(safe-area-inset-left,0px));bottom:calc(var(--handH) + 14px);flex-direction:column-reverse;align-items:flex-start;width:auto;max-width:24vw;padding:0}
+  .subrow .sp{display:none}
+  .hint{text-align:left}
+  .tb{top:8px}
+}
+.logbox{font-size:12px;color:#cfdcd7;max-height:60vh;overflow:auto}
+.logbox div{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+/* 和了演出 */
+.res-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.rname{font-family:"Shippori Mincho B1",serif;font-weight:800;font-size:26px;color:#fff;letter-spacing:.08em}
+.dbox{background:rgba(0,0,0,.35);border:1px solid rgba(240,198,94,.3);border-radius:10px;padding:6px 10px;display:flex;flex-direction:column;gap:4px;--rt:min(7vw,30px)}
+.dbox .row{display:flex;align-items:center;gap:3px;font-size:12px;color:var(--muted)}
+.dbox .row b{width:40px;color:var(--gold)}
+.whand{display:flex;align-items:flex-end;flex-wrap:wrap;gap:1px;margin:8px 0;--rt:min(calc((100vw - 80px) / 15.5), 34px)}
+.nukirow{display:flex;flex-wrap:wrap;gap:14px;margin:2px 0 6px;--rt:min(calc((100vw - 80px) / 15.5), 30px)}
+.nukirow .ng{display:flex;align-items:center;gap:2px}
+.nukirow b{font-size:11px;color:var(--gold);margin-right:4px}
+.whand .wt{position:relative;margin-left:calc(var(--rt) * .5);display:flex;flex-direction:column;align-items:center}
+.whand .wt small{position:absolute;top:100%;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;color:var(--gold);font-weight:900;margin-top:2px}
+.flip{position:relative;display:inline-block;width:var(--rt);height:calc(var(--rt) * 1.34);perspective:400px;margin-bottom:calc(var(--rt) * .07)}
+.flip .in{position:absolute;inset:0;transform-style:preserve-3d;animation:flipup .55s ease-out forwards;animation-delay:var(--d)}
+.flip .fc{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.flip .fc .t{margin:0}
+.flip .fr{transform:rotateY(180deg)}
+@keyframes flipup{from{transform:rotateY(0)}to{transform:rotateY(180deg)}}
+.seq{opacity:0;animation:popin .3s cubic-bezier(.2,.8,.3,1) forwards;animation-delay:var(--d)}
+@keyframes popin{0%{opacity:0;transform:translateX(70px)}70%{opacity:1;transform:translateX(-5px)}100%{opacity:1;transform:none}}
+.bigrank{font-family:"Shippori Mincho B1",serif;font-weight:800;font-size:44px;color:var(--gold);text-shadow:0 0 18px rgba(240,198,94,.55);letter-spacing:.1em;line-height:1.1}
+.hanrow{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-top:8px}
+.hanrow .hn{font-size:22px;font-weight:900;color:#fff}
+.hanrow .pt{font-size:30px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums}
+.hanrow .pt small{font-size:16px;color:var(--gold);margin-left:4px}
+.hanrow .ex{font-size:13px;color:var(--gold);font-weight:700;width:100%}
+.card.instant .seq,.card.instant .flip .in{animation-delay:0s !important;animation-duration:.01s !important}
+.card .skip{position:sticky;top:0;float:right;width:auto;font-size:12px;padding:4px 14px;min-height:30px;margin:0 0 4px 8px;background:#2a8a4a;z-index:2}
+
+
+/* ===== 結果 ===== */
+.overlay{position:fixed;inset:0;background:rgba(2,10,12,.7);display:flex;align-items:center;justify-content:center;padding:14px;z-index:30;backdrop-filter:blur(2px)}
+.card{background:linear-gradient(180deg,#14322f,#0b1f1d);border:1px solid rgba(240,198,94,.45);border-radius:18px;max-width:560px;width:100%;
+  max-height:calc(100% - 16px);overflow:auto;padding:20px 18px 18px;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.card .who{font-size:14px;color:var(--muted);font-weight:700}
+.card h2{font-family:"Shippori Mincho B1",serif;font-weight:800;font-size:34px;margin:0;color:var(--gold);letter-spacing:.08em;line-height:1.2}
+.card .tiles{display:flex;flex-wrap:wrap;gap:2px;margin:12px 0 6px;--rt:min(calc((100vw - 70px) / 15), 30px)}
+.ind{display:flex;align-items:center;gap:3px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:4px 0 2px;--rt:min(calc((100vw - 70px) / 15), 30px)}
+.ind span{margin-right:4px}
+.yaku{display:grid;grid-template-columns:1fr auto;gap:2px 16px;font-size:15px;margin:8px 0}
+.yaku span:nth-child(even){text-align:right;color:var(--gold);font-weight:700;font-variant-numeric:tabular-nums}
+.total{font-family:"Shippori Mincho B1",serif;font-size:28px;font-weight:800;color:#fff;margin:6px 0 2px;letter-spacing:.04em}
+.card h3{font-size:13px;color:var(--muted);margin:16px 0 4px;font-weight:700}
+.card table{width:100%;border-collapse:collapse;font-size:13px}
+.card td{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.card td:last-child{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.card .now td:last-child{color:var(--gold)}
+.yaku .tp{color:#5fe0a0} .yaku .nt{color:var(--muted)}
+.tpbox{margin:10px 0;padding:8px 10px;background:rgba(255,255,255,.05);border-radius:10px}
+.tph{display:flex;justify-content:space-between;font-size:13px;font-weight:700;flex-wrap:wrap;gap:6px}
+.tph span{color:var(--gold)}
+.netmini{display:none}
+.rline{display:flex;flex-direction:column}
+.hdet{margin-top:12px}
+.hdet summary{cursor:pointer;color:var(--gold);font-weight:700;font-size:13px;padding:6px 0}
+.card.wide{max-width:min(96vw,760px)}
+.htw{overflow-x:auto;margin:6px 0}
+.card table.ht{font-size:12px}
+.ht th{font-size:11px;color:var(--muted);text-align:right;padding:4px 4px;border-bottom:1px solid rgba(255,255,255,.15);white-space:nowrap}
+.ht th:nth-child(1){text-align:left}
+.card .ht td{text-align:right;padding:5px 4px;font-variant-numeric:tabular-nums;font-weight:900;vertical-align:top;white-space:nowrap}
+.card .ht td small{font-weight:600;font-size:11px}
+.card .ht td.hl{text-align:left;color:#fff;font-weight:700}
+.card .ht .hd{text-align:left;color:#b9cbc4;font-weight:500;font-size:11px;white-space:normal}
+.card .ht td.hl{white-space:normal;min-width:110px}
+.ht tr.fin td{background:rgba(240,198,94,.06)}
+.ht tr.tot td{border-top:2px solid rgba(240,198,94,.5);background:rgba(240,198,94,.08)}
+.agari{display:flex;align-items:center;gap:10px;margin-top:6px;--rt:min(11vw,46px)}
+.agari .lbl{font-size:17px;font-weight:900;color:#fff}
+.agari .lbl b{color:var(--gold)}
+.dstage{background:rgba(0,0,0,.28);border:1px solid rgba(240,198,94,.3);border-radius:12px;padding:10px 12px;margin:12px 0}
+.dstage .dt{font-size:13px;color:var(--gold);font-weight:900;margin-bottom:6px}
+.droll{display:flex;align-items:center;gap:10px;min-height:56px}
+.droll .zm{font-size:13px;font-weight:900;color:#ff8a7a}
+.dtotal{font-size:20px;font-weight:900;color:#fff;margin-top:4px}
+.dtotal b{color:var(--gold);font-size:28px}
+.die3{width:46px;height:46px;border-radius:9px;background:linear-gradient(145deg,#ffffff,#e9e4d6);box-shadow:inset 0 -3px 0 rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.45);
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:6px;gap:1px}
+.die3 i{display:block;border-radius:50%;margin:auto;width:8px;height:8px}
+.die3 i.p{background:#1b1a17} .die3 i.p.one{background:#d22;width:14px;height:14px}
+.die3.rolling{animation:tumble .9s cubic-bezier(.2,.7,.3,1)}
+@keyframes tumble{0%{transform:translate(-40px,-26px) rotate(-180deg)}35%{transform:translate(0,0) rotate(40deg)}55%{transform:translate(6px,-10px) rotate(-20deg)}75%{transform:translate(0,0) rotate(8deg)}100%{transform:none}}
+.net{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0 6px}
+.nc{background:rgba(255,255,255,.05);border-radius:10px;padding:8px 6px;text-align:center}
+.nn{font-size:12px;color:var(--muted);font-weight:700}
+.nv{font-size:26px;font-weight:900;line-height:1.15;font-variant-numeric:tabular-nums}
+.np{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.nv small,.np small{font-size:.55em;margin-left:2px}
+.pos{color:#5fe0a0} .neg{color:#ff8a7a} .zero{color:var(--muted)}
+.bd{margin:6px 0 10px}
+.bdh{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:700;padding:2px 0}
+.bdh b{color:#5fe0a0;font-size:16px}
+.card table.bt{font-size:13px}
+.bt th{font-size:11px;color:var(--muted);font-weight:700;text-align:right;padding:2px 0 2px 8px;border-bottom:1px solid rgba(255,255,255,.12)}
+.card .bt td{text-align:right;padding:3px 0 3px 8px;font-variant-numeric:tabular-nums;font-weight:500}
+.bt td:first-child{text-align:left;padding-left:0;color:#dfe8e4}
+.card .bt tr.sum td{font-weight:900;color:#fff;border-top:1px solid rgba(255,255,255,.2);border-bottom:0}
+.dice{display:inline-flex;gap:3px;margin:2px 6px 2px 0}
+.die{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:#fff;color:#c33;font-weight:900}
+.card button{width:100%;margin-top:18px}
+.ttl{font-family:"Shippori Mincho B1",serif;font-weight:800;font-size:40px;color:var(--gold);margin:0;letter-spacing:.08em;line-height:1.15}
+.start p{margin:8px 0;color:#cfdcd7;font-size:14px}
+.start .deco{display:flex;gap:4px;margin:16px 0 6px;--rt:min(9vw,40px)}
+.tb{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:20;width:42px;height:42px;min-height:0;padding:0;font-size:18px;background:rgba(8,20,22,.85);border:1px solid rgba(240,198,94,.4);box-shadow:none}
+@media (prefers-reduced-motion: reduce){ .seq,.flip .in{animation-delay:0s !important;animation-duration:.01s !important}  .hand .t{transition:none} .hand .t:hover{transform:none} }
+@media (orientation: landscape) and (max-height: 560px){
+  .card{max-width:min(97vw,960px);padding:10px 16px}
+  .win{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,32%);grid-template-areas:"head side" "hand side";grid-template-rows:auto 1fr;column-gap:20px;align-items:start}
+  .whead{grid-area:head} .whnd{grid-area:hand} .wside{grid-area:side}
+  .res-head{flex-wrap:nowrap;margin-bottom:2px}
+  .rline{flex-direction:row;align-items:center;gap:14px}
+  .rname{font-size:26px}
+  .agari{margin-top:0}
+  .agari{display:none}
+  .agari .lbl{font-size:16px}
+  .dbox{flex-direction:row;gap:12px;padding:5px 8px;--rt:26px}
+  .dbox .row b{width:auto;margin-right:3px}
+  .whand,.nukirow{--rt:min(calc((min(97vw, 960px) - 420px) / 15.2), 32px)}
+  .nukirow b{white-space:nowrap}
+  .wside{padding-top:30px}
+  .whand{margin:6px 0 4px}
+  .yaku{font-size:13px;margin:0;gap:0 12px;line-height:1.55}
+  .hanrow{margin-top:4px;gap:4px 12px}
+  .bigrank{font-size:30px} .hanrow .hn{font-size:17px} .hanrow .pt{font-size:20px}
+  .netmini{display:block;margin-top:6px}
+  .netmini .net{gap:4px;margin:0}
+  .netmini .nc{padding:4px 2px}
+  .netmini .nv{font-size:18px}
+  .netmini .np{font-size:11px}
+  .nettail{display:none}
+  .card .skip{margin-top:0}
+}
+
+@media (orientation: landscape) and (max-height: 560px){
+  .card.res{max-width:min(97vw,980px);padding:10px 18px 0}
+  .p1hand .whand{--rt:min(calc((97vw - 80px) / 15.6), 40px);margin:6px 0 16px}
+  .p1hand .nukirow{--rt:min(calc((97vw - 80px) / 15.6), 26px);margin:0}
+  .p1foot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+  .p1foot .fr{margin-top:0}
+  .yaku.y2{grid-template-columns:1fr auto 1fr auto;column-gap:14px;font-size:12.5px;margin:0;line-height:1.5}
+  .p1foot .hanrow{gap:2px 12px;margin-top:0;align-items:baseline}
+  .p1foot .hanrow > div:first-child{display:flex;align-items:baseline;gap:8px}
+  .p1foot .bigrank{font-size:28px}
+  .p1foot .pt{font-size:18px}
+  .who2 .kind{font-size:24px}
+  .dbox{flex-direction:row;gap:12px;padding:5px 8px;--rt:26px}
+  .ncards{margin:6px 0}
+  .ncard{padding:6px 4px}
+  .ncard .cv{font-size:26px}
+  .card .pgnav button{min-height:38px;padding:6px 18px;font-size:14px}
+  .p2dice{display:flex;gap:12px;flex-wrap:wrap;margin-top:2px}
+  .pg2 .p1top,.pg3 .p1top{margin-bottom:0}
+  .pg2 .who2 .kind,.pg3 .who2 .kind{font-size:20px}
+  .ncard .pv{font-size:12px} .ncard .tot{margin-top:1px}
+  .p2dice .dstage{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+  .p2dice .dt{width:100%;margin:0}
+  .p2dice .droll{min-height:0}
+  .p2dice .dtotal{margin:0 0 0 auto}
+  .p1dice .dstage{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:4px 10px;margin-top:4px}
+  .p1dice .dt{width:auto;margin:0;font-size:12px;max-width:90px;line-height:1.3} .p1dice .droll{min-height:0}
+  .p1dice .zm{font-size:11px}
+  .p1foot .bcl{gap:1px 10px}
+  .p1foot .bcl.c3{grid-template-columns:1fr 1fr 1fr}
+  .p1foot .bi{white-space:nowrap;gap:4px}
+  .p1foot .bi{font-size:12px}
+  .p1foot .bc{padding:6px 8px}
+  .p1dice .die3{width:36px;height:36px;padding:4px} .p1dice .dtotal{font-size:15px;margin:0 0 0 auto} .p1dice .dtotal b{font-size:20px}
+  .p2dice .dstage{flex:1;min-width:240px;margin:4px 0;padding:6px 10px}
+  .droll{min-height:48px} .die3{width:40px;height:40px;padding:5px} .dtotal{font-size:16px} .dtotal b{font-size:22px}
+  .p3body .bd{margin:2px 0 6px}
+  .card .bt td{padding:2px 0 2px 8px}
+  .pgnav{padding:8px 18px;margin:8px -18px 0}
+}
+
+/* ===== ロビー ===== */
+.card.lob{max-width:420px}
+.fld{display:flex;flex-direction:column;gap:4px;width:100%;font-size:13px;color:var(--muted);margin:8px 0}
+.card.lob input{font:inherit;font-size:16px;padding:10px 12px;border-radius:10px;border:1px solid rgba(240,198,94,.4);background:rgba(0,0,0,.3);color:#fff;width:100%}
+.card.lob button{width:100%}
+.or{text-align:center;color:var(--muted);font-size:12px;margin:12px 0 6px}
+.joinrow{display:flex;gap:8px}
+.joinrow button{width:auto !important;margin:0 !important}
+.code{font-family:"Shippori Mincho B1",serif;font-size:56px;font-weight:800;color:var(--gold);letter-spacing:.2em;line-height:1.1;margin:2px 0 8px}
+.seatrow{display:flex;justify-content:space-between;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);margin:6px 0;font-weight:700}
+.seatrow.me{outline:1px solid var(--gold)}
+.seatrow .st{color:var(--muted);font-size:12px;font-weight:500}
+.wait{color:var(--muted);text-align:center;margin:14px 0}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 64px);transform:translateX(-50%);background:#2a1512;color:#fff;border:1px solid #ff8a7a;padding:10px 16px;border-radius:10px;z-index:60;font-weight:700;max-width:90vw}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div id="ov"></div>
+<button id="snd" class="tb" style="right:8px" aria-label="音の切り替え">🔊</button>
+<button id="fs" class="tb" style="right:56px" aria-label="全画面">⛶</button>
+<button id="lg" class="tb" style="right:104px" aria-label="ログ">📜</button>
+<button id="hs" class="tb" style="right:152px" aria-label="全局の精算">📊</button>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<linearGradient id="sG" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#0d5530"/><stop offset=".45" stop-color="#3cb46a"/><stop offset=".6" stop-color="#2a9a55"/><stop offset="1" stop-color="#0d5530"/></linearGradient>
+<linearGradient id="sR" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#8a1a12"/><stop offset=".45" stop-color="#ee6a54"/><stop offset=".6" stop-color="#d4412e"/><stop offset="1" stop-color="#8a1a12"/></linearGradient>
+<linearGradient id="sO" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#6e4a0c"/><stop offset=".42" stop-color="#f3d27a"/><stop offset=".62" stop-color="#c99a3a"/><stop offset="1" stop-color="#6e4a0c"/></linearGradient>
+<radialGradient id="pO" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#f6d77e"/><stop offset=".5" stop-color="#c99a3a"/><stop offset="1" stop-color="#7a5210"/></radialGradient>
+<radialGradient id="gem" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#8fb3f2"/><stop offset=".55" stop-color="#3f74d6"/><stop offset="1" stop-color="#2d58b2"/></radialGradient>
+<radialGradient id="gemHalo"><stop offset="0" stop-color="#7fb0ff" stop-opacity=".55"/><stop offset="1" stop-color="#7fb0ff" stop-opacity="0"/></radialGradient>
+</defs></svg>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+"use strict";
+// ===== 牌 =====
+const NUMS = "一二三四五六七八九";
+const HON = ["東","南","西","北","白","發","中","春","夏","秋","冬"];
+const ALLK = [0,8]; for(let i=9;i<=33;i++) ALLK.push(i);
+const YAO = [0,8,9,17,18,26,27,28,29,30,31,32,33];
+const isYao = k => k>=27 || k%9===0 || k%9===8;
+const isHonor = k => k>=27;
+const suitOf = k => k<9?0:k<18?1:k<27?2:3;
+function nextKind(k){
+  if(k===0) return 8; if(k===8) return 0;
+  if(k<27){ const b=Math.floor(k/9)*9; return b+((k-b+1)%9); }
+  if(k<=30) return 27+((k-27+1)%4);
+  return 31+((k-31+1)%3);
+}
+function kName(k){
+  if(k<9) return NUMS[k]+"萬"; if(k<18) return NUMS[k-9]+"筒"; if(k<27) return NUMS[k-18]+"索";
+  return HON[k-27];
+}
+function tName(t){ return (t.red?"赤":t.gold?"金":t.pocchi?"ポッチ":"")+kName(t.k); }
+
+// 牌の絵（60×80）
+const CB="#2652a8", CG="#1d7a4a", CR="#c8372b", CK="#1b1a17", CO="#b8862f", IV="#fbf7ea";
+const FONT='font-family="Shippori Mincho B1, serif" font-weight="800" text-anchor="middle"';
+function pip(x,y,r,c,inner=IV){ const g=c==="GOLD"; const f=g?"url(#pO)":c, st=g?` stroke="#5a3d0c" stroke-width=".7"`:"";
+  return `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}"${st}/><circle cx="${x}" cy="${y}" r="${(r*.7).toFixed(2)}" fill="${g?"#fdf5dc":inner}"/><circle cx="${x}" cy="${y}" r="${(r*.45).toFixed(2)}" fill="${f}"/><circle cx="${x}" cy="${y}" r="${(r*.17).toFixed(2)}" fill="${g?"#fdf5dc":inner}"/>`; }
+function stick(x,y,hgt,c,rot=0){
+  const gold=c==="GOLD", red=c===CR;
+  const dk=gold?"url(#sO)":red?"#9b2a1f":"#1f6a3e", inner=gold?"#fdf5dc":IV;
+  const W=9.6, S=6, cap=3, st=1.6;
+  const seg=(y0,y1)=>{
+    const o=`<rect x="${x-W/2}" y="${y0}" width="${W}" height="${cap}" rx="1.3" fill="${dk}"/><rect x="${x-S/2}" y="${y0+cap-.4}" width="${S}" height="${y1-y0-2*cap+.8}" fill="${dk}"/><rect x="${x-W/2}" y="${y1-cap}" width="${W}" height="${cap}" rx="1.3" fill="${dk}"/>`;
+    const i=`<rect x="${x-S/2+st}" y="${y0+cap-.6}" width="${S-2*st}" height="${y1-y0-2*cap+1.2}" fill="${inner}"/><rect x="${x-W/2+st}" y="${y0+st*.8}" width="${W-2*st}" height="${cap-st*1.6}" rx=".5" fill="${inner}"/><rect x="${x-W/2+st}" y="${y1-cap+st*.8}" width="${W-2*st}" height="${cap-st*1.6}" rx=".5" fill="${inner}"/>`;
+    return o+i;
+  };
+  return `<g transform="rotate(${rot} ${x} ${y})">${seg(y-hgt/2,y-.4)}${seg(y+.4,y+hgt/2)}</g>`;
+}
+const PIN={
+  1:[[30,40,21,"multi"]],
+  2:[[30,21,11,CG],[30,59,11,CB]],
+  3:[[15,15,9.5,CB],[30,40,9.5,CR],[45,65,9.5,CG]],
+  4:[[17,21,11,CB],[43,21,11,CG],[17,59,11,CG],[43,59,11,CB]],
+  5:[[15,17,10,CB],[45,17,10,CG],[30,40,10,CR],[15,63,10,CG],[45,63,10,CB]],
+  6:[[18,14,9.5,CG],[42,14,9.5,CG],[18,42,9.5,CR],[42,42,9.5,CR],[18,66,9.5,CR],[42,66,9.5,CR]],
+  7:[[14,11,8,CG],[30,20,8,CG],[46,29,8,CG],[18,50,8.5,CR],[42,50,8.5,CR],[18,69,8.5,CR],[42,69,8.5,CR]],
+  8:[[18,11,8.5,CB],[42,11,8.5,CB],[18,30,8.5,CB],[42,30,8.5,CB],[18,50,8.5,CB],[42,50,8.5,CB],[18,69,8.5,CB],[42,69,8.5,CB]],
+  9:[[13,15,8.5,CB],[30,15,8.5,CB],[47,15,8.5,CB],[13,40,8.5,CR],[30,40,8.5,CR],[47,40,8.5,CR],[13,65,8.5,CG],[30,65,8.5,CG],[47,65,8.5,CG]]
+};
+const SOU={
+  2:[[30,22,30,CG],[30,58,30,CG]],
+  3:[[30,22,30,CG],[18,58,30,CG],[42,58,30,CG]],
+  4:[[19,22,30,CG],[41,22,30,CG],[19,58,30,CG],[41,58,30,CG]],
+  5:[[14,22,30,CG],[46,22,30,CG],[30,40,30,CR],[14,58,30,CG],[46,58,30,CG]],
+  6:[[15,22,30,CG],[30,22,30,CG],[45,22,30,CG],[15,58,30,CG],[30,58,30,CG],[45,58,30,CG]],
+  7:[[30,12,20,CR],[15,41,22,CG],[30,41,22,CG],[45,41,22,CG],[15,67,22,CG],[30,67,22,CG],[45,67,22,CG]],
+  8:[[12,22,30,CG],[22,21,19,CG,48],[38,21,19,CG,-48],[48,22,30,CG],[12,58,30,CG],[22,59,19,CG,-48],[38,59,19,CG,48],[48,58,30,CG]],
+  9:[[15,14,22,CG],[30,14,22,CR],[45,14,22,CG],[15,40,22,CG],[30,40,22,CR],[45,40,22,CG],[15,66,22,CG],[30,66,22,CR],[45,66,22,CG]]
+};
+const faceCache={};
+function faceSVG(t){
+  const key=t.k+(t.red?"r":t.gold?"g":t.pocchi?"p":"");
+  if(faceCache[key]) return faceCache[key];
+  const k=t.k; let b="";
+  const over=t.red?CR:t.gold?"GOLD":null;
+  if(k<9){
+    b=`<text x="30" y="35" font-size="31" fill="${CK}" ${FONT}>${NUMS[k]}</text><text x="30" y="72" font-size="30" fill="${CR}" ${FONT}>萬</text>`;
+  } else if(k<18){
+    const n=k-8;
+    if(n===1) b=`<circle cx="30" cy="40" r="22" fill="${CG}"/><circle cx="30" cy="40" r="17" fill="${IV}"/><circle cx="30" cy="40" r="13" fill="${CR}"/><circle cx="30" cy="40" r="8.5" fill="${IV}"/><circle cx="30" cy="40" r="5" fill="${CB}"/>`+[0,1,2,3,4,5,6,7].map(i=>{const a=i*Math.PI/4;return `<circle cx="${(30+15*Math.cos(a)).toFixed(1)}" cy="${(40+15*Math.sin(a)).toFixed(1)}" r="1.6" fill="${IV}"/>`}).join("");
+    else b=PIN[n].map(([x,y,r,c])=>pip(x,y,r,over||c)).join("");
+  } else if(k<27){
+    const n=k-17;
+    if(n===1){
+      const D="#1c4a32", out=[];
+      // 扇状の羽
+      for(let i=0;i<=36;i++){ const ang=Math.PI*(1.08+i*0.84/36); const r1=9, r2=23+((i%3)?0:2);
+        out.push(`<line x1="${(30+r1*Math.cos(ang)).toFixed(1)}" y1="${(31+r1*Math.sin(ang)).toFixed(1)}" x2="${(30+r2*Math.cos(ang)).toFixed(1)}" y2="${(31+r2*Math.sin(ang)).toFixed(1)}" stroke="${D}" stroke-width=".85" stroke-linecap="round"/>`); }
+      out.push(`<circle cx="30" cy="30" r="12.5" fill="${D}"/>`);
+      // 目玉模様
+      [[25.5,20],[34.5,20],[21,25.5],[30,25.5],[39,25.5],[18,31.5],[26,31.5],[34,31.5],[42,31.5],[22,37.5],[30,37.5],[38,37.5],[30,43]].forEach(([x,y])=>{
+        out.push(`<circle cx="${x}" cy="${y}" r="3.7" fill="${IV}" stroke="${D}" stroke-width=".8"/><circle cx="${x}" cy="${y}" r="2.3" fill="none" stroke="#3f8f60" stroke-width=".6"/><circle cx="${x}" cy="${y}" r="1.2" fill="${D}"/>`); });
+      // 翼
+      const wing=s=>{ const m=v=>30+s*v; let w=`<path d="M${m(3)} 52 Q${m(12)} 44 ${m(24)} 50 Q${m(26)} 58 ${m(21)} 63 Q${m(12)} 60 ${m(3)} 58 Z" fill="${IV}" stroke="${D}" stroke-width="1.1"/>`;
+        for(let i=1;i<=5;i++) w+=`<path d="M${m(4)} ${55}" stroke="none"/><path d="M${m(5)} ${54+i*.2} Q${m(13)} ${47+i*2.2} ${m(22+i*.4)} ${50+i*2.4}" stroke="${D}" stroke-width=".75" fill="none"/>`;
+        return w; };
+      out.push(wing(-1), wing(1));
+      // 胸（格子）
+      out.push(`<ellipse cx="31" cy="55" rx="5" ry="6.2" fill="${IV}" stroke="${D}" stroke-width="1"/>`);
+      for(let i=-3;i<=3;i++){ out.push(`<line x1="${27+i*1.6}" y1="50" x2="${33+i*1.6}" y2="60" stroke="${D}" stroke-width=".5" opacity=".8"/><line x1="${35+i*1.6}" y1="50" x2="${29+i*1.6}" y2="60" stroke="${D}" stroke-width=".5" opacity=".8"/>`); }
+      out.push(`<ellipse cx="31" cy="55" rx="5" ry="6.2" fill="none" stroke="${D}" stroke-width="1.1"/>`);
+      // 首と頭（S字）
+      out.push(`<path d="M28.5 60 Q23 57 25 51.5 Q27 47 24.5 45.5" fill="none" stroke="${D}" stroke-width="3.4" stroke-linecap="round"/><path d="M28.5 60 Q23 57 25 51.5 Q27 47 24.5 45.5" fill="none" stroke="${IV}" stroke-width="1.6" stroke-linecap="round"/>`);
+      out.push(`<circle cx="23.8" cy="45.6" r="2" fill="${IV}" stroke="${D}" stroke-width=".9"/><path d="M22 46.4 L19.8 48.2 L22.6 47.6 Z" fill="${D}"/><circle cx="23.5" cy="45.2" r=".55" fill="${D}"/>`);
+      // 足
+      out.push(`<path d="M29 63 L28 70.5 M28 70.5 L25.5 72 M28 70.5 L28.6 72.8 M33 63 L33.5 70.5 M33.5 70.5 L31.4 72.3 M33.5 70.5 L35.8 72" stroke="${CR}" stroke-width="1.15" fill="none" stroke-linecap="round"/>`);
+      b=out.join("");
+    }
+    else b=SOU[n].map(([x,y,hh,c,r])=>stick(x,y,hh,over||c,r||0)).join("");
+  } else if(k===31){
+    b=`<rect x="12" y="13" width="36" height="54" rx="3" fill="none" stroke="#3f74d6" stroke-width="3.2"/><rect x="17" y="18" width="26" height="44" rx="2" fill="none" stroke="#3f74d6" stroke-width="1.2" opacity=".6"/>`+(t.pocchi?`<circle cx="30" cy="40" r="5.6" fill="url(#gem)"/><circle cx="30" cy="40" r="5.6" fill="none" stroke="#2a4f9e" stroke-width=".6" opacity=".7"/><ellipse cx="28.4" cy="38.2" rx="1.7" ry="1" fill="#fff" opacity=".5" transform="rotate(-25 28.4 38.2)"/>`:"");
+  } else if(k>=34){
+    const col=["#c2456b","#1d7a4a","#e0701c","#3f74d6"][k-34];
+    b=`<g fill="${col}">${[0,1,2,3,4].map(i=>{const a=i*Math.PI*2/5-Math.PI/2;return `<circle cx="${(13+5*Math.cos(a)).toFixed(1)}" cy="${(13+5*Math.sin(a)).toFixed(1)}" r="3.2"/>`}).join("")}</g><circle cx="13" cy="13" r="2" fill="${CO}"/><text x="32" y="60" font-size="36" fill="${col}" ${FONT}>${HON[k-27]}</text>`;
+  } else {
+    const col=k===32?CG:k===33?CR:k===30?"#b3342a":CK;
+    b=`<text x="30" y="55" font-size="42" fill="${col}" ${FONT}>${HON[k-27]}</text>`;
+  }
+  return faceCache[key]=`<svg viewBox="0 0 60 80" aria-hidden="true">${b}</svg>`;
+}
+function tileHTML(t, cls=""){
+  if(!t) return "";
+  return `<span class="t ${cls}${t.red?" red":""}${t.gold?" gold":""}" data-id="${t.id}" title="${tName(t)}">${faceSVG(t)}</span>`;
+}
+function buildTiles(){
+  let id=0; const a=[]; const add=(k,o={})=>a.push(Object.assign({id:id++,k},o));
+  for(const k of ALLK){
+    if(k===13||k===22){ add(k,{red:true}); add(k,{gold:true}); add(k); add(k); }
+    else if(k===31){ add(k,{pocchi:true}); add(k); add(k); add(k); }
+    else for(let j=0;j<4;j++) add(k);
+  }
+  for(let f=34;f<=37;f++) add(f);
+  return a;
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+const sortHand = h => h.sort((a,b)=>a.k-b.k || (b.red?2:b.gold?1:0)-(a.red?2:a.gold?1:0));
+const counts = tiles => { const c=new Array(38).fill(0); for(const t of tiles) c[t.k]++; return c; };
+const ceil1000 = x => Math.ceil(x/1000)*1000;
+const rollDice = () => rollDice1();
+const rollDice1 = () => { const rolls=[]; let total=0; while(true){ const a=1+Math.floor(Math.random()*6), b=1+Math.floor(Math.random()*6); rolls.push([a,b]); total+=a+b; if(a!==b) break; } return {rolls,total}; };
+
+// ===== 音 =====
+const SE=(()=>{
+  let ctx=null, on=true;
+  try{ on=localStorage.getItem("sanma-sound")!=="off"; }catch(_){}
+  const ac=()=>{ if(typeof window==="undefined"||!(window.AudioContext||window.webkitAudioContext)) return null;
+    if(!ctx) ctx=new (window.AudioContext||window.webkitAudioContext)(); if(ctx.state==="suspended") ctx.resume(); return ctx; };
+  function noise(dur,freq,q,gain,when=0){
+    const c=ac(); if(!c||!on) return; const t0=c.currentTime+when;
+    const len=Math.floor(c.sampleRate*dur), buf=c.createBuffer(1,len,c.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,4);
+    const src=c.createBufferSource(); src.buffer=buf;
+    const f=c.createBiquadFilter(); f.type="bandpass"; f.frequency.value=freq; f.Q.value=q;
+    const g=c.createGain(); g.gain.value=gain; src.connect(f); f.connect(g); g.connect(c.destination); src.start(t0);
+  }
+  function tone(freq,dur,gain,when=0,type="sine"){
+    const c=ac(); if(!c||!on) return; const t0=c.currentTime+when;
+    const o=c.createOscillator(), g=c.createGain(); o.type=type; o.frequency.value=freq;
+    g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(gain,t0+.01); g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+    o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0+dur+.02);
+  }
+  const VOICE={0:{pitch:1.55,rate:1.12},1:{pitch:1.4,rate:1.08},2:{pitch:1.75,rate:1.15}};
+  let jaVoices=[];
+  const score=v=>{ const n=(v.name||"").toLowerCase(); let s=0;
+    if(/natural|neural|online/.test(n)) s+=50; if(/google/.test(n)) s+=30;
+    if(/kyoko|o-ren|nanami|mayu|ayumi|haruka|sayaka|female|女性/.test(n)) s+=40;
+    if(/otoya|hattori|keita|ichiro|daichi|naoki|male|男性/.test(n)&&!/female/.test(n)) s-=60;
+    if(/enhanced|premium|プレミアム|拡張/.test(n)) s+=25; if(v.localService===false) s+=5; return s; };
+  const loadVoices=()=>{ try{ jaVoices=speechSynthesis.getVoices().filter(v=>v.lang&&v.lang.toLowerCase().startsWith("ja")).sort((a,b)=>score(b)-score(a)); }catch(_){} };
+  if(typeof window!=="undefined" && window.speechSynthesis){ loadVoices(); try{ speechSynthesis.addEventListener("voiceschanged",loadVoices); }catch(_){} }
+  return {
+    unlock(){ ac(); },
+    clack(){ noise(.07,2600,1.4,.9); noise(.05,700,1,.5); },
+    draw(){ noise(.04,3400,2,.35); },
+    shuffle(){ for(let i=0;i<14;i++) noise(.06,1800+Math.random()*1600,1.2,.35,i*.045+Math.random()*.02); },
+    dice(){ for(let i=0;i<7;i++) noise(.04,2200+Math.random()*1200,2,.5,i*.07+Math.random()*.03); },
+    swoosh(){ const c=ac(); if(!c||!on) return; const t0=c.currentTime; const len=Math.floor(c.sampleRate*.22), buf=c.createBuffer(1,len,c.sampleRate), d=buf.getChannelData(0);
+      for(let i=0;i<len;i++){ const x=i/len; d[i]=(Math.random()*2-1)*Math.sin(Math.PI*x)*.9; }
+      const s=c.createBufferSource(); s.buffer=buf; const f=c.createBiquadFilter(); f.type="bandpass"; f.Q.value=1.6;
+      f.frequency.setValueAtTime(700,t0); f.frequency.exponentialRampToValueAtTime(4200,t0+.2);
+      const g=c.createGain(); g.gain.value=.55; s.connect(f); f.connect(g); g.connect(c.destination); s.start(t0); },
+    win(){ [523,659,784,1047].forEach((f,i)=>tone(f,.5,.18,.25+i*.09,"triangle")); },
+    say(text,seat){
+      if(!on||typeof window==="undefined"||!window.speechSynthesis) return;
+      try{ const u=new SpeechSynthesisUtterance(text); u.lang="ja-JP"; const v=VOICE[seat]||VOICE[0]; u.pitch=v.pitch; u.rate=v.rate; u.volume=1;
+        if(!jaVoices.length) loadVoices();
+        // CPUは別の声があれば別の声に
+        const pick=jaVoices.length>1&&seat===1?jaVoices[1]:jaVoices[0]; if(pick) u.voice=pick;
+        speechSynthesis.speak(u); }catch(_){}
+    },
+    toggle(){ on=!on; try{ localStorage.setItem("sanma-sound",on?"on":"off"); }catch(_){} return on; },
+    get on(){ return on; }
+  };
+})();
+// ===== 表示 =====
+function sideTile(t,stack){
+  const top1="calc(var(--rt) * 1.34 - var(--rt) * .5 - var(--rt) * .67)";
+  if(!stack) return `<span class="sd">${tileHTML(t,"rv").replace('class="t','style="top:'+top1+'" class="t')}</span>`;
+  return `<span class="sd st">${tileHTML(t,"rv").replace('class="t','style="top:calc(var(--rt) * 2 + 2px - var(--rt) * .5 - var(--rt) * .67)" class="t')}${tileHTML(stack,"rv").replace('class="t','style="top:calc(var(--rt) * 1 - var(--rt) * .5 - var(--rt) * .67)" class="t')}</span>`;
+}
+function meldHTML(m,s){
+  const T=x=>tileHTML(x,"rv");
+  if(m.t==="ankan") return m.tiles.map((t,i)=>i===0||i===3?`<span class="t rv back"></span>`:T(t)).join("");
+  const rel=(m.from-s+3)%3; // 1=下家 2=上家
+  if(m.t==="pon"){ const [a,b,c]=m.tiles; return rel===2?sideTile(c)+T(a)+T(b):T(a)+T(b)+sideTile(c); }
+  if(m.t==="minkan"){ const [a,b,c,d]=m.tiles; return rel===2?sideTile(d)+T(a)+T(b)+T(c):T(a)+T(b)+T(c)+sideTile(d); }
+  if(m.t==="kakan"){ const [a,b,c,d]=m.tiles; return rel===2?sideTile(c,d)+T(a)+T(b):T(a)+T(b)+sideTile(c,d); }
+  return m.tiles.map(T).join("");
+}
+
+const fmtChip = n => (n>0?"+":"")+n+"枚";
+const SIDE = {0:"", 1:" r", 2:" l"};
+function seatLayer(s){
+  const P=H.p[s]; const on=H.turn===s && H.state!=="result";
+  const river=P.river.map(r=>tileHTML(r.t,"rv"+(r.riichi?" rot":"")+(r.called?" gone":""))).join("");
+  const nuki=P.kita.concat(P.hana).map(t=>tileHTML(t,"rv")).join("");
+  const melds=P.melds.map(m=>`<span class="meld">${meldHTML(m,s)}</span>`).join("");
+  const backs=s===0?"":P.hand.map(()=>`<span class="t rv back"></span>`).join("");
+  return `<div class="layer${SIDE[s]}">
+    ${on?'<div class="turnbar"></div>':""}
+    <div class="sc${on?" on":""}"><span class="wd">${HON[seatWind(s)-27]}</span><span>${G.scores[s].toLocaleString()}</span><span class="cp">${fmtChip(G.chips[s])}</span></div>
+    ${P.riichi?'<div class="stick"></div>':""}
+    <div class="rvg">${river}</div>
+    ${s!==0?`<div class="nm">${NAMES[s]}</div>`:""}
+    <div class="edge">${backs}${nuki||melds?`<span class="ex">${nuki}${melds}</span>`:""}</div>
+  </div>`;
+}
+function render(){
+  if(!H) return;
+  const P=H.p[0];
+  const play=H.state==="play" && H.turn===0;
+  const rOpts=play && H.sel==="riichi" ? riichiOptions(0) : null;
+  const drawn=H.drawn && H.turn===0 && P.hand.includes(H.drawn) ? H.drawn : null;
+  const ordered=sortHand(P.hand.filter(t=>t!==drawn)).concat(drawn?[drawn]:[]);
+  const hand=ordered.map(t=>{
+    let cls=t===drawn?"drawn":"";
+    if(H.pick===t.id && !P.riichi) cls+=" sel";
+    if(rOpts && !rOpts.includes(t.id)) cls+=" dim";
+    if(play && P.riichi && t!==drawn) cls+=" dim";
+    if(play && (t.k===30||t.k>=34) && !cls.includes("dim")) cls+=" dim";
+    return tileHTML(t,cls).replace('<span class="t','<span tabindex="0" role="button" class="t');
+  }).join("");
+  let acts="", hint="";
+  if(play){
+    const tw=tryTsumo(0);
+    if(tw) acts+=`<button data-a="tsumo" class="b-win">ツモ</button>`;
+    const hasHana=P.hand.some(x=>x.k>=34);
+    if(hasHana) acts+=`<button data-a="hana" class="b-kita">華</button>`;
+    if(P.hand.some(x=>x.k===30)) acts+=`<button data-a="kita" class="b-kita">北</button>`;
+    for(const o of kanOptions(0)) acts+=`<button data-a="kan2" data-k="${o.k}" data-t="${o.type}" class="b-pon">カン ${kName(o.k)}</button>`;
+    if(H.sel==="riichi"){ acts+=`<button data-a="cancel" class="b-skip">キャンセル</button>`; hint=H.pick!=null?"もう一度タップでリーチ":"リーチで切る牌を選んでください"; }
+    else if(riichiOptions(0).length) acts+=`<button data-a="riichi" class="b-riichi">リーチ</button>`;
+    if(!hint) hint=hasHana?"華牌を抜いてください":P.riichi?"リーチ中":H.pick!=null&&P.hand.some(t=>t.id===H.pick)?"上がっている牌をタップで切る":"切る牌を選んでください";
+  } else if(H.state==="prompt"){
+    const pr=H.prompt;
+    hint=`${NAMES[pr.s]}の打牌：${tName(pr.t)}`;
+    if(pr.human) acts+=`<button data-a="ron" class="b-win">ロン</button>`;
+    if(pr.pon) acts+=`<button data-a="pon" class="b-pon">ポン</button>`;
+    if(pr.kan) acts+=`<button data-a="kan" class="b-pon">カン</button>`;
+    acts+=`<button data-a="pass" class="b-skip">スキップ</button>`;
+  } else if(H.state==="wait") hint="他の人がロン・ポンを考え中…";
+  else if(H.state==="cpu") hint=P.riichi?`${NAMES[H.turn]}の番`:H.pick!=null?`${NAMES[H.turn]}の番（切る牌を選択中）`:`${NAMES[H.turn]}の番　次に切る牌を選んでおけます`;
+  const dora=H.dead.dora.concat(H.kanDora).map(t=>tileHTML(t,"rv big")).join("");
+  const wind=["東","南","東","南"][Math.min(G.phase,3)];
+  document.getElementById("app").innerHTML=`
+    <div class="bw"><div class="board">
+      <div class="dora"><span class="lb">ドラ</span>${dora}</div>
+      <div class="box">
+        <div class="rl">${wind}${V?V.kyoku:G.dealer+1}局</div>
+        <div class="sub">${G.honba}本場　供託${G.kyotaku}${G.phase>=2?"　返り東":""}</div>
+        <div class="rest">残り ${H.live.length}</div>
+      </div>
+      ${seatLayer(2)}${seatLayer(1)}${seatLayer(0)}
+    </div></div>
+    <div class="bottom">
+      <div class="acts">${acts}</div>
+      <div class="subrow"><button data-a="nonaki" class="tog${H.noNaki?" on":""}" aria-pressed="${H.noNaki}">${H.noNaki?"✓ ":""}鳴きなし</button><div class="hint">${hint}</div><span class="sp"></span></div>
+      <div class="hand" id="hand">${hand}</div>
+    </div>`;
+}
+document.addEventListener("click",e=>{
+  SE.unlock();
+  if(e.target.closest("#fs")){ toggleFS(); return; }
+  if(e.target.closest("#hs")){ if(!G) return; document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card wide"><h2 style="font-size:24px">全局の精算</h2>${histHTML()}<button data-a="close" class="b-gold">閉じる</button></div></div>`; return; }
+  if(e.target.closest("#lg")){ if(!G) return; document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card"><h2 style="font-size:24px">ログ</h2><div class="logbox">${G.log.map(x=>`<div>${x}</div>`).join("")}</div><button data-a="close" class="b-gold">閉じる</button></div></div>`; return; }
+  if(e.target.closest("button[data-a=close]")){ document.getElementById("ov").innerHTML=""; return; }
+  if(e.target.closest(".card.anim") && !e.target.closest("button")){ e.target.closest(".card").classList.add("instant"); DICE.finish(); clearRT(); return; }
+  if(e.target.closest("#snd")){ const b=document.getElementById("snd"); b.textContent=SE.toggle()?"🔊":"🔇"; return; }
+  const b=e.target.closest("button[data-a]");
+  if(b){ const a=b.dataset.a;
+    if(a==="tsumo"){ act({t:"tsumo"}); return; }
+    if(a==="hana"){ act({t:"hana"}); return; }
+    if(a==="kita"){ act({t:"kita"}); return; }
+    if(a==="riichi"){ H.sel="riichi"; render(); return; }
+    if(a==="cancel"){ H.sel=null; render(); return; }
+    if(a==="ron"||a==="pon"||a==="kan"||a==="pass"){ act({t:"answer",a}); H.state="wait"; H.prompt=null; render(); return; }
+    if(a==="kan2"){ act({t:"kan",type:b.dataset.t,k:+b.dataset.k}); return; }
+    if(a==="nonaki"){ act({t:"nonaki"}); H.noNaki=!H.noNaki; render(); return; }
+    if(a==="hist"){ const o2=document.createElement("div"); o2.className="overlay ov2"; o2.innerHTML=`<div class="card wide"><h2 style="font-size:24px">全局の精算</h2>${histHTML()}<button data-a="close2" class="b-gold">閉じる</button></div>`; document.body.appendChild(o2); return; }
+    if(a==="close2"){ const o2=b.closest(".ov2"); if(o2) o2.remove(); return; }
+    if(a==="pg3"){ const c=b.closest(".card"); DICE.finish(); clearRT(); c.classList.add("instant"); ["pg1","pg2","pg3"].forEach(p=>c.querySelector("."+p).classList.toggle("on",p==="pg3")); c.scrollTop=0; return; }
+    if(a==="pg2"||a==="pg1"){ const c=b.closest(".card"); const from3=c.querySelector(".pg3.on"); c.classList.remove("instant"); ["pg1","pg2"].forEach(p=>c.querySelector("."+p).classList.toggle("on",p===a)); c.scrollTop=0;
+      if(a==="pg2"&&from3){ c.classList.add("instant"); DICE.finish(); return; }
+      if(a==="pg2"){ clearRT(); DICE.stop(); /* 2ページ目の演出をやり直す */ const p2=c.querySelector(".pg2"); p2.querySelectorAll(".seq,.dstage").forEach(el=>{ el.style.animation="none"; void el.offsetWidth; el.style.animation=""; }); DICE.restart(2); }
+      else DICE.finish();
+      return; }
+    if(a==="skip"){ const c=b.closest(".card"); if(c) c.classList.add("instant"); DICE.finish(); clearRT(); return; }
+    if(a==="next"){ if(b.dataset.waiting) return; socket.emit("next"); document.querySelectorAll("button[data-a=next]").forEach(x=>{ x.dataset.waiting="1"; x.textContent="待機中…"; }); return; }
+    return;
+  }
+  const t=e.target.closest("#hand .t"); if(t) tapTile(+t.dataset.id);
+});
+document.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ") && e.target.matches && e.target.matches("#hand .t")){ e.preventDefault(); tapTile(+e.target.dataset.id); } });
+function tapTile(id){
+  const P=H.p[0];
+  if(!H||H.state==="result") return;
+  // 自分の番以外：先に選んでおく（同じ牌をもう一度で取り消し）
+  if(!(H.state==="play"&&H.turn===0)){
+    if(P.riichi) return;
+    const tt=P.hand.find(x=>x.id===id); if(!tt||tt.k===30||tt.k>=34) return;
+    H.pick=H.pick===id?null:id; render(); return;
+  }
+  if(P.riichi) return;
+  if(P.hand.some(x=>x.k>=34)) return;
+  const tt=P.hand.find(x=>x.id===id); if(tt&&tt.k===30) return;
+  if(H.sel==="riichi" && !riichiOptions(0).includes(id)) return;
+  // 選んでいない牌は選ぶだけ。選んである牌（先に選んでおいた牌も含む）をタップで切る
+  if(H.pick!==id){ H.pick=id; render(); return; }
+  H.pick=null;
+  if(H.sel==="riichi"){ H.sel=null; discard(0,id,true); return; }
+  discard(0,id,false);
+}
+const who = s => s<0?"供託":NAMES[s];
+const ptLine=p=>`<tr><td>${who(p.from)} → ${NAMES[p.to]}　${p.why}</td><td>${p.n.toLocaleString()}点</td></tr>`;
+const chipLine=c=>`<tr><td>${NAMES[c.from]} → ${NAMES[c.to]}　${c.why}</td><td>${c.n}枚</td></tr>`;
+const diceHTML=d=>`<div>${d.why}　${d.rolls.map(r=>`<span class="dice"><span class="die">${r[0]}</span><span class="die">${r[1]}</span></span>`).join("")} → <b>${d.total}枚</b></div>`;
+function nowTable(){ return `<table class="now">${[0,1,2].map(s=>`<tr><td>${NAMES[s]}</td><td>${G.scores[s].toLocaleString()}点　${fmtChip(G.chips[s])}</td></tr>`).join("")}</table>`; }
+function winTileOf(w){ for(let i=w.conc.length-1;i>=0;i--) if(w.conc[i].k===w.winK) return w.conc[i]; return null; }
+function winHandHTML(w,P,tsumo){
+  const conc=w.conc.slice(); let wi=-1;
+  for(let i=conc.length-1;i>=0;i--) if(conc[i].k===w.winK){ wi=i; break; }
+  const wt=wi>=0?conc.splice(wi,1)[0]:null;
+  const melds=P.melds.map(m=>`<span style="display:flex;align-items:flex-end;margin-left:6px">${meldHTML(m,P===H.p[0]?0:H.p.indexOf(P))}</span>`).join("");
+  const nuki=(P.kita.length||P.hana.length)?`<div class="nukirow">${P.kita.length?`<span class="ng"><b>抜き北</b>${P.kita.map(t=>tileHTML(t,"rv")).join("")}</span>`:""}${P.hana.length?`<span class="ng"><b>抜き華</b>${P.hana.map(t=>tileHTML(t,"rv")).join("")}</span>`:""}</div>`:"";
+  return `<div class="whand">${sortHand(conc).map(t=>tileHTML(t,"rv")).join("")}${melds}${wt?`<span class="wt">${tileHTML(wt,"rv")}<small>${tsumo?"ツモ":"ロン"}</small></span>`:""}</div>${nuki}`;
+}
+function netSummary(){
+  const pt=[0,0,0], ch=[0,0,0];
+  for(const p of R.pts){ if(p.from>=0) pt[p.from]-=p.n; pt[p.to]+=p.n; }
+  for(const c of R.chips){ ch[c.from]-=c.n; ch[c.to]+=c.n; }
+  const cls=v=>v>0?"pos":v<0?"neg":"zero";
+  const sg=v=>v>0?"+"+v.toLocaleString():v<0?"−"+(-v).toLocaleString():"±0";
+  return `<div class="net">${[0,1,2].map(s=>`<div class="nc"><div class="nn">${NAMES[s]}</div>
+    <div class="nv ${cls(ch[s])}">${sg(ch[s])}<small>枚</small></div>
+    <div class="np ${cls(pt[s])}">${sg(pt[s])}<small>点</small></div></div>`).join("")}</div>`;
+}
+function breakdown(list,unit){
+  // もらった人ごと → 理由ごと → 払った人ごと
+  const byTo={};
+  for(const x of list){ const k=x.to; (byTo[k]=byTo[k]||[]).push(x); }
+  let h="";
+  for(const to of Object.keys(byTo).map(Number)){
+    const items=byTo[to]; const payers=[...new Set(items.map(x=>x.from))].sort((a,b)=>a-b);
+    const reasons=[...new Set(items.map(x=>x.why))];
+    const cell=(r,f)=>items.filter(x=>x.why===r&&x.from===f).reduce((a,x)=>a+x.n,0);
+    const total=items.reduce((a,x)=>a+x.n,0);
+    h+=`<div class="bd"><div class="bdh"><span>${NAMES[to]} がもらう</span><b>+${total.toLocaleString()}${unit}</b></div>
+      <table class="bt"><thead><tr><th></th>${payers.map(f=>`<th>${f<0?"供託":NAMES[f]}</th>`).join("")}</tr></thead><tbody>
+      ${reasons.map(r=>`<tr><td>${r}</td>${payers.map(f=>{const v=cell(r,f);return `<td>${v?v.toLocaleString():"−"}</td>`}).join("")}</tr>`).join("")}
+      <tr class="sum"><td>合計</td>${payers.map(f=>`<td>${items.filter(x=>x.from===f).reduce((a,x)=>a+x.n,0).toLocaleString()}</td>`).join("")}</tr>
+      </tbody></table></div>`;
+  }
+  return h;
+}
+let RT=[]; const later=(fn,sec)=>RT.push(setTimeout(fn,sec*1000)); const clearRT=()=>{ RT.forEach(clearTimeout); RT=[]; };
+const DICE=(()=>{
+  const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+  let list=[], timers=[], n=0;
+  const face=v=>Array.from({length:9},(_,i)=>`<i class="${PIPS[v].includes(i)?"p"+(v===1?" one":""):""}"></i>`).join("");
+  const el=id=>document.getElementById("die"+id);
+  return {
+    reset(){ timers.forEach(clearTimeout); timers=[]; list=[]; },
+    add(v,t0,pg=2){ const id=n++; list.push({id,v,t0,pg}); return id; },
+    html(id){ return `<span class="die3" id="die${id}">${face(1+Math.floor(Math.random()*6))}</span>`; },
+    start(pg){
+      const groups={};
+      for(const d of list){ if(pg&&d.pg!==pg) continue;
+        let iv=null;
+        timers.push(setTimeout(()=>{ const e=el(d.id); if(!e) return; e.classList.add("rolling"); if(!groups[d.t0]){ groups[d.t0]=1; SE.dice(); }
+          iv=setInterval(()=>{ const x=el(d.id); if(x) x.innerHTML=face(1+Math.floor(Math.random()*6)); },70); timers.push(iv); }, d.t0*1000));
+        timers.push(setTimeout(()=>{ clearInterval(iv); const e=el(d.id); if(e) e.innerHTML=face(d.v); }, d.t0*1000+900));
+      }
+    },
+    restart(pg){ this.start(pg); },
+    stop(){ timers.forEach(t=>{clearTimeout(t);clearInterval(t);}); timers=[]; },
+    finish(){ timers.forEach(t=>{clearTimeout(t);clearInterval(t);}); timers=[]; for(const d of list){ const e=el(d.id); if(e){ e.classList.remove("rolling"); e.innerHTML=face(d.v); } } }
+  };
+})();
+function netCards(){
+  const pt=[0,0,0], ch=[0,0,0];
+  for(const p of R.pts){ if(p.from>=0) pt[p.from]-=p.n; pt[p.to]+=p.n; }
+  for(const c of R.chips){ ch[c.from]-=c.n; ch[c.to]+=c.n; }
+  const cls=v=>v>0?"pos":v<0?"neg":"zero";
+  const sg=v=>v>0?"+"+v.toLocaleString():v<0?"−"+(-v).toLocaleString():"±0";
+  return `<div class="ncards">${[0,1,2].map((s,i)=>`<div class="ncard seq ${cls(ch[s])}b" style="--d:${.2+i*.15}s">
+    <div class="nn">${NAMES[s]}</div>
+    <div class="cv ${cls(ch[s])}">${sg(ch[s])}<small>枚</small></div>
+    <div class="pv ${cls(pt[s])}">${sg(pt[s])}点</div>
+    <div class="tot">合計 <b>${G.chips[s]>0?"+":""}${G.chips[s]}枚</b>・${G.scores[s].toLocaleString()}点</div></div>`).join("")}</div>`;
+}
+function breakdownCompact(list,hideDice){
+  const byTo={}; for(const x of list) (byTo[x.to]=byTo[x.to]||[]).push(x);
+  let h="";
+  for(const to of Object.keys(byTo).map(Number)){
+    const items=byTo[to]; const payers=[...new Set(items.map(x=>x.from))].sort((a,b)=>a-b);
+    const reasons=[...new Set(items.map(x=>x.why))];
+    const amt=(r,f)=>items.filter(x=>x.why===r&&x.from===f).reduce((a,x)=>a+x.n,0);
+    const isD=r=>hideDice&&/サイコロ/.test(r);
+    const per=payers.map(f=>items.filter(x=>x.from===f&&!isD(x.why)).reduce((a,x)=>a+x.n,0));
+    const total=per.reduce((a,b)=>a+b,0); const hasD=reasons.some(isD);
+    h+=`<div class="bc"><div class="bch"><span>${NAMES[to]} がもらう <b>+${total}枚${hasD?" ＋🎲":""}</b></span><small>${payers.map((f,i)=>`${NAMES[f]} ${per[i]}${hasD?"＋🎲":""}`).join("・")}</small></div><div class="bcl${reasons.length>4?" c3":""}">`;
+    for(const r of reasons){
+      if(isD(r)){ h+=`<span class="bi"><span>${r}</span><b>🎲<small>精算で振る</small></b></span>`; continue; }
+      const v=payers.map(f=>amt(r,f));
+      const val=payers.length===2&&v[0]===v[1]?`${v[0]}<small>枚ずつ</small>`:payers.length===1?`${v[0]}<small>枚</small>`:`${v.join("・")}<small>枚</small>`;
+      h+=`<span class="bi"><span>${r}</span><b>${val}</b></span>`;
+    }
+    h+=`</div></div>`;
+  }
+  return h;
+}
+function diceStageHTML(dv,tStart,pg){
+  let rows="", t=tStart;
+  dv.rolls.forEach(r=>{ const t0=t; t+=1.1; const id1=DICE.add(r[0],t0,pg), id2=DICE.add(r[1],t0,pg);
+    rows+=`<div class="droll seq" style="--d:${t0}s">${DICE.html(id1)}${DICE.html(id2)}${r[0]===r[1]?`<span class="zm seq" style="--d:${t0+.95}s">ゾロ目！もう一回</span>`:""}</div>`; });
+  const td=t; t+=.5;
+  return {html:`<div class="dstage seq" style="--d:${Math.max(0,tStart-.05)}s"><div class="dt">${NAMES[dv.s]}　${dv.why}のサイコロ</div>${rows}<div class="dtotal seq" style="--d:${td}s">合計 <b>${dv.total}</b> 枚 × 2人から</div></div>`, end:t};
+}
+function showResult(){
+  render(); clearRT(); DICE.reset();
+  const p1Dice=new Set();
+  const roundName=`${["東","南","東","南"][Math.min(R.handPhase??G.phase,3)]}${R.handKyoku??((R.handDealer??G.dealer)+1)}局${R.handHonba?` ${R.handHonba}本場`:""}`;
+  let d=.3; const step=x=>{ const v=d; d+=x; return v; };
+  let p1="";
+  if(R.wins.length){
+    for(const x of R.wins){
+      if(x.nagashi){ p1+=`<div class="p1top"><div class="rnm">${roundName}</div><div class="who2">${NAMES[x.s]}</div></div><div class="bigrank">流し役満</div>`; continue; }
+      const r=x.w.res, fp=x.fp, P=H.p[x.s], di=fp.di;
+      const dor=H.dead.dora.concat(H.kanDora).map(t=>tileHTML(t,"rv")).join("");
+      let ura="";
+      if(P.riichi){ ura=H.dead.ura.concat(H.kanUra).map(t=>{ const dd=step(.45); later(()=>SE.draw(),dd+.25); return `<span class="flip"><span class="in" style="--d:${dd}s"><span class="fc"><span class="t rv back"></span></span><span class="fc fr">${tileHTML(t,"rv")}</span></span></span>`; }).join(""); d+=.3; }
+      p1+=`<div class="p1top"><div><div class="rnm">${roundName}</div><div class="who2">${NAMES[x.s]}<span class="kind">${x.tsumo?"ツモ":"ロン"}${x.w.pocchi?"・白ポッチ":""}</span>${x.tsumo?"":`<span class="from">← ${NAMES[x.from]}</span>`}</div></div>
+        <div class="dbox"><div class="row"><b>ドラ</b>${dor}</div>${P.riichi?`<div class="row"><b>裏ドラ</b>${ura}</div>`:""}</div></div>`;
+      p1+=`<div class="p1hand">${winHandHTML(x.w,P,x.tsumo)}</div>`;
+      let ys="";
+      const item=(name,val)=>{ const dd=step(.42); later(()=>SE.swoosh(),dd); ys+=`<span class="seq" style="--d:${dd}s">${name}</span><span class="seq" style="--d:${dd}s">${val}</span>`; };
+      let ymNames="";
+      if(r.ymN>0){ r.ym.forEach(y=>{ const dd=step(.42); later(()=>SE.swoosh(),dd); ymNames+=`<span class="ymn seq" style="--d:${dd}s">${y[0]}</span>`; }); }
+      else {
+        r.yaku.forEach(y=>item(y[0],`${y[1]}翻`));
+        if(di.dora) item("ドラ",`${di.dora}翻`);
+        if(di.akaDora) item(`赤・金${di.aki?"（秋）":""}`,`${di.akaDora}翻`);
+        if(di.kitaDora) item("抜き北",`${di.kitaDora}翻`);
+        if(di.ura) item("裏ドラ",`${di.ura}翻`);
+        if(fp.fl.all.includes(35)) item("夏（ワンランクアップ）","↑");
+      }
+      const dealer=x.s===(R.handDealer??G.dealer);
+      let payStr;
+      if(x.tsumo){ const ko=ceil1000(fp.base)+1000, oya=ceil1000(fp.base*2)+1000; payStr=dealer?`${oya.toLocaleString()}オール`:`${ko.toLocaleString()}・${oya.toLocaleString()}`; }
+      else payStr=ceil1000(fp.base*(dealer?6:4)).toLocaleString();
+      const honba=R.handHonba||0, kyo=R.pts.filter(p=>p.to===x.s && p.from<0).reduce((a,p)=>a+p.n,0);
+      const extraTxt=[honba&&(R.wins[0]===x||x.tsumo)?`${honba}本場 +${(honba*2000).toLocaleString()}`:"",kyo?`供託 +${kyo.toLocaleString()}`:""].filter(Boolean).join("　");
+      const dd=step(.5);
+      const hanTxt=r.ymN>0?ymNames:(fp.han!=null?`${fp.han}翻`:"");
+      const rank=fp.base>=2000||r.ymN>0?fp.label:"";
+      const mine=R.chips.filter(c=>c.to===x.s);
+      let diceP1="";
+      if(r.ymN>0){ let t=dd+.6; for(const dv of R.dice.filter(q=>q.s===x.s)){ const o=diceStageHTML(dv,t,1); diceP1+=o.html; t=o.end; p1Dice.add(dv); } if(diceP1) d=t; }
+      const hideDice=!diceP1 && R.dice.some(q=>q.s===x.s);
+      const frD=diceP1?d:dd+.35;
+      p1+=`<div class="p1foot"><div class="fl">${ys?`<div class="yaku y2">${ys}</div>`:""}
+        <div class="hanrow seq" style="--d:${dd}s"><div><span class="hn">${hanTxt}${rank?"":` ${r.fu}符`}</span>${rank?`<span class="bigrank">${rank}</span>`:""}</div>
+        <div class="pt">${x.tsumo?"ツモ":"ロン"} ${payStr}</div>${extraTxt?`<div class="ex">${extraTxt}</div>`:""}</div>
+        ${diceP1?`<div class="p1dice">${diceP1}</div>`:""}</div>
+        ${mine.length?`<div class="fr seq" style="--d:${frD}s">${breakdownCompact(mine,hideDice)}</div>`:""}</div>`;
+      later(()=>SE.win(),dd);
+    }
+  } else {
+    let ys=""; for(const s of [0,1,2]){ const dd=step(.42); later(()=>SE.swoosh(),dd); ys+=`<span class="seq" style="--d:${dd}s">${NAMES[s]}</span><span class="seq ${R.draw.ten[s]?"tp":"nt"}" style="--d:${dd}s">${R.draw.ten[s]?"テンパイ":"ノーテン"}</span>`; }
+    p1+=`<div class="p1top"><div><div class="rnm">${roundName}</div><div class="who2"><span class="kind">流局</span></div></div></div><div class="yaku dr">${ys}</div>`;
+    for(const s of [0,1,2]) if(R.draw.ten[s]){
+      const P=H.p[s], dd=step(.4);
+      const melds=P.melds.map(m=>`<span style="display:flex;align-items:flex-end;margin-left:6px">${meldHTML(m,s)}</span>`).join("");
+      const w=waits(s,P.hand);
+      p1+=`<div class="tpbox seq" style="--d:${dd}s"><div class="tph">${NAMES[s]} の手牌<span>待ち ${w.map(kName).join("・")}</span></div><div class="whand">${sortHand(P.hand.slice()).map(t=>tileHTML(t,"rv")).join("")}${melds}</div></div>`;
+    }
+  }
+  // ---- 2ページ目：精算 ----
+  let p2=`<div class="p1top"><div><div class="rnm">${roundName}</div><div class="who2"><span class="kind">精算</span></div></div></div>${netCards()}`;
+  let left="", t2=1.0;
+  for(const dv of R.dice){ if(p1Dice.has(dv)) continue; const o=diceStageHTML(dv,t2,2); left+=o.html; t2=o.end; }
+  if(R.alice.length) left+=`<div class="dstage seq" style="--d:${t2}s"><div class="dt">アリス</div><div class="whand">${R.alice.map(a=>tileHTML(a.t,"rv"+(a.hit?"":" gone"))).join("")}</div><div>${R.alice.filter(a=>a.hit).map(a=>`${kName(a.t.k)} ${a.n}枚`).join("、")||"当たりなし"}</div></div>`;
+  if(left) p2+=`<div class="p2dice">${left}</div>`;
+  if(R.msg) p2+=`<p class="msg">${R.msg}</p>`;
+  const nextLbl=G.over?"終局の精算へ":"次の局へ";
+  const dots=n=>`<span class="dots">${[1,2].map(i=>`<i class="${i===n?"on":""}"></i>`).join("")}</span>`;
+  const nav1=`<div class="pgnav"><span></span>${dots(1)}<button data-a="pg2" class="b-gold">精算へ ▶</button></div>`;
+  const nav2=`<div class="pgnav"><button data-a="pg1" class="b-skip">◀</button>${dots(2)}<span class="nr"><button data-a="hist" class="b-skip">📊 全局</button><button data-a="next" class="b-gold">${nextLbl}</button></span></div>`;
+  const h=`<button class="skip" data-a="skip">スキップ</button><div class="pg pg1 on"><div class="pgin">${p1}</div>${nav1}</div><div class="pg pg2"><div class="pgin">${p2}</div>${nav2}</div>`;
+  document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card res anim">${h}</div></div>`;
+  DICE.start(1);
+}
+function histHTML(){
+  if(!G||!G.hist.length) return `<p style="color:var(--muted)">まだ精算した局はありません。</p>`;
+  const SN=["あなた","下家","上家"];
+  const sg=(v,u)=>`<span class="${v>0?"pos":v<0?"neg":"zero"}">${v>0?"+":v<0?"−":"±"}${Math.abs(v).toLocaleString()}${u}</span>`;
+  return `<div class="htw"><table class="ht"><thead><tr><th>局・結果</th>${[0,1,2].map(s=>`<th>${SN[s]}</th>`).join("")}</tr></thead><tbody>
+    ${G.hist.map(r=>`<tr class="${r.final?"fin":""}"><td class="hl">${r.label}<div class="hd">${r.desc}</div></td>${[0,1,2].map(s=>`<td>${sg(r.dc[s],"枚")}<br><small>${sg(r.dp[s],"点")}</small></td>`).join("")}</tr>`).join("")}
+    <tr class="tot"><td class="hl">現在の合計</td>${[0,1,2].map(s=>`<td>${sg(G.chips[s],"枚")}<br><small class="zero">${G.scores[s].toLocaleString()}点</small></td>`).join("")}</tr>
+  </tbody></table></div>`;
+}
+function showFinal(order){
+  render();
+  let h=`<h2>終局</h2><div class="yaku" style="font-size:17px">${order.map((s,i)=>`<span>${i+1}位　${NAMES[s]}</span><span>${G.scores[s].toLocaleString()}点</span>`).join("")}</div>`;
+  if(R.chips.length) h+=`<h3>ウマ・ボーナス</h3>${netSummary()}${breakdown(R.chips,"枚")}`;
+  h+=`<h3>最終祝儀</h3><div class="yaku" style="font-size:20px">${[0,1,2].map(s=>`<span>${NAMES[s]}</span><span>${fmtChip(G.chips[s])}</span>`).join("")}</div>`;
+  h+=`<h3>全局の精算</h3>${histHTML()}`;
+  h+=`<button data-a="next" class="b-gold">もう一度遊ぶ（全員そろったら開始）</button>`;
+  document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card fin">${h}</div></div>`;
+}
+function showStart(){
+  const deco=[{k:34},{k:13,red:true},{k:22,gold:true},{k:31,pocchi:true},{k:30},{k:33}].map((t,i)=>tileHTML({...t,id:-10-i},"rv")).join("");
+  document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card start">
+    <p class="ttl">三麻 ノーマル華4</p>
+    <div class="deco">${deco}</div>
+    <p>あなたとCPU2人で対戦します。35000点持ち、精算はすべて祝儀チップ。</p>
+    <p>華牌は「華」、北は「北」ボタンで抜きます。北と華牌は切れません（抜くだけ）。</p>
+    <button data-a="new" class="b-gold">対局開始</button></div></div>`;
+}
+function toggleFS(){
+  const d=document, el=d.documentElement;
+  const isFS=d.fullscreenElement||d.webkitFullscreenElement;
+  try{
+    if(isFS){ (d.exitFullscreen||d.webkitExitFullscreen).call(d); }
+    else { const p=(el.requestFullscreen||el.webkitRequestFullscreen).call(el,{navigationUI:"hide"}); if(p&&p.then) p.then(()=>{ try{ screen.orientation.lock("landscape").catch(()=>{}); }catch(_){} }).catch(()=>{}); }
+  }catch(_){}
+}
+/* オンライン版はロビーから開始 */
+{ const b=document.getElementById("snd"); if(b) b.textContent=SE.on?"🔊":"🔇";
+  const f=document.getElementById("fs"); const ok=document.fullscreenEnabled||document.webkitFullscreenEnabled; if(f&&!ok) f.style.display="none"; }
+
+// ===== オンライン：通信と状態 =====
+let G=null, H=null, R=null, V=null, RS=null;
+let NAMES=["","",""];
+const socket = io();
+const LS_KEY="sanma-online";
+const saved=(()=>{ try{ return JSON.parse(localStorage.getItem(LS_KEY)||"null"); }catch(_){ return null; } })();
+let ME={ code: saved&&saved.code, token: saved&&saved.token, name: (saved&&saved.name)||"" };
+const save=()=>{ try{ localStorage.setItem(LS_KEY, JSON.stringify(ME)); }catch(_){} };
+const act=a=>socket.emit("act",a);
+
+// エンジン関数の代わり（サーバーから来た情報を使う）
+function seatWind(s){ return 27+((s-G.dealer+3)%3); }
+function tryTsumo(s){ return s===0&&V&&V.acts&&V.acts.tsumo?{pocchi:V.acts.pocchi}:null; }
+function riichiOptions(s){ return s===0&&V&&V.acts?V.acts.riichi:[]; }
+function kanOptions(s){ return s===0&&V&&V.acts?V.acts.kan:[]; }
+function waits(s){ return (RS&&RS.waits&&RS.waits[s])||[]; }
+function discard(s,id,riichi){ act({t:"discard",id,riichi:!!riichi}); H.pick=null; H.sel=null; }
+
+function applyView(v){
+  V=v; NAMES=v.names;
+  G={ scores:v.scores, chips:v.chips, dealer:v.dealer, phase:v.phase, honba:v.honba, kyotaku:v.kyotaku, log:v.log, hist:(G&&G.hist)||[], over:false };
+  const keepPick=H&&H.pick, keepSel=H&&H.sel;
+  const p=v.players.map((P,i)=>({ hand: i===0?P.hand:Array.from({length:P.handCount},()=>({k:-1})), melds:P.melds, river:P.river, kita:P.kita, hana:P.hana, riichi:P.riichi }));
+  let state;
+  if(v.state==="play") state=v.turn===0?"play":"cpu";
+  else if(v.state==="prompt") state=v.prompt?"prompt":"wait";
+  else if(v.state==="result") state="result";
+  else state="cpu";
+  H={ p, turn:v.turn, state, live:{length:v.live}, dead:{dora:v.dora, ura:[]}, kanDora:[], kanUra:[],
+      drawn: v.drawnId!=null ? p[0].hand.find(t=>t.id===v.drawnId)||null : null,
+      noNaki:v.noNaki, prompt:v.prompt, pick:keepPick, sel:state==="play"?keepSel:null };
+  if(H.pick!=null && !p[0].hand.some(t=>t.id===H.pick)) H.pick=null;
+  if(H.p[0].riichi) H.pick=null;
+}
+
+socket.on("connect",()=>{ if(ME.code&&ME.token) socket.emit("join",{code:ME.code,token:ME.token,name:ME.name}); else showLobbyStart(); });
+socket.on("joined",j=>{ ME.code=j.code; ME.token=j.token; save(); history.replaceState(null,"","?room="+j.code); });
+socket.on("err",msg=>{ toast(msg); if(/見つかりません|始まって|満員/.test(msg)){ ME.code=null; ME.token=null; save(); showLobbyStart(); } });
+socket.on("lobby",L=>{ if(L.phase==="lobby") showRoom(L); });
+socket.on("view",v=>{
+  const ov=document.getElementById("ov");
+  if(ov.querySelector(".card.res,.card.fin,.card.lob")) ov.innerHTML="";
+  applyView(v); render();
+});
+socket.on("result",d=>{
+  R=d.R; NAMES=d.names; RS=d.snap;
+  G=Object.assign({},G||{},d.G);
+  const base=H||{p:[{},{},{}]};
+  H=Object.assign({},base,{ state:"result",
+    p: base.p.map((P,i)=>Object.assign({},P,{ melds:RS.p[i].melds, kita:RS.p[i].kita, hana:RS.p[i].hana, riichi:RS.p[i].riichi, hand: RS.p[i].hand.length?RS.p[i].hand:P.hand })),
+    dead:{ dora:RS.dora, ura:RS.ura }, kanDora:RS.kanDora, kanUra:RS.kanUra });
+  showResult();
+});
+socket.on("ready",r=>{ document.querySelectorAll("button[data-a=next]").forEach(b=>{ if(b.dataset.waiting) b.textContent=`待機中 ${r.ready}/${r.total}`; }); });
+socket.on("final",d=>{ R=d.R; NAMES=d.names; G=Object.assign({},G||{},d.G); showFinal(d.order); });
+socket.on("se",e=>{ if(e.say) SE.say(e.say,e.seat); else if(e.t&&SE[e.t]) SE[e.t](); });
+
+function toast(msg){
+  const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3200);
+}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+// ===== ロビー =====
+function showLobbyStart(){
+  const q=new URLSearchParams(location.search).get("room")||"";
+  const deco=[{k:34},{k:13,red:true},{k:22,gold:true},{k:31,pocchi:true},{k:30},{k:33}].map((t,i)=>tileHTML({...t,id:-10-i},"rv")).join("");
+  document.getElementById("app").innerHTML="";
+  document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card lob start">
+    <p class="ttl">三麻 ノーマル華4</p>
+    <div class="deco">${deco}</div>
+    <label class="fld">名前<input id="nm" maxlength="12" value="${esc(ME.name)}" placeholder="名前を入れてください"></label>
+    <button data-a="create" class="b-gold">ルームを作る</button>
+    <div class="or">または</div>
+    <div class="joinrow"><input id="rc" inputmode="numeric" maxlength="4" value="${esc(q)}" placeholder="ルーム番号（4桁）"><button data-a="join" class="b-pon">参加</button></div>
+  </div></div>`;
+}
+function showRoom(L){
+  const me=L.mySeat;
+  const url=location.origin+location.pathname+"?room="+L.code;
+  const rows=L.seats.map((p,i)=>`<div class="seatrow${i===me?" me":""}"><span class="sn">${p?esc(p.name):"空席"}</span><span class="st">${p?(p.host?"ホスト":"")+(p.online?"":"（切断中）"):"CPUが入ります"}</span></div>`).join("");
+  const n=L.seats.filter(Boolean).length;
+  document.getElementById("app").innerHTML="";
+  document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card lob">
+    <div class="rnm">ルーム番号</div><div class="code">${L.code}</div>
+    <button data-a="share" data-url="${esc(url)}" class="b-skip">招待リンクを送る</button>
+    <h3>メンバー（${n}/3）</h3>${rows}
+    ${L.isHost?`<button data-a="start" class="b-gold">${n<3?`CPUを${3-n}人入れて開始`:"対局開始"}</button>`:`<p class="wait">ホストが開始するのを待っています…</p>`}
+    <button data-a="leave" class="b-skip" style="margin-top:8px">ルームを出る</button>
+  </div></div>`;
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button[data-a]"); if(!b) return;
+  const a=b.dataset.a;
+  if(a==="create"){ ME.name=(document.getElementById("nm").value||"").trim(); if(!ME.name) return toast("名前を入れてください"); save(); socket.emit("create",{name:ME.name}); }
+  else if(a==="join"){ ME.name=(document.getElementById("nm").value||"").trim(); if(!ME.name) return toast("名前を入れてください"); const code=(document.getElementById("rc").value||"").trim(); if(!/^\d{4}$/.test(code)) return toast("4桁のルーム番号を入れてください"); save(); socket.emit("join",{code,name:ME.name}); }
+  else if(a==="start") socket.emit("start");
+  else if(a==="leave"){ socket.emit("leaveRoom"); ME.code=null; ME.token=null; save(); history.replaceState(null,"",location.pathname); showLobbyStart(); }
+  else if(a==="share"){ const url=b.dataset.url; if(navigator.share) navigator.share({title:"三麻で対戦しよう",text:"ルーム番号 "+url.split("=").pop(),url}).catch(()=>{}); else navigator.clipboard.writeText(url).then(()=>toast("リンクをコピーしました")).catch(()=>toast(url)); }
+}, true);
+
+</script>
+</body>
+</html>
