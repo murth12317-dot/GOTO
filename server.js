@@ -1,292 +1,392 @@
-// 三麻 ノーマル華4 オンライン対戦サーバー
-"use strict";
-const path = require("path");
-const http = require("http");
-const express = require("express");
-const { Server } = require("socket.io");
-const { createGame } = require("./game.js");
+// 友達対戦用 麻雀サーバー（依存パッケージなし：Node.js標準モジュールのみ）
+// 通信: サーバー→ブラウザは Server-Sent Events、ブラウザ→サーバーは POST /api
+'use strict';
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const { Game, botAction } = require('./game');
 
-const app = express();
-app.use(express.static(path.join(__dirname, "public")));
-app.get("/game.js", (req, res) => res.sendFile(path.join(__dirname, "game.js")));
-app.get("/healthz", (req, res) => res.send("ok"));
-const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+// 画面のファイルは public フォルダに置く。フォルダごとアップロードできなかった場合に備えて、
+// public がなければ server.js と同じ場所から配る（サーバー側のファイルは配らない）
+const PUBLIC = fs.existsSync(path.join(__dirname, 'public', 'index.html')) ? path.join(__dirname, 'public') : __dirname;
+const HIDDEN = new Set(['server.js', 'game.js', 'yaku.js', 'rules.js', 'package.json', 'render.yaml', 'README.md']);
+const BOT_DELAY = +(process.env.BOT_DELAY || 600);
+const rooms = new Map(); // code -> room
+const clients = new Map(); // token -> { res, code }
 
-const rooms = new Map();
-const CPU_NAMES = ["CPU 一号", "CPU 二号", "CPU 三号"];
-const newCode = () => { let c; do { c = String(Math.floor(1000 + Math.random() * 9000)); } while (rooms.has(c)); return c; };
-const newToken = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
 
-// ---------- 席の回転（自分を0、下家を1、上家を2にして送る） ----------
-const rotOf = me => s => (s == null || s < 0) ? s : (s - me + 3) % 3;
-const rotArr = (arr, me) => [0, 1, 2].map(i => arr[(i + me) % 3]);
+function newCode() {
+  let c;
+  do { c = String(crypto.randomInt(1000, 10000)); } while (rooms.has(c));
+  return c;
+}
 
-function roomPublic(room) {
+const online = (token) => clients.has(token);
+
+function send(token, event, data) {
+  const c = clients.get(token);
+  if (c) c.res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+}
+
+const pidOf = (token) => crypto.createHash('sha256').update(String(token)).digest('hex').slice(0, 10);
+
+// 対局が終わったら部屋の成績に記録する
+function recordGame(room) {
+  const g = room.game;
+  if (!g || !g.gameOver || g.recorded) return;
+  g.recorded = true;
+  if (!room.history) room.history = [];
+  room.history.push({
+    no: room.history.length + 1, at: Date.now(),
+    replay: g.replay || [], names: g.players.map(p => p.name),
+    rows: g.gameOver.map(r => ({ pid: pidOf(room.seats[r.seat].token), name: r.name, isBot: !!room.seats[r.seat].isBot, rank: r.rank, score: r.score, rankChips: r.rankChips, chips: r.chips })),
+  });
+}
+
+function roomSummary(room) {
+  recordGame(room);
   return {
-    code: room.code, phase: room.phase,
-    seats: room.seats.map((p, i) => p ? { name: p.name, cpu: !!p.cpu, online: p.cpu || !!p.socket, host: p.token === room.hostToken } : null),
+    history: (room.history || []).map(x => ({ no: x.no, at: x.at, rows: x.rows, names: x.names })), // 牌譜は別に取りに来る
+    code: room.code,
+    settings: room.settings,
+    seats: room.seats.map(s => s && { name: s.name, isBot: !!s.isBot, online: !!s.isBot || online(s.token), ready: !!s.isBot || s.token === room.hostToken || !!s.ready }),
+    spectators: (room.spectators || []).filter(v => online(v.token)).map(v => v.name),
+    started: !!room.game,
   };
 }
-function broadcastLobby(room) {
-  for (const p of room.seats) if (p && p.socket) p.socket.emit("lobby", { ...roomPublic(room), mySeat: room.seats.indexOf(p), isHost: p.token === room.hostToken });
+
+// ホストの接続が切れて30秒たったら、つながっている別の人をホストにする（「もう一度」「対局開始」を押せる人がいなくならないように）
+function maybeTransferHost(room) {
+  if (online(room.hostToken)) return;
+  const host = room.seats.find(s => s && s.token === room.hostToken);
+  if (host && host.offlineAt && Date.now() - host.offlineAt < GRACE_MS) return;
+  const next = room.seats.find(s => s && !s.isBot && online(s.token));
+  if (next) room.hostToken = next.token;
 }
 
-function viewFor(room, seat) {
-  const g = room.game, G = g.G, H = g.H, r = rotOf(seat);
-  const pl = H.p.map((P, s) => ({
-    hand: s === seat || P.open ? P.hand : null, handCount: P.hand.length, open: !!P.open,
-    melds: P.melds.map(m => ({ ...m, from: r(m.from) })),
-    river: P.river, kita: P.kita, hana: P.hana, riichi: P.riichi,
-  }));
-  const me = H.p[seat];
-  let acts = null;
-  if (H.state === "play" && H.turn === seat) {
-    const tw = g.tryTsumo(seat);
-    acts = { tsumo: !!tw, pocchi: !!(tw && tw.pocchi), riichi: g.riichiOptions(seat), openRiichi: g.riichiOptions(seat, true), kan: g.kanOptions(seat),
-      kita: me.hand.some(t => t.k === 30), hana: me.hand.some(t => t.k >= 34) };
+function broadcast(room) {
+  room.lastActive = Date.now();
+  maybeTransferHost(room);
+  const summary = roomSummary(room);
+  room.seats.forEach((s, i) => {
+    if (!s || s.isBot) return;
+    send(s.token, 'room', { ...summary, you: i, isHost: s.token === room.hostToken });
+    if (room.game) { const v = room.game.viewFor(i); v.waitFor = waitingFor(room); send(s.token, 'state', v); }
+  });
+  // 観戦者：手牌は見えない（東家から見た向きで表示）
+  for (const v of room.spectators || []) {
+    if (!online(v.token)) continue;
+    send(v.token, 'room', { ...summary, you: -1, spectator: true, isHost: false });
+    if (room.game) { const sv = spectatorView(room.game); sv.waitFor = waitingFor(room); send(v.token, 'state', sv); }
   }
-  let prompt = null, othersDeciding = false;
-  if (H.state === "prompt" && H.prompt) {
-    const p = H.prompt.pend[seat];
-    if (p && !p.answer) prompt = { s: r(H.prompt.s), t: H.prompt.t, human: !!p.ron, pon: p.pon, kan: p.kan };
-    else othersDeciding = true;
+  scheduleBots(room);
+}
+
+function spectatorView(g) {
+  const v = g.viewFor(-1);
+  v.you = 0; v.spectator = true; v.hand = null; v.drawn = null; v.actions = null; v.waits = []; v.furiten = false;
+  if (v.choose) v.choose.cands = null;
+  return v;
+}
+
+const GRACE_MS = +(process.env.GRACE_MS || 30000); // 接続が切れた人の番は30秒待ってからCPUが代わりに打つ
+
+function isAuto(room, seat) {
+  const s = room.seats[seat];
+  return !s || s.isBot || !online(s.token);
+}
+// 接続が切れてからの待ち時間の残り（ms）。0ならCPUが代わりに打つ
+function graceLeft(room, seat) {
+  const s = room.seats[seat];
+  if (!s || s.isBot || online(s.token)) return 0;
+  if (!s.offlineAt) s.offlineAt = Date.now();
+  return Math.max(0, s.offlineAt + GRACE_MS - Date.now());
+}
+// 待っている人（自分の番なのに接続が切れていて、まだ30秒たっていない人）
+function waitingFor(room) {
+  const g = room.game;
+  if (!g || g.gameOver) return [];
+  const out = [];
+  for (let seat = 0; seat < 4; seat++) {
+    const left = graceLeft(room, seat);
+    if (left > 0 && g.actionsFor(seat) && g.phase !== 'result') out.push({ seat, name: room.seats[seat].name, left });
   }
-  return {
-    names: rotArr(room.names.map((n, i) => room.seats[i] && !room.seats[i].cpu && (room.seats[i].away || !room.seats[i].socket) ? n + "（代打）" : n), seat), kyoku: G.dealer + 1,
-    away: !!(room.seats[seat] && room.seats[seat].away),
-    turnLeft: room.turnTimer && room.turnTimer.seat === seat ? Math.max(0, room.turnTimer.until - Date.now()) : null, phase: G.phase, honba: G.honba, kyotaku: G.kyotaku,
-    dealer: r(G.dealer), turn: r(H.turn), state: H.state, live: H.live.length,
-    scores: rotArr(G.scores, seat), chips: rotArr(G.chips, seat),
-    dora: H.dead.dora.concat(H.kanDora), players: rotArr(pl, seat),
-    drawnId: H.turn === seat && H.drawn ? H.drawn.id : null,
-    acts, prompt, othersDeciding, danger: g.openDanger(seat), noNaki: !!H.noNaki[seat], log: G.log.slice(0, 40),
-  };
-}
-function rotG(G, seat) {
-  return { scores: rotArr(G.scores, seat), chips: rotArr(G.chips, seat), dealer: rotOf(seat)(G.dealer), phase: G.phase, honba: G.honba, kyotaku: G.kyotaku, over: G.over,
-    log: G.log.slice(0, 60), hist: G.hist.map(h => ({ ...h, dp: rotArr(h.dp, seat), dc: rotArr(h.dc, seat), sc: rotArr(h.sc, seat), ch: rotArr(h.ch, seat) })) };
-}
-function rotR(R, seat) {
-  const r = rotOf(seat);
-  return {
-    ...R,
-    handDealer: r(R.handDealer), handKyoku: R.handDealer + 1,
-    pts: R.pts.map(p => ({ ...p, from: r(p.from), to: r(p.to) })),
-    chips: R.chips.map(c => ({ ...c, from: r(c.from), to: r(c.to) })),
-    dice: R.dice.map(d => ({ ...d, s: r(d.s) })),
-    wins: R.wins.map(w => ({ ...w, s: r(w.s), from: r(w.from), pao: w.pao == null ? w.pao : r(w.pao), w: w.w ? { ...w.w, o: r(w.w.o) } : w.w })),
-    draw: R.draw ? { ten: rotArr(R.draw.ten, seat), naga: R.draw.naga.map(r) } : null,
-  };
-}
-function resultFor(room, seat) {
-  const g = room.game, H = g.H, R = g.R;
-  const showHand = new Set();
-  for (const w of R.wins) showHand.add(w.s);
-  const waits = [null, null, null];
-  if (R.draw) for (let s = 0; s < 3; s++) if (R.draw.ten[s]) { showHand.add(s); waits[s] = g.waits(s, H.p[s].hand); }
-  const p = H.p.map((P, s) => ({ melds: P.melds.map(m => ({ ...m, from: rotOf(seat)(m.from) })), kita: P.kita, hana: P.hana, riichi: P.riichi, hand: showHand.has(s) ? P.hand : [] }));
-  return {
-    R: rotR(R, seat), G: rotG(g.G, seat), names: rotArr(room.names, seat),
-    snap: { dora: H.dead.dora, kanDora: H.kanDora, ura: H.dead.ura, kanUra: H.kanUra, p: rotArr(p, seat), waits: rotArr(waits, seat) },
-  };
+  return out;
 }
 
-function humanSeats(room) { return [0, 1, 2].filter(s => room.seats[s] && !room.seats[s].cpu); }
-function emitTo(room, seat, ev, data) { const p = room.seats[seat]; if (p && p.socket) p.socket.emit(ev, data); }
-
-const TURN_MS = +(process.env.TURN_MS || 2 * 60 * 1000);
-function armTurnTimer(room) {
-  const g = room.game; if (!g || room.phase !== "play") return;
-  const H = g.H; const s = H.turn; const p = room.seats[s];
-  const human = p && !p.cpu && p.socket && !p.away;
-  const key = H.state === "play" && human ? `${H.id}:${s}:${H.p[s].river.length}:${H.p[s].melds.length}:${H.p[s].kita.length}:${H.p[s].hana.length}` : null;
-  if (room.turnTimer && room.turnTimer.key === key) return;
-  if (room.turnTimer) clearTimeout(room.turnTimer.t);
-  room.turnTimer = null;
-  if (!key) return;
-  room.turnTimer = { key, seat: s, until: Date.now() + TURN_MS, t: setTimeout(() => {
-    room.turnTimer = null;
-    const pp = room.seats[s]; if (!pp || pp.cpu) return;
-    pp.away = true; // 一度退出（CPUに切り替え）
-    kickAway(room, s); schedulePush(room);
-  }, TURN_MS) };
-}
-function backFromAway(room, s) {
-  const p = room.seats[s]; if (!p || !p.away) return false;
-  p.away = false; schedulePush(room); return true;
-}
-function pushViews(room) {
-  if (!room.game || room.phase !== "play") return;
-  armTurnTimer(room);
-  for (const s of humanSeats(room)) emitTo(room, s, "view", viewFor(room, s));
+function scheduleBots(room) {
+  const g = room.game;
+  if (!g) return;
+  clearTimeout(room.botTimer);
+  clearTimeout(room.autoTimer);
+  clearTimeout(room.graceTimer);
+  if (g.gameOver) return;
+  if (!room.seats.some(s => s && !s.isBot && online(s.token))) return; // 誰もいなければ一時停止
+  for (let seat = 0; seat < 4; seat++) g.players[seat].away = !room.seats[seat].isBot && !online(room.seats[seat].token);
+  const delay = g.phase === 'result' ? 1500 : g.phase === 'claim' || g.phase === 'choose' ? 250 : BOT_DELAY;
+  // CPUと、接続が切れて30秒たった人の番はCPUが打つ。30秒たっていない人は待つ
+  const botSeat = [0, 1, 2, 3].find(s => isAuto(room, s) && g.actionsFor(s) && graceLeft(room, s) === 0);
+  const waits = waitingFor(room);
+  if (waits.length) room.graceTimer = setTimeout(() => broadcast(room), Math.min(...waits.map(w => w.left)) + 50);
+  if (botSeat !== undefined) {
+    room.botTimer = setTimeout(() => {
+      const act = botAction(g, botSeat);
+      if (act && g.act(botSeat, act)) return; // act -> onUpdate -> broadcast
+      const a = g.actionsFor(botSeat);
+      if (a && a.pass) g.act(botSeat, { type: 'pass' });
+      else if (a && a.discard) g.act(botSeat, { type: 'discard', tile: a.discard[a.discard.length - 1] });
+    }, delay);
+  }
+  if (g.phase === 'choose' && g.choose) {
+    // 和了の取り方の選択：20秒で祝儀優先の候補を自動選択（R-28）
+    const seat = g.choose.seat;
+    room.autoTimer = setTimeout(() => {
+      if (g.phase === 'choose' && g.choose && g.choose.seat === seat) g.act(seat, { type: 'choose' });
+    }, Math.max(0, g.choose.deadline - Date.now()));
+  } else if (g.phase === 'result') {
+    const r = g.result;
+    if (r && r.needDealerChoice && !r.dealerChoiceMade) {
+      // 親の選択：20秒で「続行」（B-19）
+      room.autoTimer = setTimeout(() => {
+        if (g.phase === 'result' && g.result === r && !r.dealerChoiceMade) g.act(g.kyoku, { type: 'dealer', cont: true });
+      }, Math.max(0, r.dealerDeadline - Date.now()));
+    }
+    // 結果画面は自動で進めない：全員がOKを押したら次の局（接続が切れた人の分はCPUが押す）
+  }
 }
 
 function startGame(room) {
-  // 席をシャッフル（起家はランダム）
-  const people = room.seats.map((p, i) => p || { name: CPU_NAMES[i], cpu: true, token: null, socket: null });
-  shuffleArr(people);
-  room.seats = people;
-  room.names = people.map(p => p.name);
-  room.phase = "play"; room.ready = new Set();
-  if (room.game) room.game.destroy();
-  const SE = {
-    say: (text, s) => { for (const h of humanSeats(room)) emitTo(room, h, "se", { say: text, seat: rotOf(h)(s) }); },
-    clack: () => { for (const h of humanSeats(room)) emitTo(room, h, "se", { t: "clack" }); },
-    draw: s => emitTo(room, s, "se", { t: "draw" }),
-    shuffle: () => { for (const h of humanSeats(room)) emitTo(room, h, "se", { t: "shuffle" }); },
-    win: () => {},
-  };
-  room.game = createGame({
-    names: room.names,
-    isCPU: s => { const p = room.seats[s]; return !p || p.cpu || !p.socket || p.away; },
-    SE,
-    update: () => schedulePush(room),
-    result: () => {
-      room.phase = "result"; room.ready = new Set();
-      for (const s of humanSeats(room)) emitTo(room, s, "result", resultFor(room, s));
-      autoReadyAway(room);
-    },
-    final: order => {
-      room.phase = "final"; room.ready = new Set();
-      const g = room.game;
-      for (const s of humanSeats(room)) emitTo(room, s, "final", { order: order.map(rotOf(s)), R: rotR(g.R, s), G: rotG(g.G, s), names: rotArr(room.names, s) });
-    },
-  });
-  broadcastLobby(room);
-  room.game.newGame();
+  // 席順（起家）をランダムに
+  const order = [0, 1, 2, 3];
+  for (let i = 3; i > 0; i--) { const j = crypto.randomInt(i + 1); [order[i], order[j]] = [order[j], order[i]]; }
+  room.seats = order.map(i => room.seats[i]);
+  room.game = new Game(room.seats.map(s => ({ name: s.name, isBot: !!s.isBot })), {}, () => broadcast(room));
+  broadcast(room);
 }
-function shuffleArr(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-function schedulePush(room) { if (room._push) return; room._push = setImmediate(() => { room._push = null; pushViews(room); }); }
 
-function readyState(room) {
-  const need = humanSeats(room).filter(s => room.seats[s].socket && !room.seats[s].away);
-  return { ready: need.filter(s => room.ready.has(s)).length, total: need.length };
-}
-function checkReady(room) {
-  const need = humanSeats(room).filter(s => room.seats[s].socket && !room.seats[s].away);
-  for (const s of humanSeats(room)) emitTo(room, s, "ready", readyState(room));
-  if (need.every(s => room.ready.has(s))) {
-    room.ready = new Set();
-    if (room.phase === "result") {
-      if (room.game.G.over) room.game.endGame();
-      else { room.phase = "play"; room.game.startHand(); }
-    } else if (room.phase === "final") {
-      room.phase = "play"; room.game.newGame();
+const cleanName = n => String(n || '').trim().slice(0, 12);
+
+// ============ コマンド処理 ============
+function handle(token, msg) {
+  const c = clients.get(token);
+  let room = c && c.code ? rooms.get(c.code) : null;
+  const seatIndex = () => room ? room.seats.findIndex(s => s && s.token === token) : -1;
+  const isHost = () => room && room.hostToken === token;
+  const bind = (r) => { const cl = clients.get(token); if (cl) cl.code = r.code; };
+
+  switch (msg.cmd) {
+    case 'create': {
+      const name = cleanName(msg.name);
+      if (!name) return { error: '名前を入力してください' };
+      const code = newCode();
+      const st = msg.settings || {};
+      room = {
+        code, hostToken: token,
+        settings: { length: 'tonpuu', aka: true }, // ルールは固定（東風戦・定義書どおり）
+        seats: [{ token, name }, null, null, null],
+        game: null, lastActive: Date.now(),
+      };
+      rooms.set(code, room);
+      bind(room); broadcast(room);
+      return { ok: true, code };
     }
-  }
-}
-function autoReadyAway(room) { /* 切断中の人は待たない */ checkReady(room); }
-
-// 切断中の人の番を代わりに進める
-function kickAway(room, seat) {
-  const g = room.game; if (!g || room.phase !== "play") return;
-  const H = g.H;
-  if (H.state === "prompt" && H.prompt && H.prompt.pend[seat] && !H.prompt.pend[seat].answer) g.promptAnswer(seat, "pass");
-  if (H.state === "play" && H.turn === seat) {
-    const P = H.p[seat];
-    while (P.hand.some(t => t.k >= 34)) g.nukiHana(seat);
-    while (P.hand.some(t => t.k === 30)) g.nukiKita(seat);
-    const tw = g.tryTsumo(seat); if (tw) return g.settleTsumo(seat, tw);
-    const t = H.drawn && P.hand.includes(H.drawn) && H.drawn.k !== 30 && H.drawn.k < 34 ? H.drawn : P.hand.find(x => x.k !== 30 && x.k < 34);
-    if (t) g.discard(seat, t.id, false);
-  }
-}
-
-io.on("connection", socket => {
-  let room = null, _seat = -1;
-  // 対局開始時に席がシャッフルされるので、毎回ソケットから席を引き直す
-  const seatNow = () => { if (!room) return -1; const i = room.seats.findIndex(p => p && p.socket === socket); return i >= 0 ? i : _seat; };
-  const err = msg => socket.emit("err", msg);
-
-  function attach(r, s) {
-    room = r; _seat = s;
-    const p = r.seats[s]; p.socket = socket; p.away = false;
-    socket.emit("joined", { code: r.code, token: p.token, seat: s });
-    broadcastLobby(r);
-    if (r.phase === "play" && r.game) emitTo(r, s, "view", viewFor(r, s));
-    if (r.phase === "result" && r.game) { emitTo(r, s, "result", resultFor(r, s)); emitTo(r, s, "ready", readyState(r)); }
-  }
-
-  socket.on("create", ({ name }) => {
-    name = String(name || "").trim().slice(0, 12) || "プレイヤー";
-    const code = newCode(), token = newToken();
-    const r = { code, seats: [{ name, token, socket: null }, null, null], hostToken: token, phase: "lobby", game: null, ready: new Set(), names: [] };
-    rooms.set(code, r);
-    attach(r, 0);
-  });
-
-  socket.on("join", ({ code, name, token }) => {
-    const r = rooms.get(String(code || "").trim());
-    if (!r) return err("そのルームは見つかりません");
-    if (token) { const s = r.seats.findIndex(p => p && p.token === token); if (s >= 0) { if (name && r.phase === "lobby") r.seats[s].name = String(name).slice(0, 12); clearTimeout(r.seats[s].awayTimer); return attach(r, s); } }
-    if (r.phase !== "lobby") return err("このルームはもう対局が始まっています");
-    const s = r.seats.findIndex(p => !p);
-    if (s < 0) return err("このルームは満員です");
-    name = String(name || "").trim().slice(0, 12) || "プレイヤー";
-    r.seats[s] = { name, token: newToken(), socket: null };
-    attach(r, s);
-  });
-
-  socket.on("start", () => {
-    if (!room || room.phase !== "lobby") return;
-    if (room.seats[seatNow()].token !== room.hostToken) return err("開始できるのはルームを作った人です");
-    startGame(room);
-  });
-
-  socket.on("act", a => {
-    if (!room || !room.game || room.phase !== "play") return;
-    const g = room.game, H = g.H, s = seatNow(); if (s < 0) return;
-    if (a && a.t === "back") { backFromAway(room, s); return; }
-    if (backFromAway(room, s)) return; // 代打中だった：まず本人に戻すだけ
-    try {
-      switch (a && a.t) {
-        case "discard": {
-          if (H.state !== "play" || H.turn !== s) return;
-          const P = H.p[s]; if (P.hand.some(t => t.k >= 34)) return;
-          if (a.riichi && !g.riichiOptions(s, !!a.open).includes(a.id)) return;
-          if (P.riichi && H.drawn && a.id !== H.drawn.id) return;
-          g.discard(s, a.id, !!a.riichi, !!(a.riichi && a.open)); break;
+    case 'join': {
+      const r = rooms.get(String(msg.code || '').trim());
+      if (!r) return { error: '部屋が見つかりません' };
+      const existing = r.seats.findIndex(s => s && s.token === token);
+      if (!r.spectators) r.spectators = [];
+      if (existing >= 0) r.seats[existing].left = false; // 終局後にロビーへ行って同じ部屋に戻ってきた
+      if (existing < 0) {
+        const name = cleanName(msg.name);
+        if (!name) return { error: '名前を入力してください' };
+        // 接続が切れた人が、同じ名前で入り直したら元の席に戻る（別のブラウザ・端末からでもOK）
+        const back = r.seats.find(s => s && !s.isBot && s.name === name && !online(s.token));
+        if (back) {
+          if (r.hostToken === back.token) r.hostToken = token;
+          back.token = token;
+          back.offlineAt = null; back.left = false;
+          if (r.spectators) r.spectators = r.spectators.filter(v => v.token !== token);
+          room = r; bind(r); broadcast(r);
+          return { ok: true, code: r.code };
         }
-        case "tsumo": { if (H.state !== "play" || H.turn !== s) return; const w = g.tryTsumo(s); if (w) g.settleTsumo(s, w); break; }
-        case "kita": { if (H.state !== "play" || H.turn !== s) return; g.nukiKita(s); schedulePush(room); if (H.p[s].riichi) setTimeout(() => g.riichiAuto(s), 380); break; }
-        case "hana": { if (H.state !== "play" || H.turn !== s) return; g.nukiHana(s); schedulePush(room); if (H.p[s].riichi) setTimeout(() => g.riichiAuto(s), 380); break; }
-        case "kan": { if (H.state !== "play" || H.turn !== s) return; if (!g.kanOptions(s).some(o => o.type === a.type && o.k === a.k)) return; g.doKan(s, a.type, a.k); break; }
-        case "answer": { if (!g.promptAnswer(s, a.a)) return; break; }
-        case "nonaki": { H.noNaki[s] = !H.noNaki[s]; schedulePush(room); break; }
+        // 同じ名前の人がいると、落ちたときにどちらの席か分からなくなるので断る
+        if (r.seats.some(s => s && s.name === name)) return { error: `「${name}」はもう使われています。別の名前にしてください` };
+        const free = r.seats.findIndex(s => !s);
+        const sp = r.spectators.find(v => v.token === token);
+        if (r.game || free < 0) {
+          // 満員・対局中は観戦として入る
+          if (sp) sp.name = name; else r.spectators.push({ token, name });
+        } else {
+          if (sp) r.spectators = r.spectators.filter(v => v !== sp);
+          r.seats[free] = { token, name };
+        }
+      } else if (!r.game && cleanName(msg.name)) {
+        r.seats[existing].name = cleanName(msg.name);
       }
-    } catch (e) { console.error(e); }
-  });
-
-  socket.on("next", () => {
-    if (!room || !["result", "final"].includes(room.phase)) return;
-    { const pp = room.seats[seatNow()]; if (pp) pp.away = false; }
-    room.ready.add(seatNow()); checkReady(room);
-  });
-
-  socket.on("leaveRoom", () => {
-    if (!room) return;
-    const seat = seatNow();
-    if (room.phase === "lobby") { room.seats[seat] = null; if (room.seats.every(p => !p)) rooms.delete(room.code); else { if (!room.seats.some(p => p && p.token === room.hostToken)) { const h = room.seats.find(p => p); room.hostToken = h.token; } broadcastLobby(room); } }
-    room = null; _seat = -1;
-  });
-
-  socket.on("disconnect", () => {
-    if (!room) return;
-    const r = room, s = seatNow(), p = r.seats[s];
-    if (!p || p.socket !== socket) return;
-    p.socket = null;
-    broadcastLobby(r);
-    if (r.phase === "lobby") {
-      p.awayTimer = setTimeout(() => { if (!p.socket && r.seats[s] === p) { r.seats[s] = null; if (r.seats.every(x => !x)) rooms.delete(r.code); else broadcastLobby(r); } }, 60000);
-      return;
+      room = r; bind(r); broadcast(r);
+      return { ok: true, code: r.code };
     }
-    // 対局中：その人の番なら代わりに進める（CPU扱い）
-    setTimeout(() => { if (!p.socket) { kickAway(r, s); if (r.phase !== "play") checkReady(r); } }, 3000);
-    // 全員いなくなったらルームを片付ける
-    p.awayTimer = setTimeout(() => { if (humanSeats(r).every(x => !r.seats[x].socket)) { if (r.game) r.game.destroy(); rooms.delete(r.code); } }, 30 * 60 * 1000);
+    case 'addBot': {
+      if (!isHost() || room.game) return { error: 'ホストのみ操作できます' };
+      const free = room.seats.findIndex(s => !s);
+      if (free < 0) return { error: '満員です' };
+      const n = room.seats.filter(s => s && s.isBot).length + 1;
+      room.seats[free] = { token: 'bot-' + crypto.randomUUID(), name: 'CPU' + n, isBot: true };
+      broadcast(room); return { ok: true };
+    }
+    case 'kick': {
+      if (!isHost() || room.game) return { error: 'ホストのみ操作できます' };
+      const s = room.seats[msg.seat];
+      if (!s || s.token === room.hostToken) return { error: 'できません' };
+      if (!s.isBot) { send(s.token, 'kicked', {}); const cl = clients.get(s.token); if (cl) cl.code = null; }
+      room.seats[msg.seat] = null;
+      broadcast(room); return { ok: true };
+    }
+    case 'settings': {
+      if (!isHost() || room.game) return { error: 'ホストのみ操作できます' };
+      room.settings.length = msg.length === 'tonpuu' ? 'tonpuu' : 'hanchan';
+      room.settings.aka = !!msg.aka;
+      broadcast(room); return { ok: true };
+    }
+    case 'start': {
+      if (!isHost() || room.game) return { error: 'ホストのみ操作できます' };
+      if (room.seats.some(s => !s)) return { error: '4人そろっていません（CPUを追加できます）' };
+      // 人間のプレイヤー全員の「準備OK」がそろってから（ホストは開始ボタンが準備OKの代わり、CPUは自動でOK）
+      const notReady = room.seats.filter(s => !s.isBot && s.token !== room.hostToken && !(s.ready && online(s.token)));
+      if (notReady.length) return { error: `準備OKを待っています（${notReady.map(s => s.name).join('・')}）` };
+      startGame(room); return { ok: true };
+    }
+    case 'rematch': {
+      // 終局後は誰でも部屋に戻せる（ホストを待たなくていい）
+      if (!room.game || !room.game.gameOver || seatIndex() < 0) return { error: 'できません' };
+      room.game = null;
+      room.seats = room.seats.map(s => (s && s.left ? null : s)); // 終局後にロビーへ行った人の席は空ける
+      room.seats.forEach(s => { if (s) s.ready = false; }); // 次の対局も全員の準備OKから
+      broadcast(room); return { ok: true };
+    }
+    case 'leave': {
+      if (!room) return { ok: true };
+      const i = seatIndex();
+      if (room.spectators) room.spectators = room.spectators.filter(v => v.token !== token);
+      if (i >= 0 && room.game && room.game.gameOver) {
+        // 終局後にロビーへ：部屋に戻るときに席を空ける。ホストなら残っている人に引き継ぐ
+        room.seats[i].left = true;
+        if (isHost()) { const next = room.seats.find(s => s && !s.isBot && !s.left); if (next) room.hostToken = next.token; }
+      }
+      if (i >= 0 && !room.game) {
+        room.seats[i] = null;
+        if (isHost()) {
+          const next = room.seats.find(s => s && !s.isBot);
+          if (next) room.hostToken = next.token; else rooms.delete(room.code);
+        }
+      }
+      const cl = clients.get(token); if (cl) cl.code = null;
+      if (rooms.has(room.code)) broadcast(room);
+      return { ok: true };
+    }
+    case 'replay': {
+      const hs = room && room.history;
+      const e = hs && hs.find(x => x.no === +msg.no);
+      if (!e) return { error: '牌譜がありません' };
+      return { ok: true, replay: e.replay };
+    }
+    case 'ready': {
+      if (!room || room.game) return { error: 'いまは押せません' };
+      const i = seatIndex();
+      if (i < 0) return { error: '席がありません' };
+      room.seats[i].ready = msg.ready !== false;
+      broadcast(room); return { ok: true };
+    }
+    case 'sync': {
+      if (room) broadcast(room);
+      else send(token, 'hello', { code: null });
+      return { ok: true };
+    }
+    case 'act': {
+      if (!room || !room.game) return { error: '対局中ではありません' };
+      const i = seatIndex();
+      if (i < 0) return { error: '席がありません' };
+      if (!room.game.act(i, msg.action)) { send(token, 'state', room.game.viewFor(i)); return { error: 'その操作はできません' }; }
+      return { ok: true };
+    }
+    default:
+      return { error: 'unknown command' };
+  }
+}
+
+// ============ HTTPサーバー ============
+const server = http.createServer((req, res) => {
+  const url = new URL(req.url, 'http://x');
+  if (url.pathname === '/events') {
+    const token = String(url.searchParams.get('token') || '');
+    if (!/^[\w-]{8,64}$/.test(token)) { res.writeHead(400); return res.end(); }
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+    res.write('retry: 2000\n\n');
+    const prev = clients.get(token);
+    if (prev) { try { prev.res.end(); } catch (e) { /* noop */ } }
+    // 既に座っている部屋があれば再接続
+    let code = null;
+    for (const r of rooms.values()) if (r.seats.some(s => s && !s.left && s.token === token) || (r.spectators || []).some(v => v.token === token)) { code = r.code; break; }
+    const entry = { res, code };
+    clients.set(token, entry);
+    if (code) { const st = rooms.get(code).seats.find(s => s && s.token === token); if (st) st.offlineAt = null; }
+    send(token, 'hello', { code });
+    if (code) broadcast(rooms.get(code));
+    const ping = setInterval(() => res.write(': ping\n\n'), 20000);
+    req.on('close', () => {
+      clearInterval(ping);
+      if (clients.get(token) === entry) {
+        clients.delete(token);
+        const r = entry.code && rooms.get(entry.code);
+        if (r) {
+          const st = r.seats.find(s => s && s.token === token);
+          if (st) st.offlineAt = Date.now(); // ここから30秒は待つ
+          setTimeout(() => { if (!online(token) && rooms.has(r.code)) broadcast(r); }, 1500);
+          setTimeout(() => { if (!online(token) && rooms.has(r.code)) broadcast(r); }, GRACE_MS + 200); // ホストの引き継ぎ確認
+        }
+      }
+    });
+    return;
+  }
+  if (url.pathname === '/api' && req.method === 'POST') {
+    let body = '';
+    req.on('data', d => { body += d; if (body.length > 1e5) req.destroy(); });
+    req.on('end', () => {
+      let out;
+      try {
+        const msg = JSON.parse(body);
+        const token = String(msg.token || '');
+        if (!clients.has(token)) out = { error: '接続が切れています。再読み込みしてください' };
+        else out = handle(token, msg);
+      } catch (e) { console.error(e); out = { error: 'サーバーエラー' }; }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(out));
+    });
+    return;
+  }
+  if (url.pathname === '/healthz') { res.writeHead(200); return res.end('ok'); }
+  // 静的ファイル
+  let p = decodeURIComponent(url.pathname);
+  if (p === '/') p = '/index.html';
+  const file = path.join(PUBLIC, path.normalize(p).replace(/^(\.\.[/\\])+/, ''));
+  if (!file.startsWith(PUBLIC) || (PUBLIC === __dirname && (HIDDEN.has(path.basename(file)) || path.dirname(file) !== __dirname))) { res.writeHead(404); return res.end('not found'); }
+  fs.readFile(file, (err, data) => {
+    if (err) { res.writeHead(404); return res.end('not found'); }
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
+    res.end(data);
   });
 });
 
+// 放置された部屋の掃除（6時間）
+setInterval(() => {
+  const now = Date.now();
+  for (const [code, r] of rooms) {
+    const any = r.seats.some(s => s && !s.isBot && online(s.token));
+    if (!any && now - r.lastActive > 6 * 3600 * 1000) rooms.delete(code);
+  }
+}, 10 * 60 * 1000);
+
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log("sanma server on " + PORT));
+server.listen(PORT, '0.0.0.0', () => console.log(`麻雀サーバー起動: http://localhost:${PORT}`));
