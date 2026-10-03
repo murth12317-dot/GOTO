@@ -35,7 +35,7 @@ function broadcastLobby(room) {
 function viewFor(room, seat) {
   const g = room.game, G = g.G, H = g.H, r = rotOf(seat);
   const pl = H.p.map((P, s) => ({
-    hand: s === seat ? P.hand : null, handCount: P.hand.length,
+    hand: s === seat || P.open ? P.hand : null, handCount: P.hand.length, open: !!P.open,
     melds: P.melds.map(m => ({ ...m, from: r(m.from) })),
     river: P.river, kita: P.kita, hana: P.hana, riichi: P.riichi,
   }));
@@ -43,7 +43,7 @@ function viewFor(room, seat) {
   let acts = null;
   if (H.state === "play" && H.turn === seat) {
     const tw = g.tryTsumo(seat);
-    acts = { tsumo: !!tw, pocchi: !!(tw && tw.pocchi), riichi: g.riichiOptions(seat), kan: g.kanOptions(seat),
+    acts = { tsumo: !!tw, pocchi: !!(tw && tw.pocchi), riichi: g.riichiOptions(seat), openRiichi: g.riichiOptions(seat, true), kan: g.kanOptions(seat),
       kita: me.hand.some(t => t.k === 30), hana: me.hand.some(t => t.k >= 34) };
   }
   let prompt = null, othersDeciding = false;
@@ -53,12 +53,14 @@ function viewFor(room, seat) {
     else othersDeciding = true;
   }
   return {
-    names: rotArr(room.names, seat), kyoku: G.dealer + 1, phase: G.phase, honba: G.honba, kyotaku: G.kyotaku,
+    names: rotArr(room.names.map((n, i) => room.seats[i] && !room.seats[i].cpu && (room.seats[i].away || !room.seats[i].socket) ? n + "（代打）" : n), seat), kyoku: G.dealer + 1,
+    away: !!(room.seats[seat] && room.seats[seat].away),
+    turnLeft: room.turnTimer && room.turnTimer.seat === seat ? Math.max(0, room.turnTimer.until - Date.now()) : null, phase: G.phase, honba: G.honba, kyotaku: G.kyotaku,
     dealer: r(G.dealer), turn: r(H.turn), state: H.state, live: H.live.length,
     scores: rotArr(G.scores, seat), chips: rotArr(G.chips, seat),
     dora: H.dead.dora.concat(H.kanDora), players: rotArr(pl, seat),
     drawnId: H.turn === seat && H.drawn ? H.drawn.id : null,
-    acts, prompt, othersDeciding, noNaki: !!H.noNaki[seat], log: G.log.slice(0, 40),
+    acts, prompt, othersDeciding, danger: g.openDanger(seat), noNaki: !!H.noNaki[seat], log: G.log.slice(0, 40),
   };
 }
 function rotG(G, seat) {
@@ -73,7 +75,7 @@ function rotR(R, seat) {
     pts: R.pts.map(p => ({ ...p, from: r(p.from), to: r(p.to) })),
     chips: R.chips.map(c => ({ ...c, from: r(c.from), to: r(c.to) })),
     dice: R.dice.map(d => ({ ...d, s: r(d.s) })),
-    wins: R.wins.map(w => ({ ...w, s: r(w.s), from: r(w.from), w: w.w ? { ...w.w, o: r(w.w.o) } : w.w })),
+    wins: R.wins.map(w => ({ ...w, s: r(w.s), from: r(w.from), pao: w.pao == null ? w.pao : r(w.pao), w: w.w ? { ...w.w, o: r(w.w.o) } : w.w })),
     draw: R.draw ? { ten: rotArr(R.draw.ten, seat), naga: R.draw.naga.map(r) } : null,
   };
 }
@@ -93,8 +95,30 @@ function resultFor(room, seat) {
 function humanSeats(room) { return [0, 1, 2].filter(s => room.seats[s] && !room.seats[s].cpu); }
 function emitTo(room, seat, ev, data) { const p = room.seats[seat]; if (p && p.socket) p.socket.emit(ev, data); }
 
+const TURN_MS = +(process.env.TURN_MS || 2 * 60 * 1000);
+function armTurnTimer(room) {
+  const g = room.game; if (!g || room.phase !== "play") return;
+  const H = g.H; const s = H.turn; const p = room.seats[s];
+  const human = p && !p.cpu && p.socket && !p.away;
+  const key = H.state === "play" && human ? `${H.id}:${s}:${H.p[s].river.length}:${H.p[s].melds.length}:${H.p[s].kita.length}:${H.p[s].hana.length}` : null;
+  if (room.turnTimer && room.turnTimer.key === key) return;
+  if (room.turnTimer) clearTimeout(room.turnTimer.t);
+  room.turnTimer = null;
+  if (!key) return;
+  room.turnTimer = { key, seat: s, until: Date.now() + TURN_MS, t: setTimeout(() => {
+    room.turnTimer = null;
+    const pp = room.seats[s]; if (!pp || pp.cpu) return;
+    pp.away = true; // 一度退出（CPUに切り替え）
+    kickAway(room, s); schedulePush(room);
+  }, TURN_MS) };
+}
+function backFromAway(room, s) {
+  const p = room.seats[s]; if (!p || !p.away) return false;
+  p.away = false; schedulePush(room); return true;
+}
 function pushViews(room) {
   if (!room.game || room.phase !== "play") return;
+  armTurnTimer(room);
   for (const s of humanSeats(room)) emitTo(room, s, "view", viewFor(room, s));
 }
 
@@ -115,7 +139,7 @@ function startGame(room) {
   };
   room.game = createGame({
     names: room.names,
-    isCPU: s => { const p = room.seats[s]; return !p || p.cpu || !p.socket; },
+    isCPU: s => { const p = room.seats[s]; return !p || p.cpu || !p.socket || p.away; },
     SE,
     update: () => schedulePush(room),
     result: () => {
@@ -136,11 +160,11 @@ function shuffleArr(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math
 function schedulePush(room) { if (room._push) return; room._push = setImmediate(() => { room._push = null; pushViews(room); }); }
 
 function readyState(room) {
-  const need = humanSeats(room).filter(s => room.seats[s].socket);
+  const need = humanSeats(room).filter(s => room.seats[s].socket && !room.seats[s].away);
   return { ready: need.filter(s => room.ready.has(s)).length, total: need.length };
 }
 function checkReady(room) {
-  const need = humanSeats(room).filter(s => room.seats[s].socket);
+  const need = humanSeats(room).filter(s => room.seats[s].socket && !room.seats[s].away);
   for (const s of humanSeats(room)) emitTo(room, s, "ready", readyState(room));
   if (need.every(s => room.ready.has(s))) {
     room.ready = new Set();
@@ -177,7 +201,7 @@ io.on("connection", socket => {
 
   function attach(r, s) {
     room = r; _seat = s;
-    const p = r.seats[s]; p.socket = socket;
+    const p = r.seats[s]; p.socket = socket; p.away = false;
     socket.emit("joined", { code: r.code, token: p.token, seat: s });
     broadcastLobby(r);
     if (r.phase === "play" && r.game) emitTo(r, s, "view", viewFor(r, s));
@@ -213,14 +237,16 @@ io.on("connection", socket => {
   socket.on("act", a => {
     if (!room || !room.game || room.phase !== "play") return;
     const g = room.game, H = g.H, s = seatNow(); if (s < 0) return;
+    if (a && a.t === "back") { backFromAway(room, s); return; }
+    if (backFromAway(room, s)) return; // 代打中だった：まず本人に戻すだけ
     try {
       switch (a && a.t) {
         case "discard": {
           if (H.state !== "play" || H.turn !== s) return;
           const P = H.p[s]; if (P.hand.some(t => t.k >= 34)) return;
-          if (a.riichi && !g.riichiOptions(s).includes(a.id)) return;
+          if (a.riichi && !g.riichiOptions(s, !!a.open).includes(a.id)) return;
           if (P.riichi && H.drawn && a.id !== H.drawn.id) return;
-          g.discard(s, a.id, !!a.riichi); break;
+          g.discard(s, a.id, !!a.riichi, !!(a.riichi && a.open)); break;
         }
         case "tsumo": { if (H.state !== "play" || H.turn !== s) return; const w = g.tryTsumo(s); if (w) g.settleTsumo(s, w); break; }
         case "kita": { if (H.state !== "play" || H.turn !== s) return; g.nukiKita(s); schedulePush(room); if (H.p[s].riichi) setTimeout(() => g.riichiAuto(s), 380); break; }
@@ -234,6 +260,7 @@ io.on("connection", socket => {
 
   socket.on("next", () => {
     if (!room || !["result", "final"].includes(room.phase)) return;
+    { const pp = room.seats[seatNow()]; if (pp) pp.away = false; }
     room.ready.add(seatNow()); checkReady(room);
   });
 

@@ -103,7 +103,7 @@ function evaluate(seat, conc, winK, ctx, shapeOnly){
   const sit={yaku:[],ym:[]};
   if(ctx.tenhou) sit.ym.push(["天和",1]);
   if(ctx.chihou) sit.ym.push(["地和",1]);
-  if(ctx.riichi){ sit.yaku.push(ctx.dbl?["ダブル立直",2]:["立直",1]); if(ctx.ippatsu) sit.yaku.push(["一発",1]); }
+  if(ctx.riichi){ sit.yaku.push(ctx.dbl?["ダブル立直",2]:["立直",1]); if(ctx.open) sit.yaku.push(["オープンリーチ",1]); if(ctx.ippatsu) sit.yaku.push(["一発",1]); }
   if(closed && ctx.tsumo) sit.yaku.push(["門前清自摸和",1]);
   if(ctx.haitei) sit.yaku.push(["海底摸月",1]);
   if(ctx.rinshan) sit.yaku.push(["嶺上開花",1]);
@@ -266,7 +266,7 @@ function drawFor(s){
 }
 function winCtx(s, tsumo){
   const P=H.p[s];
-  return {tsumo, riichi:P.riichi, dbl:P.dbl, ippatsu:P.ippatsu,
+  return {tsumo, riichi:P.riichi, open:!!P.open, dbl:P.dbl, ippatsu:P.ippatsu,
     haitei:tsumo&&H.live.length===0&&!H.rinshan, houtei:!tsumo&&H.live.length===0, rinshan:tsumo&&!!H.rinshan,
     tenhou:tsumo&&s===G.dealer&&H.noCalls&&P.river.length===0,
     chihou:tsumo&&s!==G.dealer&&H.noCalls&&P.river.length===0};
@@ -286,9 +286,9 @@ function tryTsumo(s){
   const r=evaluate(s,P.hand,H.drawn.k,ctx);
   return r?{res:r,conc:P.hand.slice(),winK:H.drawn.k}:null;
 }
-function riichiOptions(s){
+function riichiOptions(s,open){
   const P=H.p[s];
-  if(P.riichi||!isClosed(P)||G.scores[s]<1000||H.live.length<3||P.hand.some(x=>x.k>=34)) return [];
+  if(P.riichi||!isClosed(P)||G.scores[s]<(open?2000:1000)||H.live.length<3||P.hand.some(x=>x.k>=34)) return [];
   const ids=[];
   for(const t of P.hand){ if(t.k===30||t.k>=34) continue; const rest=P.hand.filter(x=>x!==t); if(shanten(rest,P.melds.length)===0 && waits(s,rest).length) ids.push(t.id); }
   return ids;
@@ -304,11 +304,11 @@ function riichiAuto(s){
 }
 
 // ===== 打牌 =====
-function discard(s, id, riichi){
+function discard(s, id, riichi, open){
   const P=H.p[s]; const t=P.hand.find(x=>x.id===id); if(!t||t.k===30||t.k>=34) return;
   P.hand.splice(P.hand.indexOf(t),1); sortHand(P.hand);
   if(P.ippatsu && !riichi) P.ippatsu=false;
-  if(riichi){ SE.say("リーチ",s); P.riichi=true; P.dbl=P.river.length===0&&H.noCalls; P.ippatsu=true; G.scores[s]-=1000; G.kyotaku++; log(`${NAMES[s]}：リーチ`); }
+  if(riichi){ SE.say(open?"オープンリーチ":"リーチ",s); P.riichi=true; P.open=!!open; P.dbl=P.river.length===0&&H.noCalls; P.ippatsu=true; G.scores[s]-=open?2000:1000; G.kyotaku+=open?2:1; log(`${NAMES[s]}：${open?"オープンリーチ":"リーチ"}`); }
   if(!P.riichi) P.tempF=false;
   P.river.push({t,riichi}); H.drawn=null; H.rinshan=false; H.last={s,t}; SE.clack();
   log(`${NAMES[s]}：${tName(t)}を切った`);
@@ -318,16 +318,25 @@ function furiten(o){
   const P=H.p[o]; if(P.tempF||P.riichiF) return true;
   const w=waits(o,P.hand); return P.river.some(r=>w.includes(r.t.k));
 }
-function ronResult(o,t){
+function ronResult(o,t,d){
   const P=H.p[o]; if(furiten(o)) return null;
   const conc=P.hand.concat([t]); const ctx=winCtx(o,false); ctx.dora=doraInfo(o,conc).total;
-  const r=evaluate(o,conc,t.k,ctx); return r?{res:r,conc,winK:t.k}:null;
+  let r=evaluate(o,conc,t.k,ctx);
+  // オープンリーチに、リーチしていない人が放銃したら役満
+  if(r && P.open && d!=null && !H.p[d].riichi && r.ymN<1) r=Object.assign({},r,{ym:[["オープンリーチ放銃",1]],ymN:1,key:1e7});
+  return r?{res:r,conc,winK:t.k}:null;
 }
+// 包：大三元の3つ目の三元牌を鳴かせた人
+function checkPao(o,from,k){
+  const P=H.p[o];
+  if(k>=31&&k<=33 && P.melds.filter(m=>m.k>=31&&m.k<=33).length===3 && !P.pao){ P.pao={by:from,ym:"大三元"}; log(`${NAMES[from]}：大三元の包`); }
+}
+function paoOf(s,w){ const P=H.p[s]; return P.pao && P.pao.by!==s && w.res.ym.some(y=>y[0]===P.pao.ym) ? P.pao.by : null; }
 function canPonOf(o,t){ const P=H.p[o]; return !P.riichi && t.k!==30 && H.live.length>0 && P.hand.filter(x=>x.k===t.k).length>=2; }
 function canKanOf(o,t){ const P=H.p[o]; return !P.riichi && t.k!==30 && H.live.length>0 && H.dead.kan.length>0 && P.hand.filter(x=>x.k===t.k).length>=3; }
 function afterDiscard(s,t){
   const order=[(s+1)%3,(s+2)%3];
-  const rons=[]; for(const o of order){ const r=ronResult(o,t); if(r) rons.push({o,...r}); }
+  const rons=[]; for(const o of order){ const r=ronResult(o,t,s); if(r) rons.push({o,...r}); }
   const cpuR=rons.filter(x=>isCPU(x.o));
   const pend={};
   for(const o of order){ if(isCPU(o)) continue;
@@ -366,7 +375,7 @@ function cpuWantsPon(o,k){ return [31,32,33,roundWind(),seatWind(o)].includes(k)
 function doPon(o,from,t){
   const P=H.p[o]; const two=P.hand.filter(x=>x.k===t.k).slice(0,2);
   P.hand=P.hand.filter(x=>!two.includes(x));
-  P.melds.push({t:"pon",k:t.k,tiles:[...two,t],from});
+  P.melds.push({t:"pon",k:t.k,tiles:[...two,t],from}); checkPao(o,from,t.k);
   const rv=H.p[from].river; rv[rv.length-1].called=true; H.p[from].calledFrom=true;
   H.noCalls=false; for(const p of H.p) p.ippatsu=false;
   log(`${NAMES[o]}：ポン（${kName(t.k)}）`); SE.say("ポン",o);
@@ -393,7 +402,7 @@ function doKan(s,type,k,from,t){
   const P=H.p[s];
   if(type==="ankan"){ const four=P.hand.filter(x=>x.k===k); P.hand=P.hand.filter(x=>x.k!==k); P.melds.push({t:"ankan",k,tiles:four}); }
   else if(type==="kakan"){ const x=P.hand.find(y=>y.k===k); P.hand.splice(P.hand.indexOf(x),1); const m=P.melds.find(m=>m.t==="pon"&&m.k===k); m.t="kakan"; m.tiles.push(x); }
-  else { const three=P.hand.filter(x=>x.k===k).slice(0,3); P.hand=P.hand.filter(x=>!three.includes(x)); P.melds.push({t:"minkan",k,tiles:[...three,t],from}); const rv=H.p[from].river; rv[rv.length-1].called=true; H.p[from].calledFrom=true; }
+  else { const three=P.hand.filter(x=>x.k===k).slice(0,3); P.hand=P.hand.filter(x=>!three.includes(x)); P.melds.push({t:"minkan",k,tiles:[...three,t],from}); checkPao(s,from,k); const rv=H.p[from].river; rv[rv.length-1].called=true; H.p[from].calledFrom=true; }
   H.noCalls=false; for(const p of H.p) p.ippatsu=false;
   log(`${NAMES[s]}：カン（${kName(k)}）`); SE.say("カン",s);
   sortHand(P.hand);
@@ -413,9 +422,14 @@ function cpuTurn(s){
   if(P.riichi) return discard(s,H.drawn?H.drawn.id:P.hand[P.hand.length-1].id,false);
   cpuDiscard(s);
 }
+function openDanger(s){
+  const P=H.p[s]; if(P.riichi) return [];
+  const d=new Set(); for(const o of [0,1,2]) if(o!==s && H.p[o].open) for(const k of waits(o,H.p[o].hand)) d.add(k);
+  return [...d];
+}
 function cpuDiscard(s){
   const P=H.p[s]; const calls=P.melds.length;
-  let best=null;
+  let best=null; const danger=openDanger(s);
   const c=counts(P.hand);
   for(const t of P.hand){
     if(t.k===30||t.k>=34) continue;
@@ -423,7 +437,7 @@ function cpuDiscard(s){
     let v=0; const k=t.k;
     if(k<27){ for(const d of [-2,-1,1,2]){ const n=k+d; if(n>=0&&n<27&&suitOf(n)===suitOf(k)) v+=c[n]; } }
     v+=(c[k]-1)*2; if(cpuWantsPon(s,k)) v+=1; if(t.red||t.gold) v+=3; if(k===30) v-=5;
-    const score=sh*100+v;
+    const score=sh*100+v+(danger.includes(k)?100000:0);
     if(!best||score<best.score) best={t,score,sh};
   }
   const canR=!P.riichi&&isClosed(P)&&G.scores[s]>=1000&&H.live.length>=3&&best.sh===0&&waits(s,P.hand.filter(x=>x!==best.t)).length>0;
@@ -483,13 +497,15 @@ function newR(){ R={pts:[],chips:[],dice:[],alice:[],wins:[],draw:null,handDeale
 function settleTsumo(s,w){
   SE.say("ツモ",s); SE.win();
   newR(); const P=H.p[s]; const fp=finalPoints(s,w); const dealerWin=s===G.dealer;
-  for(const o of [0,1,2]) if(o!==s){
+  const pao=paoOf(s,w);
+  if(pao!=null) payPts(pao,s,ceil1000(fp.base*(dealerWin?6:4))+2000*G.honba,"包（全額）");
+  else for(const o of [0,1,2]) if(o!==s){
     const mult=(dealerWin||o===G.dealer)?2:1;
     payPts(o,s,ceil1000(fp.base*mult)+1000+1000*G.honba,"ツモ");
   }
   if(G.kyotaku){ G.scores[s]+=1000*G.kyotaku; R.pts.push({from:-1,to:s,n:1000*G.kyotaku,why:"供託"}); G.kyotaku=0; }
   const chips=winChips(s,w,fp,true,null);
-  R.wins.push({s,w,fp,tsumo:true,chips});
+  R.wins.push({s,w,fp,tsumo:true,chips,pao});
   finishHand([s]);
 }
 function settleRon(d,t,list){
@@ -497,10 +513,12 @@ function settleRon(d,t,list){
   newR();
   list.forEach((w,i)=>{
     const s=w.o; const fp=finalPoints(s,w); const mult=s===G.dealer?6:4;
-    payPts(d,s,ceil1000(fp.base*mult)+(i===0?2000*G.honba:0),"ロン");
+    const pao=paoOf(s,w), amt=ceil1000(fp.base*mult), hb=(i===0?2000*G.honba:0);
+    if(pao!=null && pao!==d){ payPts(d,s,amt/2+hb,"ロン"); payPts(pao,s,amt/2,"包（折半）"); }
+    else payPts(d,s,amt+hb,"ロン");
     if(i===0&&G.kyotaku){ G.scores[s]+=1000*G.kyotaku; R.pts.push({from:-1,to:s,n:1000*G.kyotaku,why:"供託"}); G.kyotaku=0; }
     const chips=winChips(s,w,fp,false,d);
-    R.wins.push({s,w,fp,tsumo:false,from:d,chips});
+    R.wins.push({s,w,fp,tsumo:false,from:d,chips,pao});
   });
   finishHand(list.map(x=>x.o));
 }
@@ -512,7 +530,10 @@ function winChips(s,w,fp,tsumo,d){
   const pocchiIppatsu=w.pocchi&&tsumo&&P.ippatsu;
   pay(di.aka,"赤5"); pay(di.gold*2,"金5"); pay(di.kn,"抜き北"); pay(di.ura,"裏ドラ");
   if(P.ippatsu&&P.riichi&&!pocchiIppatsu) pay(1,"一発");
-  if(r.ymN>0){ pay(tsumo?5*r.ymN:10*r.ymN,"役満"); for(let i=0;i<r.ymN;i++) dice("役満"); }
+  if(r.ymN>0){ const pao=paoOf(s,w);
+    if(pao!=null){ lines.push(["役満（包）",10*r.ymN,"包から"]); payChips(pao,s,10*r.ymN,"役満（包）"); }
+    else pay(tsumo?5*r.ymN:10*r.ymN,"役満");
+    for(let i=0;i<r.ymN;i++) dice("役満"); }
   else if(fp.kazoe){ pay(tsumo?5:10,"数え役満"); }
   else if(fp.base===6000){ pay(3,"三倍満",true); }
   const tiles=w.conc.concat(...P.melds.map(m=>m.tiles));
@@ -523,11 +544,12 @@ function winChips(s,w,fp,tsumo,d){
   const spInd=fp.fl.ind.filter(k=>k===34).length+fp.fl.ura.filter(k=>k===34).length;
   if(spInd) pay((P.hana.length+spInd),"表示牌の春",true);
   if(fp.fl.all.includes(37)){ // 冬：アリス
-    const src=H.live.concat(H.dead.kan); const mult=closed?2:1; let total=0;
+    // ドラ表示牌の隣（残りの山の最後）から順にめくる。嶺上牌はさわらない
+    const src=H.live.slice().reverse(); const mult=closed?2:1; let total=0; R.aliceOut=true;
     for(const t of src){
       if(t.k>=34){ const n=P.hana.length*mult; R.alice.push({t,hit:true,n}); total+=n; continue; }
       const kc=tiles.filter(x=>x.k===t.k).length;
-      if(kc>0){ R.alice.push({t,hit:true,n:kc*mult}); total+=kc*mult; } else { R.alice.push({t,hit:false}); break; }
+      if(kc>0){ R.alice.push({t,hit:true,n:kc*mult}); total+=kc*mult; } else { R.alice.push({t,hit:false}); R.aliceOut=false; break; }
     }
     pay(total,"アリス");
   }
@@ -600,7 +622,7 @@ function endGame(){
   return {
     get G(){return G;}, get H(){return H;}, get R(){return R;},
     newGame, startHand, endGame, discard, tryTsumo, settleTsumo, riichiOptions, kanOptions, doKan,
-    nukiKita, nukiHana, promptAnswer, riichiAuto, waits, shanten, seatWind, roundLabel, isClosed,
+    nukiKita, nukiHana, promptAnswer, riichiAuto, waits, shanten, seatWind, roundLabel, isClosed, openDanger,
     destroy(){ dead=true; }
   };
 }
