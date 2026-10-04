@@ -21,7 +21,7 @@
   --hw:min(calc((100vw - 26px) / 15.6), 56px, calc(100dvh * .12));
   --handH:calc(var(--hw) * 1.34 + 26px);
   --bw:min(calc(100vw - 14px), calc(100dvh - var(--handH) - 96px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)), 720px);
-  --rt:calc(var(--bw) * 0.047);
+  --rt:calc(var(--bw) * 0.043);
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
@@ -38,35 +38,38 @@ html,body{overflow:hidden}
 .bottom{width:100%;display:flex;flex-direction:column;align-items:center}
 
 /* ===== 卓 ===== */
-.board{position:relative;width:var(--bw);height:var(--bw);border-radius:22px;overflow:hidden;
-  background:radial-gradient(circle at 50% 50%, var(--felt1) 0%, var(--felt2) 48%, var(--felt3) 100%);
+.board{position:relative;width:var(--bw);height:var(--bh,var(--bw));border-radius:22px;overflow:hidden;
+  --box:calc(min(var(--bw), var(--bh,var(--bw))) * .34);
+  background:radial-gradient(ellipse at 50% 50%, var(--felt1) 0%, var(--felt2) 48%, var(--felt3) 100%);
   box-shadow:inset 0 0 0 5px var(--wood1), inset 0 0 0 8px var(--wood2), inset 0 0 40px rgba(0,0,0,.45), 0 14px 34px rgba(0,0,0,.55)}
-.layer{position:absolute;inset:0;pointer-events:none}
-.layer.r{transform:rotate(-90deg)} .layer.l{transform:rotate(90deg)}
-.box{position:absolute;left:32%;top:32%;width:36%;height:36%;background:var(--panel);border-radius:14px;
+.layer{position:absolute;left:50%;top:50%;width:var(--S);height:var(--S);transform:translate(-50%,-50%) rotate(var(--rot,0deg));pointer-events:none;--S:var(--bh,var(--bw))}
+.layer.r{--rot:-90deg;--S:var(--bw)} .layer.l{--rot:90deg;--S:var(--bw)}
+.box{position:absolute;left:50%;top:50%;width:var(--box);height:var(--box);transform:translate(-50%,-50%);background:var(--panel);border-radius:14px;
   border:1px solid rgba(240,198,94,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 6px 18px rgba(0,0,0,.4)}
-.box .rl{font-family:"Shippori Mincho B1",serif;font-weight:800;font-size:calc(var(--bw) * .048);letter-spacing:.06em;line-height:1.1}
-.box .sub{font-size:calc(var(--bw) * .024);color:var(--muted)}
-.box .rest{font-size:calc(var(--bw) * .026);color:var(--gold);font-weight:700}
-.sc{position:absolute;left:32%;width:36%;top:calc(68% - var(--bw) * .068);display:flex;align-items:baseline;justify-content:center;gap:5px;
-  font-size:calc(var(--bw) * .032);font-weight:900;font-variant-numeric:tabular-nums;color:#dfe8e4}
+.box .rl{font-family:"Shippori Mincho B1",serif;font-weight:800;font-size:calc(var(--box) * .133);letter-spacing:.06em;line-height:1.1}
+.box .sub{font-size:calc(var(--box) * .067);color:var(--muted)}
+.box .rest{font-size:calc(var(--box) * .072);color:var(--gold);font-weight:700}
+.sc{position:absolute;left:calc(50% - var(--box) / 2);width:var(--box);top:calc(50% + var(--box) * .31);display:flex;align-items:baseline;justify-content:center;gap:5px;
+  font-size:calc(var(--box) * .089);font-weight:900;font-variant-numeric:tabular-nums;color:#dfe8e4}
 .sc .wd{font-family:"Shippori Mincho B1",serif;color:var(--gold);font-size:1.05em}
 .sc .cp{font-size:.72em;font-weight:700;color:var(--muted)}
 .sc.on{color:#fff}
-.turnbar{position:absolute;left:36%;width:28%;top:calc(68% - var(--bw) * .012);height:calc(var(--bw) * .007);border-radius:4px;background:var(--gold);box-shadow:0 0 10px var(--gold)}
-.stick{position:absolute;left:43%;width:14%;top:calc(68% + var(--bw) * .006);height:calc(var(--bw) * .013);border-radius:4px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.4)}
-.stick::after{content:"";position:absolute;left:50%;top:50%;width:calc(var(--bw) * .009);height:calc(var(--bw) * .009);border-radius:50%;background:var(--red);transform:translate(-50%,-50%)}
-.rvg{position:absolute;top:calc(68% + var(--bw) * .03);left:50%;transform:translateX(-50%);display:grid;grid-template-columns:repeat(6,var(--rt));gap:1px 1px;width:calc(var(--rt) * 6 + 5px);justify-items:center}
-.edge{position:absolute;bottom:2.4%;left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:1px;white-space:nowrap}
+.turnbar{position:absolute;left:calc(50% - var(--box) * .39);width:calc(var(--box) * .78);top:calc(50% + var(--box) * .467);height:calc(var(--box) * .02);border-radius:4px;background:var(--gold);box-shadow:0 0 10px var(--gold)}
+.stick{position:absolute;left:calc(50% - var(--box) * .19);width:calc(var(--box) * .39);top:calc(50% + var(--box) * .517);height:calc(var(--box) * .036);border-radius:4px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.4)}
+.stick::after{content:"";position:absolute;left:50%;top:50%;width:calc(var(--box) * .025);height:calc(var(--box) * .025);border-radius:50%;background:var(--red);transform:translate(-50%,-50%)}
+.rvg{position:absolute;top:calc(50% + var(--box) * .545);left:50%;transform:translateX(-50%);display:grid;grid-template-columns:repeat(6,var(--rt));gap:1px 1px;width:calc(var(--rt) * 6 + 5px);justify-items:center}
+.layer.r .edge .t.back,.layer.l .edge .t.back{--w:calc(var(--rt) * .72);margin-right:-1px}
+.edge{position:absolute;bottom:2%;left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:1px;white-space:nowrap}
+.layer.me .edge{left:auto;right:3%;transform:none}
 .edge .ex{display:flex;gap:1px;margin-left:calc(var(--rt) * .5)}
 .edge .meld{display:flex;align-items:flex-end;gap:0;margin-left:calc(var(--rt) * .25)}
 .sd{position:relative;display:inline-block;flex:none;width:calc(var(--rt) * 1.34 + 2px);height:calc(var(--rt) + 1px);margin-bottom:calc(var(--rt) * .07)}
 .sd.st{height:calc(var(--rt) * 2 + 3px)}
 .sd .t{position:absolute;left:calc((var(--rt) * .34 + 2px) / 2);transform:rotate(-90deg);margin:0}
-.nm{position:absolute;bottom:calc(2.4% + var(--rt) * 1.5);left:50%;transform:translateX(-50%);font-size:calc(var(--bw) * .022);color:rgba(255,255,255,.65);font-weight:700}
+.nm{position:absolute;bottom:calc(2.4% + var(--rt) * 1.5);left:50%;transform:translateX(-50%);font-size:calc(var(--box) * .061);color:rgba(255,255,255,.65);font-weight:700;white-space:nowrap}
 .dora{position:absolute;top:3.2%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:4px;
-  background:var(--panel);padding:5px 9px;border-radius:10px;border:1px solid rgba(240,198,94,.3)}
-.dora .lb{font-size:calc(var(--bw) * .024);color:var(--gold);font-weight:900;margin-right:3px}
+  background:var(--panel);padding:5px 9px;border-radius:10px;border:1px solid rgba(240,198,94,.3);z-index:2}
+.dora .lb{font-size:calc(var(--box) * .067);color:var(--gold);font-weight:900;margin-right:3px}
 
 /* ===== 牌 ===== */
 .t{--w:var(--hw);position:relative;display:inline-block;width:var(--w);height:calc(var(--w) * 1.34);flex:none;
@@ -147,7 +150,8 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .card.res .skip{position:absolute;top:10px;right:12px;float:none;margin:0}
 .card.res .pg.on{display:flex;flex-direction:column;flex:1;min-height:0}
 .card.res .pg .pgnav{margin-top:auto}
-.pgin{overflow:auto;min-height:0;flex:1}
+.pgin{overflow:hidden;min-height:0;flex:1}
+.fitw{width:100%}
 .bc{background:rgba(255,255,255,.05);border-radius:10px;padding:8px 10px}
 .bch{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:700;margin-bottom:4px}
 .bch b{color:#5fe0a0;font-size:17px} .bch small{color:var(--muted);font-size:11px}
@@ -163,7 +167,17 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 /* 横向き */
 @media (orientation: landscape) and (max-height: 560px){
   :root{ --hw:min(calc((100vw - 40px) / 16), 58px, calc(100dvh * .15)); --handH:calc(var(--hw) * 1.34 + 18px);
-         --bw:min(calc(100dvh - var(--handH) - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)), calc(100vw - 280px)); }
+         --bh:calc(100dvh - var(--handH) - 14px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+         --bw:calc(100vw - 2 * max(150px, env(safe-area-inset-left,0px) + 120px));
+         --rt:calc(var(--bh) * .054); }
+  .board .layer,.board .box{top:calc(50% - var(--bh) * .045)}
+  #lg,#hs,#fs,#snd{width:38px;height:38px;font-size:16px;right:auto !important;left:max(10px, env(safe-area-inset-left,0px))}
+  #snd{top:8px} #fs{top:52px}
+  .subrow{max-width:140px !important}
+  .hint{font-size:11.5px}
+  .layer.r .edge .t.back,.layer.l .edge .t.back{--w:calc(var(--rt) * .72);margin-right:-1px}
+  .layer.r .edge .ex .t,.layer.l .edge .ex .t{--w:calc(var(--rt) * .85)}
+  .board{border-radius:18px}
   .acts{position:absolute;right:max(14px, env(safe-area-inset-right,0px));bottom:calc(var(--handH) + 14px);flex-direction:column;align-items:flex-end;min-height:0}
   .subrow{position:absolute;left:max(14px, env(safe-area-inset-left,0px));bottom:calc(var(--handH) + 14px);flex-direction:column-reverse;align-items:flex-start;width:auto;max-width:24vw;padding:0}
   .subrow .sp{display:none}
@@ -196,6 +210,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .hanrow{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-top:8px}
 .hanrow .hn{font-size:22px;font-weight:900;color:#fff}
 .hanrow .pt{font-size:30px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums}
+.hanrow .pt{white-space:nowrap;font-size:min(6.6vw,30px)}
 .hanrow .pt small{font-size:16px;color:var(--gold);margin-left:4px}
 .hanrow .ex{font-size:13px;color:var(--gold);font-weight:700;width:100%}
 .card.instant .seq,.card.instant .flip .in{animation-delay:0s !important;animation-duration:.01s !important}
@@ -376,7 +391,135 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .cd{color:#ff8a7a}
 .hand .t.danger{box-shadow:0 0 0 2px #ff5a4a,0 calc(var(--w) * .09) 0 var(--edge),0 0 10px rgba(255,90,74,.6)}
 .opn{display:inline-block;margin-left:4px;font-size:.9em;color:#ffb43d}
+.owt{display:inline-flex;align-items:center;gap:1px;margin-left:6px;vertical-align:middle}
+.owt b{font-size:.85em;color:#ffb43d;margin-right:3px}
 .b-open{background:linear-gradient(180deg,#ff8f5a,#e0531a)}
+.bc2{background:rgba(255,255,255,.05);border-radius:10px;padding:8px 12px}
+.rrs{display:flex;flex-wrap:wrap;gap:2px 14px;font-size:13px;color:#dfe8e4;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:4px}
+.rr b{color:var(--gold);font-variant-numeric:tabular-nums}
+.nr2{display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding:1px 0}
+.nr2 b{font-variant-numeric:tabular-nums}
+.p1d .drow{display:flex;align-items:center;gap:8px;min-height:40px}
+.p1d .dl{font-size:13px;font-weight:700;color:#dfe8e4;min-width:72px}
+.p1d .dpair{display:inline-flex;gap:4px}
+.p1d .die3{width:32px;height:32px;padding:4px;border-radius:7px}
+.p1d .die3 i{width:6px;height:6px} .p1d .die3 i.p.one{width:10px;height:10px}
+.p1d .zm{font-size:11px}
+.p1d .dtot{margin-left:auto;font-size:13px;font-weight:700;color:#fff}
+.p1d .dtot b{font-size:20px;color:var(--gold);margin-right:2px}
+.p1d .dt{font-size:12px;margin-bottom:2px}
+@media (orientation: landscape) and (max-height: 560px){
+  .p1hand{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+  .p1hand .nukirow{margin:0 0 15px;flex-direction:row;gap:10px;align-items:center}
+  .stbl td{padding:2px 0 2px 8px}
+  .bc2{padding:6px 10px}
+  .rrs{padding-bottom:3px;margin-bottom:2px}
+  .p1d{padding:4px 10px !important;margin-top:4px !important;display:block !important}
+  .p1d .drow{min-height:34px}
+  .p1d .dt{max-width:none !important;width:100%}
+}
+.stbl{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.stbl th{font-size:11px;color:var(--muted);font-weight:700;text-align:center;padding:2px 0 3px;border-bottom:1px solid rgba(255,255,255,.12)}
+.stbl td{padding:4px 0 4px 8px;text-align:right;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap;font-weight:700;color:#e8efeb}
+.stbl td.nmc{text-align:left;padding-left:0;font-weight:700}
+.stbl .wnd{font-family:"Shippori Mincho B1",serif;color:var(--gold);margin-right:5px}
+.stbl td.pos{color:#5fe0a0} .stbl td.neg{color:#ff8a7a} .stbl td.zero{color:var(--muted)}
+.stbl td small{font-size:10px;margin-left:2px}
+.dicepop{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(2,10,12,.55);opacity:0;pointer-events:none;
+  animation:dpin .25s ease-out var(--d) forwards, dpout .35s ease-in var(--e) forwards}
+@keyframes dpin{to{opacity:1;pointer-events:auto}}
+@keyframes dpout{from{opacity:1}to{opacity:0;visibility:hidden;pointer-events:none}}
+.card.instant .dicepop{display:none}
+.dpw{background:linear-gradient(180deg,#1a3b37,#0e2321);border:2px solid var(--gold);border-radius:16px;padding:14px 18px;min-width:min(420px,86%);box-shadow:0 18px 40px rgba(0,0,0,.6)}
+.dpt{font-size:16px;font-weight:900;color:var(--gold);margin-bottom:8px}
+.dpt small{font-size:12px;color:var(--muted);margin-left:6px;font-weight:700}
+.dpw .drow{display:flex;align-items:center;gap:10px;min-height:52px}
+.dpw .dl{font-size:15px;font-weight:900;color:#fff;min-width:96px}
+.dpw .dpair{display:inline-flex;gap:6px}
+.dpw .zm{font-size:12px;color:#ff8a7a;font-weight:900}
+.dpw .dtot{margin-left:auto;font-size:15px;font-weight:700;color:#fff}
+.dpw .dtot b{font-size:26px;color:var(--gold);margin-right:2px}
+.who3{color:#fff !important}
+.p1foot .fl .tpbox{margin:6px 0}
+@media (orientation: portrait){
+  .rrs{font-size:12px;gap:0 10px;line-height:1.4}
+  .stbl td{padding:2px 0 2px 8px}
+  .yaku.y2{font-size:13px;line-height:1.4}
+  .p1hand .nukirow{--rt:min(calc((100vw - 70px) / 17), 26px)}
+  .bigrank{font-size:38px}
+}
+@media (orientation: landscape) and (max-height: 560px){
+  .p1hand .whand{--rt:min(calc((97vw - 80px) / 15.6), 36px) !important;margin:4px 0 15px !important}
+  .p1hand{flex-wrap:nowrap !important;gap:12px !important}
+  .p1hand .nukirow{flex-direction:column !important;align-items:flex-start !important;gap:3px !important;margin:0 0 14px !important;--rt:20px !important}
+  .p1hand .nukirow .ng{gap:1px}
+  .p1hand .nukirow b{font-size:10px;width:40px}
+  .rrs{font-size:11.5px !important;gap:0 10px !important;line-height:1.4;padding-bottom:2px !important}
+  .stbl{font-size:12.5px} .stbl td{padding:1px 0 1px 8px !important} .stbl th{padding:0 0 2px}
+  .yaku.y2{line-height:1.38 !important}
+  .p1top{margin-bottom:0}
+}
+.bottom{position:relative}
+.waitbar{position:absolute;left:50%;bottom:calc(var(--handH) + 4px);transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:6px;
+  background:rgba(8,20,22,.92);border:1px solid rgba(240,198,94,.45);border-radius:12px;padding:4px 10px;white-space:nowrap;--rt:22px;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+.waitbar .wl{font-size:12px;font-weight:900;color:var(--gold)}
+.waitbar .wi{display:inline-flex;align-items:center;gap:2px}
+.waitbar .wi b{font-size:12px;color:#fff}
+.waitbar .wi.zero b{color:#ff8a7a}
+.waitbar .wt{font-size:12px;color:var(--muted);font-weight:700}
+.waitbar .fu{font-size:12px;font-weight:900;color:#fff;background:#d23b2b;border-radius:6px;padding:1px 6px}
+.hand .t.tp::after{content:"";position:absolute;top:-7px;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--gold);border-bottom:0}
+/* ロビー・待合室（横向きでもスクロールなし） */
+.card.lob .rl2{display:flex;flex-direction:column;gap:6px}
+.card.lob .lbtns{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.card.lob .lbtns .wait{margin:6px 0}
+.rdy{color:#5fe0a0} .nrd{color:var(--muted)}
+button[disabled]{opacity:.45;cursor:not-allowed;filter:grayscale(.4)}
+@media (orientation: landscape) and (max-height: 560px){
+  .card.lob{max-width:min(94vw,760px) !important;padding:12px 18px !important;max-height:calc(100dvh - 16px)}
+  .card.lob.start{display:grid;grid-template-columns:1fr 1fr;column-gap:22px;align-items:center}
+  .card.lob.start .ttl{grid-column:1;grid-row:1;font-size:30px}
+  .card.lob.start .deco{grid-column:1;grid-row:2;margin:6px 0 0}
+  .card.lob.start .fld,.card.lob.start>button,.card.lob.start .or,.card.lob.start .joinrow{grid-column:2}
+  .card.lob.start .fld{grid-row:1;margin:0}
+  .card.lob.start>button{grid-row:2}
+  .card.lob.start .or{grid-row:3;margin:4px 0}
+  .card.lob.start .joinrow{grid-row:4}
+  .card.lob.start .deco{--rt:min(6vw,32px)}
+  .card.lob.room .rl2{flex-direction:row;gap:20px;align-items:flex-start}
+  .card.lob.room .code{font-size:44px}
+  .card.lob.room .mem{flex:1} .card.lob.room h3{margin:0 0 4px}
+  .card.lob.room .seatrow{padding:6px 10px;margin:4px 0}
+  .card.lob.room .lbtns{flex-direction:row;flex-wrap:wrap}
+  .card.lob.room .lbtns button{flex:1;min-height:40px;width:auto;margin:0;font-size:13px;padding:6px 8px;letter-spacing:0;white-space:nowrap}
+  .card.lob.room .lbtns .wait{flex:1;margin:0;align-self:center}
+  .card.fin{max-width:min(94vw,760px) !important;padding:12px 18px !important}
+  .card.fin h2{font-size:26px}
+  .card.fin .yaku{margin:4px 0}
+  .card.fin h3{margin:8px 0 2px}
+  .card.fin button{margin-top:10px !important}
+}
+.ftbl{font-size:15px;margin:8px 0}
+.ftbl td{padding:6px 0 6px 10px !important}
+.ftbl td.rk{color:var(--gold);font-weight:900;padding-left:0 !important;text-align:left}
+.ftbl td.fc{font-size:20px;font-weight:900}
+.card.fin.wide2{max-width:min(96vw,980px)}
+.fgrid{display:flex;flex-direction:column;gap:14px}
+.hhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.hhead b{color:var(--gold);font-size:15px}
+.pgr{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700}
+.pgr button{min-height:30px;width:auto !important;padding:2px 12px;margin:0 !important;font-size:16px}
+.card .ht td,.card .ht th{padding:3px 4px}
+.card .ht td.hl{white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+.card .ht td.hl .hd{display:inline;font-size:11px}
+.card .ht td.hl b{display:inline}
+.card .ht td b{display:block;font-weight:900}
+.card .ht td small{display:block;font-size:10px;font-weight:600}
+@media (orientation: landscape) and (max-height: 560px){
+  .fgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;align-items:start}
+  .card.fin .ftbl{font-size:13px} .card.fin .ftbl td{padding:4px 0 4px 8px !important} .card.fin .ftbl td.fc{font-size:17px}
+  .card .ht{font-size:11px} .card .ht td{padding:2px 4px} .card .ht .hd{font-size:10px}
+}
 
 /* ===== ロビー ===== */
 .card.lob{max-width:420px}
@@ -399,8 +542,6 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 <div id="ov"></div>
 <button id="snd" class="tb" style="right:8px" aria-label="音の切り替え">🔊</button>
 <button id="fs" class="tb" style="right:56px" aria-label="全画面">⛶</button>
-<button id="lg" class="tb" style="right:104px" aria-label="ログ">📜</button>
-<button id="hs" class="tb" style="right:152px" aria-label="全局の精算">📊</button>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
 <linearGradient id="sG" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#0d5530"/><stop offset=".45" stop-color="#3cb46a"/><stop offset=".6" stop-color="#2a9a55"/><stop offset="1" stop-color="#0d5530"/></linearGradient>
 <linearGradient id="sR" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#8a1a12"/><stop offset=".45" stop-color="#ee6a54"/><stop offset=".6" stop-color="#d4412e"/><stop offset="1" stop-color="#8a1a12"/></linearGradient>
@@ -599,6 +740,28 @@ const SE=(()=>{
   };
 })();
 // ===== 表示 =====
+// ===== 聴牌補助 =====
+function seenCount(k){
+  let n=0;
+  for(const P of H.p){
+    for(const r of P.river) if(r.t.k===k) n++;
+    for(const m of P.melds) for(const t of m.tiles) if(t.k===k) n++;
+    if(k===30) n+=P.kita.length;
+    if(P!==H.p[0] && P.open) for(const t of P.hand) if(t.k===k) n++;
+  }
+  for(const t of H.p[0].hand) if(t.k===k) n++;
+  for(const t of H.dead.dora.concat(H.kanDora||[])) if(t.k===k) n++;
+  return n;
+}
+function waitBarHTML(info){
+  if(!info||!info.waits.length) return "";
+  const items=info.waits.map(k=>{ const left=Math.max(0,4-seenCount(k)); return `<span class="wi${left?"":" zero"}">${tileHTML({k,id:-200-k},"rv")}<b>残${left}</b></span>`; }).join("");
+  const tot=info.waits.reduce((a,k)=>a+Math.max(0,4-seenCount(k)),0);
+  return `<div class="waitbar"><span class="wl">待ち</span>${items}<span class="wt">計${tot}枚</span>${info.fu?'<span class="fu">フリテン</span>':""}</div>`;
+}
+function tenpaiData(){ return (V&&V.tp)||{cand:{},cur:null}; }
+
+function openWaitsOf(s){ return (H.p[s]&&H.p[s].waits)||[]; }
 function sideTile(t,stack){
   const top1="calc(var(--rt) * 1.34 - var(--rt) * .5 - var(--rt) * .67)";
   if(!stack) return `<span class="sd">${tileHTML(t,"rv").replace('class="t','style="top:'+top1+'" class="t')}</span>`;
@@ -615,7 +778,7 @@ function meldHTML(m,s){
 }
 
 const fmtChip = n => (n>0?"+":"")+n+"枚";
-const SIDE = {0:"", 1:" r", 2:" l"};
+const SIDE = {0:" me", 1:" r", 2:" l"};
 function seatLayer(s){
   const P=H.p[s]; const on=H.turn===s && H.state!=="result";
   const river=P.river.map(r=>tileHTML(r.t,"rv"+(r.riichi?" rot":"")+(r.called?" gone":""))).join("");
@@ -637,11 +800,16 @@ function render(){
   const play=H.state==="play" && H.turn===0;
   const rOpts=play && H.sel ? riichiOptions(0,H.sel==="open") : null;
   const danger=!P.riichi ? openDanger(0) : [];
+  const okIds=!P.riichi ? discardable(0) : null;
+  const forced=danger.length && okIds && P.hand.some(t=>okIds.includes(t.id)&&danger.includes(t.k));
   const drawn=H.drawn && H.turn===0 && P.hand.includes(H.drawn) ? H.drawn : null;
   const ordered=sortHand(P.hand.filter(t=>t!==drawn)).concat(drawn?[drawn]:[]);
+  const TP=tenpaiData();
   const hand=ordered.map(t=>{
     let cls=t===drawn?"drawn":"";
-    if(danger.includes(t.k)) cls+=" danger";
+    if(TP.cand[t.id]) cls+=" tp";
+    if(okIds && t.k!==30 && t.k<34 && !okIds.includes(t.id)) cls+=" dim";
+    else if(forced && danger.includes(t.k)) cls+=" danger";
     if(H.pick===t.id && !P.riichi) cls+=" sel";
     if(rOpts && !rOpts.includes(t.id)) cls+=" dim";
     if(play && P.riichi && t!==drawn) cls+=" dim";
@@ -659,10 +827,11 @@ function render(){
     if(H.sel){ const nm=H.sel==="open"?"オープンリーチ":"リーチ"; acts+=`<button data-a="cancel" class="b-skip">キャンセル</button>`; hint=H.pick!=null?`もう一度タップで${nm}`:`${nm}で切る牌を選んでください`; }
     else { if(riichiOptions(0).length) acts+=`<button data-a="riichi" class="b-riichi">リーチ</button>`;
       if(riichiOptions(0,true).length) acts+=`<button data-a="open" class="b-riichi b-open">オープン</button>`; }
+    if(!hint && forced) hint="当たり牌しか残っていません。どれで放銃するか選んでください";
     if(!hint) hint=hasHana?"華牌を抜いてください":P.riichi?"リーチ中":H.pick!=null&&P.hand.some(t=>t.id===H.pick)?"上がっている牌をタップで切る":"切る牌を選んでください";
   } else if(H.state==="prompt"){
     const pr=H.prompt;
-    hint=`${NAMES[pr.s]}の打牌：${tName(pr.t)}`;
+    hint="";
     if(pr.human) acts+=`<button data-a="ron" class="b-win">ロン</button>`;
     if(pr.pon) acts+=`<button data-a="pon" class="b-pon">ポン</button>`;
     if(pr.kan) acts+=`<button data-a="kan" class="b-pon">カン</button>`;
@@ -682,8 +851,9 @@ function render(){
       ${seatLayer(2)}${seatLayer(1)}${seatLayer(0)}
     </div></div>
     <div class="bottom">
+      ${play&&H.pick!=null&&TP.cand[H.pick]?waitBarHTML(TP.cand[H.pick]):(!play&&TP.cur?waitBarHTML(TP.cur):"")}
       <div class="acts">${acts}</div>
-      <div class="subrow"><button data-a="nonaki" class="tog${H.noNaki?" on":""}" aria-pressed="${H.noNaki}">${H.noNaki?"✓ ":""}鳴きなし</button><div class="hint">${hint}</div><span class="sp"></span></div>
+      <div class="subrow"><button data-a="nonaki" class="tog${H.noNaki?" on":""}" aria-pressed="${H.noNaki}">${H.noNaki?"✓ ":""}鳴きなし</button><div class="hint"></div><span class="sp"></span></div>
       <div class="hand" id="hand">${hand}</div>
     </div>`;
 }
@@ -705,17 +875,20 @@ document.addEventListener("click",e=>{
     if(a==="cancel"){ H.sel=null; render(); return; }
     if(a==="ron"||a==="pon"||a==="kan"||a==="pass"){ act({t:"answer",a}); H.state="wait"; H.prompt=null; render(); return; }
     if(a==="kan2"){ act({t:"kan",type:b.dataset.t,k:+b.dataset.k}); return; }
-    if(a==="nonaki"){ act({t:"nonaki"}); H.noNaki=!H.noNaki; render(); return; }
+    if(a==="nonaki"){ act({t:"nonaki"}); H.noNaki=!H.noNaki;
+      if(H.noNaki && H.state==="prompt" && H.prompt && !H.prompt.human){ H.state="wait"; H.prompt=null; }
+      render(); return; }
     if(a==="hist"){ const o2=document.createElement("div"); o2.className="overlay ov2"; o2.innerHTML=`<div class="card wide"><h2 style="font-size:24px">全局の精算</h2>${histHTML()}<button data-a="close2" class="b-gold">閉じる</button></div>`; document.body.appendChild(o2); return; }
     if(a==="close2"){ const o2=b.closest(".ov2"); if(o2) o2.remove(); return; }
     if(a==="pg3"){ const c=b.closest(".card"); DICE.finish(); clearRT(); c.classList.add("instant"); ["pg1","pg2","pg3"].forEach(p=>c.querySelector("."+p).classList.toggle("on",p==="pg3")); c.scrollTop=0; return; }
-    if(a==="pg2"||a==="next"){ const c=b.closest(".card.res"); if(c && !c.classList.contains("instant") && Date.now() < +c.dataset.t0 + (+c.dataset.dur)*1000){ c.classList.add("instant"); DICE.finish(); clearRT(); return; } }
+    if(a==="pg2"||a==="next"){ const c=b.closest(".card.res"); if(c && !c.classList.contains("instant") && Date.now() < +c.dataset.t0 + (+c.dataset.dur)*1000){ c.classList.add("instant"); if(c.dataset.f) c.classList.add(c.dataset.f); DICE.finish(); clearRT(); return; } }
     if(a==="pg2"||a==="pg1"){ const c=b.closest(".card"); const from3=c.querySelector(".pg3.on"); c.classList.remove("instant"); ["pg1","pg2"].forEach(p=>c.querySelector("."+p).classList.toggle("on",p===a)); c.scrollTop=0;
       if(a==="pg2"&&from3){ c.classList.add("instant"); DICE.finish(); return; }
       if(a==="pg1"){ c.classList.add("instant"); DICE.finish(); clearRT(); return; }
-      if(a==="pg2"){ c.dataset.t0=Date.now(); c.dataset.dur=c.dataset.dur2; clearRT(); DICE.stop(); /* 2ページ目の演出をやり直す */ const p2=c.querySelector(".pg2"); p2.querySelectorAll(".seq,.dstage").forEach(el=>{ el.style.animation="none"; void el.offsetWidth; el.style.animation=""; }); DICE.restart(2); }
+      if(a==="pg2"){ c.classList.remove("goldf","rainbowf"); if(c.dataset.f2) setTimeout(()=>c.classList.add(c.dataset.f2), Math.max(0,(+c.dataset.dur2-.3))*1000); c.dataset.t0=Date.now(); c.dataset.dur=c.dataset.dur2; clearRT(); DICE.stop(); /* 2ページ目の演出をやり直す */ const p2=c.querySelector(".pg2"); p2.querySelectorAll(".seq,.dstage").forEach(el=>{ el.style.animation="none"; void el.offsetWidth; el.style.animation=""; }); DICE.restart(2); }
       else DICE.finish();
       return; }
+    if(a==="hpg"){ histPage+=+b.dataset.d; const hb=document.getElementById("histbox"); if(hb) hb.innerHTML=histPagedHTML(); fitFinal(); return; }
     if(a==="skip"){ const c=b.closest(".card"); if(c) c.classList.add("instant"); DICE.finish(); clearRT(); return; }
     if(a==="next"){ if(b.dataset.waiting) return; socket.emit("next"); document.querySelectorAll("button[data-a=next]").forEach(x=>{ x.dataset.waiting="1"; x.textContent="待機中…"; }); return; }
     return;
@@ -730,11 +903,13 @@ function tapTile(id){
   if(!(H.state==="play"&&H.turn===0)){
     if(P.riichi) return;
     const tt=P.hand.find(x=>x.id===id); if(!tt||tt.k===30||tt.k>=34) return;
+    if(!discardable(0).includes(id)) return;
     H.pick=H.pick===id?null:id; render(); return;
   }
   if(P.riichi) return;
   if(P.hand.some(x=>x.k>=34)) return;
   const tt=P.hand.find(x=>x.id===id); if(tt&&tt.k===30) return;
+  if(!discardable(0).includes(id)) return;
   if(H.sel && !riichiOptions(0,H.sel==="open").includes(id)) return;
   // 選んでいない牌は選ぶだけ。選んである牌（先に選んでおいた牌も含む）をタップで切る
   if(H.pick!==id){ H.pick=id; render(); return; }
@@ -830,6 +1005,29 @@ function netCards(){
     <div class="pv ${cls(pt[s])}">${sg(pt[s])}点</div>
     <div class="tot">合計 <b>${G.chips[s]>0?"+":""}${G.chips[s]}枚</b>・${G.scores[s].toLocaleString()}点</div></div>`).join("")}</div>`;
 }
+function breakdownLines(x,hideDice){
+  const got=R.chips.filter(c=>c.to===x.s);
+  const isD=r=>hideDice&&/サイコロ/.test(r);
+  const reasons=[...new Set(got.map(c=>c.why))];
+  const payers=[...new Set(got.map(c=>c.from))];
+  let rs="";
+  for(const r of reasons){
+    if(isD(r)){ rs+=`<span class="rr">${r} <b>🎲</b></span>`; continue; }
+    const v=payers.map(f=>got.filter(c=>c.why===r&&c.from===f).reduce((a,c)=>a+c.n,0)).filter(n=>n>0);
+    const same=v.length>1&&v.every(n=>n===v[0]);
+    rs+=`<span class="rr">${r} <b>${same?"各"+v[0]:v.join("・")}枚</b></span>`;
+  }
+  const net=[0,0,0], hid=[0,0,0]; let dice=[false,false,false];
+  for(const c of R.chips){ if(isD(c.why)){ dice[c.from]=dice[c.to]=true; hid[c.from]-=c.n; hid[c.to]+=c.n; continue; } net[c.from]-=c.n; net[c.to]+=c.n; }
+  const pt=[0,0,0]; for(const q of R.pts){ if(q.from>=0) pt[q.from]-=q.n; pt[q.to]+=q.n; }
+  const cl=v=>v>0?"pos":v<0?"neg":"zero";
+  const sg=v=>v>0?"+"+v.toLocaleString():v<0?"-"+(-v).toLocaleString():"±0";
+  const hd=R.handDealer??G.dealer;
+  const rows=[0,1,2].map(s=>`<tr><td class="nmc"><span class="wnd">${HON[(s-hd+3)%3]}</span>${NAMES[s]}</td>
+    <td class="${cl(pt[s])}">${sg(pt[s])}</td><td>${G.scores[s].toLocaleString()}</td>
+    <td class="${cl(net[s])}">${sg(net[s])}枚${dice[s]?"<small>＋🎲</small>":""}</td><td>${(G.chips[s]-hid[s])}枚</td></tr>`).join("");
+  return `<div class="bc2"><div class="rrs">${rs}</div><table class="stbl"><thead><tr><th></th><th colspan="2">点数</th><th colspan="2">祝儀</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
 function breakdownCompact(list,hideDice){
   const byTo={}; for(const x of list) (byTo[x.to]=byTo[x.to]||[]).push(x);
   let h="";
@@ -851,6 +1049,14 @@ function breakdownCompact(list,hideDice){
   }
   return h;
 }
+// 1ページ目用：1回分を1行で
+function diceRowHTML(dv,tStart,pg){
+  let t=tStart, dice="";
+  dv.rolls.forEach((r,i)=>{ const t0=t; t+=1.0; const id1=DICE.add(r[0],t0,pg), id2=DICE.add(r[1],t0,pg);
+    dice+=`<span class="dpair seq" style="--d:${t0}s">${DICE.html(id1)}${DICE.html(id2)}</span>${r[0]===r[1]?`<span class="zm seq" style="--d:${t0+.9}s">ゾロ目</span>`:""}`; });
+  const td=t; t+=.3;
+  return {html:`<div class="drow seq" style="--d:${Math.max(0,tStart-.05)}s"><span class="dl">${dv.why}</span>${dice}<span class="dtot seq" style="--d:${td}s"><b>${dv.total}</b>枚</span></div>`, end:t};
+}
 function diceStageHTML(dv,tStart,pg){
   let rows="", t=tStart;
   dv.rolls.forEach(r=>{ const t0=t; t+=1.1; const id1=DICE.add(r[0],t0,pg), id2=DICE.add(r[1],t0,pg);
@@ -858,15 +1064,72 @@ function diceStageHTML(dv,tStart,pg){
   const td=t; t+=.5;
   return {html:`<div class="dstage seq" style="--d:${Math.max(0,tStart-.05)}s"><div class="dt">${NAMES[dv.s]}　${dv.why}のサイコロ</div>${rows}<div class="dtotal seq" style="--d:${td}s">合計 <b>${dv.total}</b> 枚 × 2人から</div></div>`, end:t};
 }
+// 局全体の増減（春・リーチ棒も含む）と、精算表
+function handDelta(){
+  const last=G.hist&&G.hist.length?G.hist[G.hist.length-1]:null;
+  if(last && !last.final) return {dp:last.dp, dc:last.dc};
+  const dp=[0,0,0], dc=[0,0,0];
+  for(const q of R.pts){ if(q.from>=0) dp[q.from]-=q.n; dp[q.to]+=q.n; }
+  for(const c of R.chips){ dc[c.from]-=c.n; dc[c.to]+=c.n; }
+  return {dp,dc};
+}
+function reasonsHTML(){
+  const {dc}=handDelta(); let rs="";
+  const resNet=[0,0,0]; for(const c of R.chips){ resNet[c.from]-=c.n; resNet[c.to]+=c.n; }
+  for(const x of R.wins){
+    const got=R.chips.filter(c=>c.to===x.s);
+    const reasons=[...new Set(got.map(c=>c.why))];
+    const payers=[...new Set(got.map(c=>c.from))];
+    const pre=R.wins.length>1?`<span class="rr"><b class="who3">${NAMES[x.s]}</b></span>`:"";
+    rs+=pre;
+    for(const r of reasons){
+      const v=payers.map(f=>got.filter(c=>c.why===r&&c.from===f).reduce((a,c)=>a+c.n,0)).filter(n=>n>0);
+      const same=v.length>1&&v.every(n=>n===v[0]);
+      rs+=`<span class="rr">${r} <b>${same?"各"+v[0]:v.join("・")}枚</b></span>`;
+    }
+  }
+  if(!R.wins.length){ const why=[...new Set(R.chips.map(c=>c.why))]; for(const r of why) rs+=`<span class="rr">${r}</span>`; if(R.pts.length) rs+=`<span class="rr">ノーテン罰符</span>`; }
+  // 局の途中のやり取り（春など）
+  const mid=[0,1,2].map(s=>dc[s]-resNet[s]);
+  if(mid.some(v=>v)){
+    const pos=[0,1,2].filter(s=>mid[s]>0), neg=[0,1,2].filter(s=>mid[s]<0);
+    if(pos.length===1 && neg.length===2 && mid[neg[0]]===mid[neg[1]]){
+      const r=pos[0], n=-mid[neg[0]], isWinner=R.wins.length===1 && R.wins[0].s===r;
+      rs+=`<span class="rr">春（局中${isWinner?"":"・"+NAMES[r]}） <b>各${n}枚</b></span>`;
+    } else rs+=`<span class="rr">局中（春） <b>${[0,1,2].filter(s=>mid[s]).map(s=>`${NAMES[s]}${mid[s]>0?"+":""}${mid[s]}`).join("・")}</b></span>`;
+  }
+  return rs;
+}
+function settleTableHTML(){
+  const {dp,dc}=handDelta();
+  const cl=v=>v>0?"pos":v<0?"neg":"zero";
+  const sg=v=>v>0?"+"+v.toLocaleString():v<0?"-"+(-v).toLocaleString():"±0";
+  const hd=R.handDealer??G.dealer;
+  const rows=[0,1,2].map(s=>`<tr><td class="nmc"><span class="wnd">${HON[(s-hd+3)%3]}</span>${NAMES[s]}</td>
+    <td class="${cl(dp[s])}">${sg(dp[s])}</td><td>${G.scores[s].toLocaleString()}</td>
+    <td class="${cl(dc[s])}">${sg(dc[s])}枚</td><td>${G.chips[s]}枚</td></tr>`).join("");
+  const rs=reasonsHTML();
+  return `<div class="bc2">${rs?`<div class="rrs">${rs}</div>`:""}<table class="stbl"><thead><tr><th></th><th>点数±</th><th>持ち点</th><th>祝儀±</th><th>祝儀計</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+// 入りきらないときは中身を縮めて、スクロールなしで収める
+function fitResult(){
+  const box=document.querySelector(".card.res .pgin"), w=box&&box.querySelector(".fitw"); if(!w) return;
+  const apply=s=>{ w.style.transformOrigin="top left"; w.style.transform=s<1?`scale(${s})`:""; w.style.width=s<1?`${100/s}%`:""; };
+  apply(1); if(w.scrollHeight<=box.clientHeight) return;
+  // 縮めると横幅が広がって行が減るので、何回か測り直してちょうどいい倍率にする
+  let lo=.4, hi=1;
+  for(let i=0;i<8;i++){ const m=(lo+hi)/2; apply(m); if(w.scrollHeight*m<=box.clientHeight) lo=m; else hi=m; }
+  apply(lo);
+}
+addEventListener("resize",()=>{ if(document.querySelector(".card.res")) fitResult(); });
 function showResult(){
   render(); clearRT(); DICE.reset();
-  const p1Dice=new Set();
   const roundName=`${["東","南","東","南"][Math.min(R.handPhase??G.phase,3)]}${R.handKyoku??((R.handDealer??G.dealer)+1)}局${R.handHonba?` ${R.handHonba}本場`:""}`;
   let d=.3; const step=x=>{ const v=d; d+=x; return v; };
   let p1="";
   if(R.wins.length){
-    for(const x of R.wins){
-      if(x.nagashi){ p1+=`<div class="p1top"><div class="rnm">${roundName}</div><div class="who2">${NAMES[x.s]}</div></div><div class="bigrank">流し役満</div>`; continue; }
+    R.wins.forEach((x,wi)=>{
+      if(x.nagashi){ p1+=`<div class="p1top"><div><div class="rnm">${roundName}</div><div class="who2">${NAMES[x.s]}<span class="kind">流し役満</span></div></div></div><div class="p1foot"><div class="fl"></div>${wi===0?"<!--TABLE-->":""}</div>`; return; }
       const r=x.w.res, fp=x.fp, P=H.p[x.s], di=fp.di;
       const dor=H.dead.dora.concat(H.kanDora).map(t=>tileHTML(t,"rv")).join("");
       let ura="";
@@ -915,46 +1178,51 @@ function showResult(){
       const dd=step(.5);
       const hanTxt=r.ymN>0?ymNames:(fp.han!=null?`${fp.han}翻`:"");
       const rank=fp.base>=2000||r.ymN>0?fp.label:"";
-      const mine=R.chips.filter(c=>c.to===x.s);
-      let diceP1="";
-      if(r.ymN>0){ let t=dd+.6; for(const dv of R.dice.filter(q=>q.s===x.s)){ const o=diceStageHTML(dv,t,1); diceP1+=o.html; t=o.end; p1Dice.add(dv); } if(diceP1) d=t; }
-      const hideDice=!diceP1 && R.dice.some(q=>q.s===x.s);
-      const frD=diceP1?d:dd+.35;
       p1+=`<div class="p1foot"><div class="fl">${ys?`<div class="yaku y2">${ys}</div>`:""}
         <div class="hanrow seq" style="--d:${dd}s"><div><span class="hn">${hanTxt}${rank?"":` ${r.fu}符`}</span>${rank?`<span class="bigrank">${rank}</span>`:""}</div>
-        <div class="pt">${x.tsumo?"ツモ":"ロン"} ${payStr}</div>${extraTxt?`<div class="ex">${extraTxt}</div>`:""}</div>
-        ${diceP1?`<div class="p1dice">${diceP1}</div>`:""}</div>
-        ${mine.length?`<div class="fr seq" style="--d:${frD}s">${breakdownCompact(mine,hideDice)}</div>`:""}</div>`;
+        <div class="pt">${x.tsumo?"ツモ":"ロン"} ${payStr}</div>${extraTxt?`<div class="ex">${extraTxt}</div>`:""}</div></div>
+        ${wi===0?"<!--TABLE-->":""}</div>`;
       later(()=>SE.win(),dd);
-    }
+    });
   } else {
     let ys=""; for(const s of [0,1,2]){ const dd=step(.42); later(()=>SE.swoosh(),dd); ys+=`<span class="seq" style="--d:${dd}s">${NAMES[s]}</span><span class="seq ${R.draw.ten[s]?"tp":"nt"}" style="--d:${dd}s">${R.draw.ten[s]?"テンパイ":"ノーテン"}</span>`; }
-    p1+=`<div class="p1top"><div><div class="rnm">${roundName}</div><div class="who2"><span class="kind">流局</span></div></div></div><div class="yaku dr">${ys}</div>`;
+    p1+=`<div class="p1top"><div><div class="rnm">${roundName}</div><div class="who2"><span class="kind">流局</span></div></div></div>`;
+    let hands="";
     for(const s of [0,1,2]) if(R.draw.ten[s]){
       const P=H.p[s], dd=step(.4);
       const melds=P.melds.map(m=>`<span style="display:flex;align-items:flex-end;margin-left:6px">${meldHTML(m,s)}</span>`).join("");
       const w=waits(s,P.hand);
-      p1+=`<div class="tpbox seq" style="--d:${dd}s"><div class="tph">${NAMES[s]} の手牌<span>待ち ${w.map(kName).join("・")}</span></div><div class="whand">${sortHand(P.hand.slice()).map(t=>tileHTML(t,"rv")).join("")}${melds}</div></div>`;
+      hands+=`<div class="tpbox seq" style="--d:${dd}s"><div class="tph">${NAMES[s]} の手牌<span>待ち ${w.map(kName).join("・")}</span></div><div class="whand">${sortHand(P.hand.slice()).map(t=>tileHTML(t,"rv")).join("")}${melds}</div></div>`;
     }
+    p1+=`<div class="p1foot"><div class="fl"><div class="yaku dr">${ys}</div>${hands}</div><!--TABLE--></div>`;
   }
-  // ---- 2ページ目：精算 ----
-  let p2=`<div class="p1top"><div><div class="rnm">${roundName}</div><div class="who2"><span class="kind">精算</span></div></div></div>${netCards()}`;
-  let left="", t2=1.0;
-  for(const dv of R.dice){ if(p1Dice.has(dv)) continue; const o=diceStageHTML(dv,t2,2); left+=o.html; t2=o.end; }
-  if(left) p2+=`<div class="p2dice">${left}</div>`;
-  if(R.msg) p2+=`<p class="msg">${R.msg}</p>`;
-  const nextLbl="次へ ▶";
-  const dots=n=>`<span class="dots">${[1,2].map(i=>`<i class="${i===n?"on":""}"></i>`).join("")}</span>`;
-  const nav1=`<div class="pgnav"><span></span>${dots(1)}<button data-a="pg2" class="b-gold">次へ ▶</button></div>`;
-  const nav2=`<div class="pgnav"><button data-a="pg1" class="b-skip">◀</button>${dots(2)}<span class="nr"><button data-a="hist" class="b-skip">📊 全局</button><button data-a="next" class="b-gold">${nextLbl}</button></span></div>`;
+  // サイコロ：別ウィンドウで振って、自動で閉じる
+  let pop="";
+  if(R.dice.length){
+    const ps=d+.5; let t=ps+.5, rows="";
+    for(const dv of R.dice){ const o=diceRowHTML(dv,t,1); rows+=o.html.replace('<span class="dl">',`<span class="dl">${R.wins.length>1?NAMES[dv.s]+"　":""}`); t=o.end+.2; }
+    const pe=t+1.0;
+    pop=`<div class="dicepop" style="--d:${ps}s;--e:${pe}s"><div class="dpw"><div class="dpt">🎲 サイコロ<small>（2人からもらう）</small></div>${rows}</div></div>`;
+    d=pe+.35;
+  }
+  const tblD=d; d+=.3;
+  p1=p1.replace("<!--TABLE-->",`<div class="fr seq" style="--d:${tblD}s">${settleTableHTML()}</div>`);
+  if(R.msg) p1+=`<p class="msg seq" style="--d:${tblD}s">${R.msg}</p>`;
+  // 金枠・虹枠（サイコロのあとに付ける）
+  // 金枠・虹枠：和了の祝儀＋局中の春（和了った人がもらった分）で判定
   let level=0;
-  for(const x of R.wins){ const got=R.chips.filter(c=>c.to===x.s); if(!got.length) continue;
-    const payers=[...new Set(got.map(c=>c.from))]; const per=payers.map(f=>got.filter(c=>c.from===f).reduce((a,c)=>a+c.n,0));
-    const amt=x.tsumo||x.nagashi?Math.min(...per):(got.filter(c=>c.from===x.from).reduce((a,c)=>a+c.n,0));
+  const {dc:hdc}=handDelta(); const resNet=[0,0,0]; for(const c of R.chips){ resNet[c.from]-=c.n; resNet[c.to]+=c.n; }
+  const mid=[0,1,2].map(s=>hdc[s]-resNet[s]);
+  for(const x of R.wins){
+    const from=f=>R.chips.filter(c=>c.to===x.s&&c.from===f).reduce((a,c)=>a+c.n,0)+(mid[x.s]>0&&mid[f]<0?-mid[f]:0);
+    const others=[0,1,2].filter(f=>f!==x.s);
+    const amt=x.tsumo||x.nagashi?Math.min(...others.map(from)):from(x.from);
     level=Math.max(level, amt>=20?2:amt>=10?1:0); }
-  const frameCls=level===2?" rainbowf":level===1?" goldf":"";
-  const h=`<div class="pg pg1 on"><div class="pgin">${p1}</div>${nav1}</div><div class="pg pg2"><div class="pgin">${p2}</div>${nav2}</div>`;
-  document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card res anim${frameCls}" data-t0="${Date.now()}" data-dur="${d+.4}" data-dur2="${Math.max(1.2,t2+.3)}">${h}</div></div>`;
+  const fcls=level===2?"rainbowf":level===1?"goldf":"";
+  const nav=`<div class="pgnav"><span></span><span></span><button data-a="next" class="b-gold">次へ ▶</button></div>`;
+  document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card res anim" data-t0="${Date.now()}" data-dur="${d}" data-f="${fcls}"><div class="pg pg1 on"><div class="pgin"><div class="fitw">${p1}</div></div>${nav}</div>${pop}</div></div>`;
+  fitResult();
+  if(fcls) later(()=>{ const c=document.querySelector(".card.res"); if(c) c.classList.add(fcls); },tblD);
   DICE.start(1);
 }
 function histHTML(){
@@ -966,14 +1234,36 @@ function histHTML(){
     <tr class="tot"><td class="hl">現在の合計</td>${[0,1,2].map(s=>`<td>${sg(G.chips[s],"枚")}<br><small class="zero">${G.scores[s].toLocaleString()}点</small></td>`).join("")}</tr>
   </tbody></table></div>`;
 }
+const HPG=5; let histPage=0;
+function histPagedHTML(){
+  const list=(G&&G.hist)||[]; const pages=Math.max(1,Math.ceil(list.length/HPG));
+  histPage=Math.min(Math.max(0,histPage),pages-1);
+  const SN=NAMES.map(n=>n.length>5?n.slice(0,5):n);
+  const sg=(v,u)=>`<span class="${v>0?"pos":v<0?"neg":"zero"}">${v>0?"+":v<0?"-":"±"}${Math.abs(v).toLocaleString()}${u}</span>`;
+  const rows=list.slice(histPage*HPG,(histPage+1)*HPG).map(r=>`<tr class="${r.final?"fin":""}"><td class="hl"><b>${r.label.replace(/ 0本場/,"")}</b> <span class="hd">${r.desc}</span></td>${[0,1,2].map(s=>`<td><b>${sg(r.dc[s],"枚")}</b><small>${sg(r.dp[s],"")}</small></td>`).join("")}</tr>`).join("");
+  const tot=[0,1,2].map(s=>list.reduce((a,r)=>a+r.dc[s],0));
+  return `<div class="hhead"><b>全局の精算</b>${pages>1?`<span class="pgr"><button data-a="hpg" data-d="-1" class="b-skip" ${histPage===0?"disabled":""}>‹</button>${histPage+1}/${pages}<button data-a="hpg" data-d="1" class="b-skip" ${histPage===pages-1?"disabled":""}>›</button></span>`:""}</div>
+    <table class="ht"><thead><tr><th>局・結果</th>${[0,1,2].map(s=>`<th>${SN[s]}</th>`).join("")}</tr></thead><tbody>${rows}
+    <tr class="tot"><td class="hl"><b>合計</b></td>${[0,1,2].map(s=>`<td><b>${sg(tot[s],"枚")}</b><small class="zero">${G.scores[s].toLocaleString()}</small></td>`).join("")}</tr></tbody></table>`;
+}
 function showFinal(order){
-  render();
-  let h=`<h2>終局</h2><div class="yaku" style="font-size:17px">${order.map((s,i)=>`<span>${i+1}位　${NAMES[s]}</span><span>${G.scores[s].toLocaleString()}点</span>`).join("")}</div>`;
-  if(R.chips.length) h+=`<h3>ウマ・ボーナス</h3>${netSummary()}${breakdown(R.chips,"枚")}`;
-  h+=`<h3>最終祝儀</h3><div class="yaku" style="font-size:20px">${[0,1,2].map(s=>`<span>${NAMES[s]}</span><span>${fmtChip(G.chips[s])}</span>`).join("")}</div>`;
-  h+=`<h3>全局の精算</h3>${histHTML()}`;
-  h+=`<button data-a="next" class="b-gold">もう一度遊ぶ（全員そろったら開始）</button>`;
-  document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card fin">${h}</div></div>`;
+  render(); histPage=0;
+  const add=[0,0,0]; for(const c of R.chips){ add[c.from]-=c.n; add[c.to]+=c.n; }
+  const cl=v=>v>0?"pos":v<0?"neg":"zero", sg=v=>v>0?"+"+v:v<0?"-"+(-v):"±0";
+  const why=[...new Set(R.chips.map(c=>c.why))].join("・")||"ウマ";
+  const rows=order.map((s,i)=>`<tr><td class="rk">${i+1}位</td><td class="nmc">${NAMES[s]}</td><td>${G.scores[s].toLocaleString()}</td><td class="${cl(add[s])}">${sg(add[s])}枚</td><td class="fc ${cl(G.chips[s])}">${sg(G.chips[s])}枚</td></tr>`).join("");
+  const h=`<div class="fgrid"><div class="fl2"><h2>終局</h2><table class="stbl ftbl"><thead><tr><th></th><th></th><th>持ち点</th><th>${why}</th><th>最終祝儀</th></tr></thead><tbody>${rows}</tbody></table><button data-a="toroom" class="b-gold">部屋に戻る</button></div>
+    <div class="fr2" id="histbox">${histPagedHTML()}</div></div>`;
+  document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card fin wide2"><div class="fitw">${h}</div></div></div>`;
+  fitFinal();
+}
+function fitFinal(){
+  const c=document.querySelector(".card.fin"), w=c&&c.querySelector(".fitw"); if(!w) return;
+  const apply=s=>{ w.style.transformOrigin="top left"; w.style.transform=s<1?`scale(${s})`:""; w.style.width=s<1?`${100/s}%`:""; c.style.height=""; };
+  apply(1); const cs=getComputedStyle(c); const avail=c.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+  if(w.scrollHeight<=avail) return;
+  let lo=.4,hi=1; for(let i=0;i<8;i++){ const m=(lo+hi)/2; apply(m); if(w.scrollHeight*m<=avail) lo=m; else hi=m; }
+  apply(lo); c.style.height=(w.scrollHeight*lo+parseFloat(getComputedStyle(c).paddingTop)+parseFloat(getComputedStyle(c).paddingBottom))+"px"; c.style.overflow="hidden";
 }
 function showStart(){
   const deco=[{k:34},{k:13,red:true},{k:22,gold:true},{k:31,pocchi:true},{k:30},{k:33}].map((t,i)=>tileHTML({...t,id:-10-i},"rv")).join("");
@@ -1022,15 +1312,18 @@ function seatWind(s){ return 27+((s-G.dealer+3)%3); }
 function tryTsumo(s){ return s===0&&V&&V.acts&&V.acts.tsumo?{pocchi:V.acts.pocchi}:null; }
 function riichiOptions(s,open){ return s===0&&V&&V.acts?(open?V.acts.openRiichi||[]:V.acts.riichi):[]; }
 function openDanger(s){ return s===0&&V?V.danger||[]:[]; }
+function discardable(s){ return s===0&&V&&V.allowed?V.allowed:(H?H.p[0].hand.filter(t=>t.k!==30&&t.k<34).map(t=>t.id):[]); }
 function kanOptions(s){ return s===0&&V&&V.acts?V.acts.kan:[]; }
 function waits(s){ return (RS&&RS.waits&&RS.waits[s])||[]; }
 function discard(s,id,riichi,open){ act({t:"discard",id,riichi:!!riichi,open:!!open}); H.pick=null; H.sel=null; }
 
+let curGid=null, lastResultKey=null;
 function applyView(v){
+  if(v.gid!==curGid){ curGid=v.gid; if(G) G.hist=[]; lastResultKey=null; }
   V=v; NAMES=v.names;
   G={ scores:v.scores, chips:v.chips, dealer:v.dealer, phase:v.phase, honba:v.honba, kyotaku:v.kyotaku, log:v.log, hist:(G&&G.hist)||[], over:false };
   const keepPick=H&&H.pick, keepSel=H&&H.sel;
-  const p=v.players.map((P,i)=>({ hand: P.hand?P.hand:Array.from({length:P.handCount},()=>({k:-1})), melds:P.melds, river:P.river, kita:P.kita, hana:P.hana, riichi:P.riichi, open:P.open }));
+  const p=v.players.map((P,i)=>({ hand: P.hand?P.hand:Array.from({length:P.handCount},()=>({k:-1})), melds:P.melds, river:P.river, kita:P.kita, hana:P.hana, riichi:P.riichi, open:P.open, waits:P.waits||[] }));
   let state;
   if(v.state==="play") state=v.turn===0?"play":"cpu";
   else if(v.state==="prompt") state=v.prompt?"prompt":"wait";
@@ -1064,6 +1357,9 @@ function afterRender(){
     upd(); tick=setInterval(upd,1000); }
 }
 socket.on("result",d=>{
+  const key=d.gid+":"+d.hid;
+  if(key===lastResultKey && document.querySelector("#ov .card.res")) return; // 同じ結果は出し直さない
+  lastResultKey=key;
   R=d.R; NAMES=d.names; RS=d.snap;
   G=Object.assign({},G||{},d.G);
   const base=H||{p:[{},{},{}]};
@@ -1098,16 +1394,20 @@ function showLobbyStart(){
 }
 function showRoom(L){
   const me=L.mySeat;
-  const url=location.origin+location.pathname+"?room="+L.code+"&openExternalBrowser=1";
-  const rows=L.seats.map((p,i)=>`<div class="seatrow${i===me?" me":""}"><span class="sn">${p?esc(p.name):"空席"}</span><span class="st">${p?(p.host?"ホスト":"")+(p.online?"":"（切断中）"):"CPUが入ります"}</span></div>`).join("");
+  const humans=L.seats.filter(p=>p&&!p.cpu);
+  const rows=L.seats.map((p,i)=>`<div class="seatrow${i===me?" me":""}"><span class="sn">${p?esc(p.name):"空席"}</span><span class="st">${p?`${p.host?"ホスト　":""}${p.online?"":"（切断中）　"}${p.ready?'<b class="rdy">準備OK</b>':'<span class="nrd">準備中</span>'}`:"CPUが入ります"}</span></div>`).join("");
   const n=L.seats.filter(Boolean).length;
+  const myReady=L.seats[me]&&L.seats[me].ready;
   document.getElementById("app").innerHTML="";
-  document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card lob">
-    <div class="rnm">ルーム番号</div><div class="code">${L.code}</div>
-    <button data-a="share" data-url="${esc(url)}" class="b-skip">招待リンクを送る</button>
-    <h3>メンバー（${n}/3）</h3>${rows}
-    ${L.isHost?`<button data-a="start" class="b-gold">${n<3?`CPUを${3-n}人入れて開始`:"対局開始"}</button>`:`<p class="wait">ホストが開始するのを待っています…</p>`}
-    <button data-a="leave" class="b-skip" style="margin-top:8px">ルームを出る</button>
+  document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card lob room">
+    <div class="rl2"><div><div class="rnm">ルーム番号</div><div class="code">${L.code}</div></div>
+    <div class="mem"><h3>メンバー（${n}/3）</h3>${rows}</div></div>
+    <div class="lbtns">
+      ${n<3?`<button data-a="share" data-url="${esc(location.origin+location.pathname+"?room="+L.code+"&openExternalBrowser=1")}" class="b-pon">招待リンクを送る</button>`:""}
+      <button data-a="lready" class="${myReady?"b-skip":"b-kita"}">${myReady?"準備OKを取り消す":"準備OK"}</button>
+      ${L.isHost?`<button data-a="start" class="b-gold" ${L.allReady?"":"disabled"}>${n<3?`CPUを${3-n}人入れて開始`:"対局開始"}</button>`:`<p class="wait">${L.allReady?"ホストの開始を待っています…":"全員の準備OKを待っています…"}</p>`}
+      <button data-a="leave" class="b-skip">ルームを出る</button>
+    </div>
   </div></div>`;
 }
 document.addEventListener("click",e=>{
@@ -1116,6 +1416,8 @@ document.addEventListener("click",e=>{
   if(a==="create"){ ME.name=(document.getElementById("nm").value||"").trim(); if(!ME.name) return toast("名前を入れてください"); save(); socket.emit("create",{name:ME.name}); }
   else if(a==="join"){ ME.name=(document.getElementById("nm").value||"").trim(); if(!ME.name) return toast("名前を入れてください"); const code=(document.getElementById("rc").value||"").trim(); if(!/^\d{4}$/.test(code)) return toast("4桁のルーム番号を入れてください"); save(); socket.emit("join",{code,name:ME.name}); }
   else if(a==="start") socket.emit("start");
+  else if(a==="lready") socket.emit("lobbyReady");
+  else if(a==="toroom") socket.emit("toRoom");
   else if(a==="back"){ act({t:"back"}); const bn=document.getElementById("awaybn"); if(bn) bn.remove(); }
   else if(a==="leave"){ socket.emit("leaveRoom"); ME.code=null; ME.token=null; save(); history.replaceState(null,"",location.pathname); showLobbyStart(); }
   else if(a==="share"){ const url=b.dataset.url; if(navigator.share) navigator.share({title:"三麻で対戦しよう",text:"ルーム番号 "+url.split("=").pop(),url}).catch(()=>{}); else navigator.clipboard.writeText(url).then(()=>toast("リンクをコピーしました")).catch(()=>toast(url)); }
