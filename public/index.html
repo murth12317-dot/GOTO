@@ -896,13 +896,14 @@ document.addEventListener("click",e=>{
     if(a==="hist"){ const o2=document.createElement("div"); o2.className="overlay ov2"; o2.innerHTML=`<div class="card wide"><h2 style="font-size:24px">全局の精算</h2>${histHTML()}<button data-a="close2" class="b-gold">閉じる</button></div>`; document.body.appendChild(o2); return; }
     if(a==="close2"){ const o2=b.closest(".ov2"); if(o2) o2.remove(); return; }
     if(a==="pg3"){ const c=b.closest(".card"); DICE.finish(); clearRT(); c.classList.add("instant"); ["pg1","pg2","pg3"].forEach(p=>c.querySelector("."+p).classList.toggle("on",p==="pg3")); c.scrollTop=0; return; }
-    if(a==="pg2"||a==="next"){ const c=b.closest(".card.res"); if(c && !c.classList.contains("instant") && Date.now() < +c.dataset.t0 + (+c.dataset.dur)*1000){ c.classList.add("instant"); if(c.dataset.f) c.classList.add(c.dataset.f); DICE.finish(); clearRT(); return; } }
+    if(a==="pg2"||a==="next"||a==="wpg"){ const c=b.closest(".card.res"); if(c && !c.classList.contains("instant") && Date.now() < +c.dataset.t0 + (+c.dataset.dur)*1000){ c.classList.add("instant"); if(c.dataset.f) c.classList.add(c.dataset.f); DICE.finish(); clearRT(); return; } }
     if(a==="pg2"||a==="pg1"){ const c=b.closest(".card"); const from3=c.querySelector(".pg3.on"); c.classList.remove("instant"); ["pg1","pg2"].forEach(p=>c.querySelector("."+p).classList.toggle("on",p===a)); c.scrollTop=0;
       if(a==="pg2"&&from3){ c.classList.add("instant"); DICE.finish(); return; }
       if(a==="pg1"){ c.classList.add("instant"); DICE.finish(); clearRT(); return; }
       if(a==="pg2"){ c.classList.remove("goldf","rainbowf"); if(c.dataset.f2) setTimeout(()=>c.classList.add(c.dataset.f2), Math.max(0,(+c.dataset.dur2-.3))*1000); c.dataset.t0=Date.now(); c.dataset.dur=c.dataset.dur2; clearRT(); DICE.stop(); /* 2ページ目の演出をやり直す */ const p2=c.querySelector(".pg2"); p2.querySelectorAll(".seq,.dstage").forEach(el=>{ el.style.animation="none"; void el.offsetWidth; el.style.animation=""; }); DICE.restart(2); }
       else DICE.finish();
       return; }
+    if(a==="wpg"){ showResult(+b.dataset.p); return; }
     if(a==="hpg"){ histPage+=+b.dataset.d; const hb=document.getElementById("histbox"); if(hb) hb.innerHTML=histPagedHTML(); fitFinal(); return; }
     if(a==="skip"){ const c=b.closest(".card"); if(c) c.classList.add("instant"); DICE.finish(); clearRT(); return; }
     if(a==="next"){ if(b.dataset.waiting) return; socket.emit("next"); document.querySelectorAll("button[data-a=next]").forEach(x=>{ x.dataset.waiting="1"; x.textContent="待機中…"; }); return; }
@@ -1142,13 +1143,16 @@ function fitResult(){
   apply(lo);
 }
 addEventListener("resize",()=>{ if(document.querySelector(".card.res")) fitResult(); });
-function showResult(){
-  render(); clearRT(); DICE.reset();
+// ダブロンは和了者ごとにページを分ける（精算表は最後のページ）
+function showResult(page=0){
+  if(!page) render(); clearRT(); DICE.reset();
+  const nPg=Math.max(1,R.wins.length), last=page>=nPg-1;
+  const pgWins=R.wins.length?[R.wins[page]]:[];
   const roundName=`${["東","南","東","南"][Math.min(R.handPhase??G.phase,3)]}${R.handKyoku??((R.handDealer??G.dealer)+1)}局${R.handHonba?` ${R.handHonba}本場`:""}`;
   let d=.3; const step=x=>{ const v=d; d+=x; return v; };
   let p1="";
   if(R.wins.length){
-    R.wins.forEach((x,wi)=>{
+    pgWins.forEach(x=>{ const wi=last?0:-1;
       if(x.nagashi){ p1+=`<div class="p1top"><div><div class="rnm">${roundName}</div><div class="who2">${NAMES[x.s]}<span class="kind">流し役満</span></div></div></div><div class="p1foot"><div class="fl"></div>${wi===0?"<!--TABLE-->":""}</div>`; return; }
       const r=x.w.res, fp=x.fp, P=H.p[x.s], di=fp.di;
       const dor=H.dead.dora.concat(H.kanDora).map(t=>tileHTML(t,"rv")).join("");
@@ -1220,28 +1224,31 @@ function showResult(){
   }
   // サイコロ：別ウィンドウで振って、自動で閉じる
   let pop="";
-  if(R.dice.length){
+  const pgDice=R.wins.length>1?R.dice.filter(dv=>pgWins.some(x=>x.s===dv.s)):R.dice;
+  if(pgDice.length){
     const ps=d+.5; let t=ps+.5, rows="";
-    for(const dv of R.dice){ const o=diceRowHTML(dv,t,1); rows+=o.html.replace('<span class="dl">',`<span class="dl">${R.wins.length>1?NAMES[dv.s]+"　":""}`); t=o.end+.2; }
+    for(const dv of pgDice){ const o=diceRowHTML(dv,t,1); rows+=o.html.replace('<span class="dl">',`<span class="dl">${R.wins.length>1?NAMES[dv.s]+"　":""}`); t=o.end+.2; }
     const pe=t+1.0;
     pop=`<div class="dicepop" style="--d:${ps}s;--e:${pe}s"><div class="dpw"><div class="dpt">🎲 サイコロ<small>（2人からもらう）</small></div>${rows}</div></div>`;
     d=pe+.35;
   }
   const tblD=d; d+=.3;
   p1=p1.replace("<!--TABLE-->",`<div class="fr seq" style="--d:${tblD}s">${settleTableHTML()}</div>`);
-  if(R.msg) p1+=`<p class="msg seq" style="--d:${tblD}s">${R.msg}</p>`;
+  if(R.msg&&last) p1+=`<p class="msg seq" style="--d:${tblD}s">${R.msg}</p>`;
   // 金枠・虹枠（サイコロのあとに付ける）
   // 金枠・虹枠：和了の祝儀＋局中の春（和了った人がもらった分）で判定
   let level=0;
   const {dc:hdc}=handDelta(); const resNet=[0,0,0]; for(const c of R.chips){ resNet[c.from]-=c.n; resNet[c.to]+=c.n; }
   const mid=[0,1,2].map(s=>hdc[s]-resNet[s]);
-  for(const x of R.wins){
+  for(const x of pgWins){
     const from=f=>R.chips.filter(c=>c.to===x.s&&c.from===f).reduce((a,c)=>a+c.n,0)+(mid[x.s]>0&&mid[f]<0?-mid[f]:0);
     const others=[0,1,2].filter(f=>f!==x.s);
     const amt=x.tsumo||x.nagashi?Math.min(...others.map(from)):from(x.from);
     level=Math.max(level, amt>=20?2:amt>=10?1:0); }
   const fcls=level===2?"rainbowf":level===1?"goldf":"";
-  const nav=`<div class="pgnav"><span></span><span></span><button data-a="next" class="b-gold">次へ ▶</button></div>`;
+  const pgNo=nPg>1?`<span style="color:var(--muted);font-weight:700">${page+1} / ${nPg}</span>`:"<span></span>";
+  const nav=last?`<div class="pgnav">${pgNo}<span></span><button data-a="next" class="b-gold">次へ ▶</button></div>`
+    :`<div class="pgnav">${pgNo}<span></span><button data-a="wpg" data-p="${page+1}" class="b-gold">次へ ▶</button></div>`;
   document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card res anim" data-t0="${Date.now()}" data-dur="${d}" data-f="${fcls}"><div class="pg pg1 on"><div class="pgin"><div class="fitw">${p1}</div></div>${nav}</div>${pop}</div></div>`;
   fitResult();
   if(fcls) later(()=>{ const c=document.querySelector(".card.res"); if(c) c.classList.add(fcls); },tblD);
