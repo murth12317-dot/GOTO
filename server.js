@@ -26,6 +26,7 @@ const rotArr = (arr, me) => [0, 1, 2].map(i => arr[(i + me) % 3]);
 const SHEET_URL = (process.env.SHEET_URL || "").trim(), SHEET_SECRET = (process.env.SHEET_SECRET || "").trim();
 // テスト用：true の間は、最初からCPUが入っている半荘も記録する（確認が終わったら false に戻す）
 const RECORD_CPU_GAMES = true;
+let sheetTotals = null; // スプレッドシートの今週の通算
 async function callSheet(body) {
   for (let i = 0; i < 3; i++) {
     try {
@@ -34,7 +35,7 @@ async function callSheet(body) {
       const text = await res.text(); let d;
       try { d = JSON.parse(text); }
       catch { console.log(`sheet bad response ${res.status} ${res.url.slice(0, 60)} :: ${text.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 300)}`); throw new Error("not JSON"); }
-      if (d.ok) { console.log(`sheet ok (${body ? `recorded ${body.gameKey}, ${(d.totals || []).length} names this week` : "connected"})`); return true; }
+      if (d.ok) { if (Array.isArray(d.totals)) sheetTotals = d.totals; console.log(`sheet ok (${body ? `recorded ${body.gameKey}, ${(d.totals || []).length} names this week` : "connected"})`); return true; }
       console.log("sheet error", d.error); return false;
     } catch (e) { console.log("sheet failed", e.message); await new Promise(r => setTimeout(r, 3000 * (i + 1))); }
   }
@@ -45,14 +46,34 @@ function sendToSheet(room, order) {
   room.sentGid = room.gameId;
   const G = room.game.G;
   const players = [0, 1, 2].map(s => ({ name: room.names[s], rank: order.indexOf(s) + 1, chips: G.chips[s] }));
-  callSheet({ secret: SHEET_SECRET, room: room.code, gameKey: room.gameKey, rate: room.gameRate || 1, players });
+  callSheet({ secret: SHEET_SECRET, room: room.code, gameKey: room.gameKey, rate: room.gameRate || 1, players }).then(ok => {
+    if (!ok || !rooms.has(room.code)) return;
+    for (const s of humanSeats(room)) emitTo(room, s, "totals", totalsInfo(room));
+    broadcastLobby(room);
+  });
+}
+// ゲーム画面に出す通算（スプレッドシートがあれば今週の分、なければこのルームで終わった半荘の分）
+function totalsInfo(room) {
+  if (SHEET_URL && sheetTotals) return { scope: "week", list: sheetTotals };
+  const list = Object.entries(room.totals || {}).map(([name, t]) => ({ name, ...t, ranks: t.ranks.slice() }))
+    .sort((a, b) => b.amount - a.amount || b.chips - a.chips);
+  return { scope: "room", list };
+}
+function addTotals(room, order) {
+  if (room.totalledGid === room.gameId) return;
+  room.totalledGid = room.gameId;
+  const G = room.game.G, rate = room.gameRate || 1; room.totals = room.totals || {};
+  for (let s = 0; s < 3; s++) {
+    const t = room.totals[room.names[s]] = room.totals[room.names[s]] || { games: 0, chips: 0, amount: 0, ranks: [0, 0, 0] };
+    t.games++; t.chips += G.chips[s]; t.amount = Math.round((t.amount + G.chips[s] * rate) * 1000) / 1000; t.ranks[order.indexOf(s)]++;
+  }
 }
 if (SHEET_URL && !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(SHEET_URL)) console.log("sheet WARNING: SHEET_URL は https://script.google.com/macros/s/…/exec の形にしてください（今: " + SHEET_URL.slice(0, 60) + "…）");
 if (SHEET_URL) callSheet(null); else console.log("sheet off (SHEET_URL not set)");
 
 function roomPublic(room) {
   return {
-    code: room.code, phase: room.phase, rate: room.rate || 1,
+    code: room.code, phase: room.phase, rate: room.rate || 1, totals: totalsInfo(room),
     seats: room.seats.map((p, i) => p ? { name: p.name, cpu: !!p.cpu, online: p.cpu || !!p.socket, host: p.token === room.hostToken, ready: !!p.ready } : null),
     allReady: room.seats.filter(p => p && !p.cpu).every(p => p.ready),
   };
@@ -179,6 +200,7 @@ function startGame(room) {
   room.gameId = (room.gameId || 0) + 1;
   room.gameKey = room.code + "-" + Date.now();
   room.gameRate = room.rate || 1; // 対局中に変わらないよう、開始時の倍率で記録する
+  if (SHEET_URL) callSheet(null); // 週が変わっていても今週の通算を読み直しておく
   // 席をシャッフル（起家はランダム）
   const people = room.seats.map((p, i) => p || { name: CPU_NAMES[i], cpu: true, token: null, socket: null });
   shuffleArr(people);
@@ -207,9 +229,9 @@ function startGame(room) {
       room.phase = "final"; room.ready = new Set();
       const g = room.game;
       // 最初からCPUが入っている半荘は通算に入れない（途中の切断で代打になった人は本人の名前で入れる）
-      if (RECORD_CPU_GAMES || !room.seats.some(p => p && p.cpu)) sendToSheet(room, order);
+      if (RECORD_CPU_GAMES || !room.seats.some(p => p && p.cpu)) { addTotals(room, order); sendToSheet(room, order); }
       else console.log("sheet skip (CPU game) room " + room.code);
-      for (const s of humanSeats(room)) emitTo(room, s, "final", { gid: room.gameId, order: order.map(rotOf(s)), R: rotR(g.R, s), G: rotG(g.G, s), names: rotArr(room.names, s) });
+      for (const s of humanSeats(room)) emitTo(room, s, "final", { gid: room.gameId, totals: totalsInfo(room), order: order.map(rotOf(s)), R: rotR(g.R, s), G: rotG(g.G, s), names: rotArr(room.names, s) });
     },
   });
   broadcastLobby(room);

@@ -31,10 +31,11 @@ function record(d) {
   } finally { lock.releaseLock(); }
 }
 
-// 動作確認用（サーバーの起動時にも読む）。?data=… が付いていれば半荘の結果として記録する
+// 今週の通算を返す（サーバーが起動時や対局開始時に読む）。?data=… が付いていれば半荘の結果として記録する
 function doGet(e) {
   if (e && e.parameter && e.parameter.data) return record(JSON.parse(e.parameter.data));
-  return json({ ok: true, totals: [] });
+  const sh = SpreadsheetApp.getActive().getSheetByName(weekName(new Date()));
+  return json({ ok: true, totals: sh ? rebuild(sh) : [] });
 }
 
 // 日曜はじまりの週の名前（例：2026/10/4〜10/10）

@@ -505,6 +505,8 @@ button[disabled]{opacity:.45;cursor:not-allowed;filter:grayscale(.4)}
 .ftbl td.fc{font-size:20px;font-weight:900}
 .card.fin.wide2{max-width:min(96vw,980px)}
 .fgrid{display:flex;flex-direction:column;gap:14px}
+.tots{margin:12px 0}
+.tots h3{font-size:14px;color:var(--gold);margin:0 0 4px}
 .hhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .hhead b{color:var(--gold);font-size:15px}
 .pgr{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700}
@@ -1283,13 +1285,21 @@ function histPagedHTML(){
     <table class="ht"><thead><tr><th>局・結果</th>${[0,1,2].map(s=>`<th>${SN[s]}</th>`).join("")}</tr></thead><tbody>${rows}
     <tr class="tot"><td class="hl"><b>合計</b></td>${[0,1,2].map(s=>`<td><b>${sg(tot[s],"枚")}</b><small class="zero">${G.scores[s].toLocaleString()}</small></td>`).join("")}</tr></tbody></table>`;
 }
+// 名前ごとの通算（スプレッドシートがあれば今週の分、なければこのルームの分）
+let TOTALS=null;
+function totalsHTML(t){
+  if(!t||!t.list||!t.list.length) return "";
+  const cl=v=>v>0?"pos":v<0?"neg":"zero", sg=v=>v>0?"+"+v.toLocaleString():v<0?"-"+(-v).toLocaleString():"±0";
+  const rows=t.list.map(x=>`<tr><td class="nmc">${esc(x.name)}</td><td>${x.games}</td><td>${x.ranks.join("-")}</td><td class="${cl(x.chips)}">${sg(x.chips)}枚</td><td class="fc ${cl(x.amount||0)}">${sg(x.amount||0)}</td></tr>`).join("");
+  return `<div class="tots"><h3>${t.scope==="week"?"今週の通算":"通算（このルーム）"}</h3><table class="stbl"><thead><tr><th></th><th>半荘</th><th>着順</th><th>祝儀計</th><th>×倍率</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
 function showFinal(order){
   render(); histPage=0;
   const add=[0,0,0]; for(const c of R.chips){ add[c.from]-=c.n; add[c.to]+=c.n; }
   const cl=v=>v>0?"pos":v<0?"neg":"zero", sg=v=>v>0?"+"+v:v<0?"-"+(-v):"±0";
   const why=[...new Set(R.chips.map(c=>c.why))].join("・")||"ウマ";
   const rows=order.map((s,i)=>`<tr><td class="rk">${i+1}位</td><td class="nmc">${NAMES[s]}</td><td>${G.scores[s].toLocaleString()}</td><td class="${cl(add[s])}">${sg(add[s])}枚</td><td class="fc ${cl(G.chips[s])}">${sg(G.chips[s])}枚</td></tr>`).join("");
-  const h=`<div class="fgrid"><div class="fl2"><h2>終局</h2><table class="stbl ftbl"><thead><tr><th></th><th></th><th>持ち点</th><th>${why}</th><th>最終祝儀</th></tr></thead><tbody>${rows}</tbody></table><button data-a="toroom" class="b-gold">部屋に戻る</button></div>
+  const h=`<div class="fgrid"><div class="fl2"><h2>終局</h2><table class="stbl ftbl"><thead><tr><th></th><th></th><th>持ち点</th><th>${why}</th><th>最終祝儀</th></tr></thead><tbody>${rows}</tbody></table>${totalsHTML(TOTALS)}<button data-a="toroom" class="b-gold">部屋に戻る</button></div>
     <div class="fr2" id="histbox">${histPagedHTML()}</div></div>`;
   document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card fin wide2"><div class="fitw">${h}</div></div></div>`;
   fitFinal();
@@ -1424,7 +1434,9 @@ socket.on("result",d=>{
 });
 socket.on("yame",y=>{ if(R&&R.yame) R.yame.choice=y.stop; toast(y.msg); const m=document.querySelector(".card.res .msg"); if(m) m.textContent=y.msg; });
 socket.on("ready",r=>{ document.querySelectorAll("button[data-a=next]").forEach(b=>{ if(b.dataset.waiting) b.textContent=`待機中 ${r.ready}/${r.total}`; }); });
-socket.on("final",d=>{ R=d.R; NAMES=d.names; G=Object.assign({},G||{},d.G); showFinal(d.order); });
+socket.on("totals",t=>{ TOTALS=t; const el=document.querySelector(".card.fin .tots"), tb=document.querySelector(".card.fin .ftbl");
+  if(el) el.outerHTML=totalsHTML(TOTALS); else if(tb) tb.insertAdjacentHTML("afterend",totalsHTML(TOTALS)); if(document.querySelector(".card.fin")) fitFinal(); });
+socket.on("final",d=>{ R=d.R; NAMES=d.names; G=Object.assign({},G||{},d.G); TOTALS=d.totals||null; showFinal(d.order); });
 socket.on("se",e=>{ if(e.say) SE.say(e.say,e.seat); else if(e.t&&SE[e.t]) SE[e.t](); });
 
 function toast(msg){
@@ -1459,6 +1471,7 @@ function showRoom(L){
   document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card lob room">
     <div class="rl2"><div><div class="rnm">ルーム番号</div><div class="code">${L.code}</div></div>
     <div class="mem"><h3>メンバー（${n}/3）</h3>${rows}
+      ${totalsHTML(L.totals)}
       <div class="raterow"><b>倍率</b>${L.isHost?`<input id="rate" type="number" inputmode="decimal" min="0" step="any" value="${L.rate}">`:`<span>${L.rate}</span>`}<small>祝儀×倍率をスプレッドシートに記録</small></div></div></div>
     <div class="lbtns">
       ${n<3?`<button data-a="share" data-url="${esc(location.origin+location.pathname+"?room="+L.code+"&openExternalBrowser=1")}" class="b-pon">招待リンクを送る</button>`:""}
