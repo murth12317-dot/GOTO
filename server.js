@@ -22,8 +22,35 @@ const newToken = () => Math.random().toString(36).slice(2) + Date.now().toString
 const rotOf = me => s => (s == null || s < 0) ? s : (s - me + 3) % 3;
 const rotArr = (arr, me) => [0, 1, 2].map(i => arr[(i + me) % 3]);
 
-// 名前ごとの通算成績（このルームで終わった半荘の合計）
+// ---------- 通算成績をスプレッドシートに記録（環境変数 SHEET_URL があるとき） ----------
+const SHEET_URL = process.env.SHEET_URL, SHEET_SECRET = process.env.SHEET_SECRET || "";
+let sheetTotals = null; // スプレッドシートの通算（全ルーム・全期間の合計）
+async function callSheet(body) {
+  for (let i = 0; i < 3; i++) {
+    try {
+      const res = await fetch(SHEET_URL, body ? { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(body) } : {});
+      const d = await res.json();
+      if (d.ok) { sheetTotals = d.totals; return true; }
+      console.log("sheet error", d.error); return false;
+    } catch (e) { console.log("sheet failed", e.message); await new Promise(r => setTimeout(r, 3000 * (i + 1))); }
+  }
+  return false;
+}
+function sendToSheet(room, order) {
+  if (!SHEET_URL) return;
+  const G = room.game.G;
+  const players = [0, 1, 2].map(s => ({ name: room.names[s], cpu: !!(room.seats[s] && room.seats[s].cpu), rank: order.indexOf(s) + 1, score: G.scores[s], chips: G.chips[s] }));
+  callSheet({ secret: SHEET_SECRET, room: room.code, gameKey: room.gameKey, players }).then(ok => {
+    if (!ok || !rooms.has(room.code)) return;
+    for (const s of humanSeats(room)) emitTo(room, s, "totals", totalsList(room));
+    broadcastLobby(room);
+  });
+}
+if (SHEET_URL) callSheet(null);
+
+// 名前ごとの通算成績（スプレッドシートがあればそこの合計、なければこのルームで終わった半荘の合計）
 function totalsList(room) {
+  if (sheetTotals) return sheetTotals.map(t => ({ ...t, ranks: t.ranks.slice() }));
   return Object.entries(room.totals || {}).map(([name, t]) => ({ name, ...t, ranks: t.ranks.slice() }))
     .sort((a, b) => b.chips - a.chips || b.pts - a.pts);
 }
@@ -164,6 +191,7 @@ function pushViews(room) {
 
 function startGame(room) {
   room.gameId = (room.gameId || 0) + 1;
+  room.gameKey = room.code + "-" + Date.now();
   // 席をシャッフル（起家はランダム）
   const people = room.seats.map((p, i) => p || { name: CPU_NAMES[i], cpu: true, token: null, socket: null });
   shuffleArr(people);
@@ -192,6 +220,7 @@ function startGame(room) {
       room.phase = "final"; room.ready = new Set();
       const g = room.game;
       addTotals(room, order);
+      sendToSheet(room, order);
       for (const s of humanSeats(room)) emitTo(room, s, "final", { gid: room.gameId, totals: totalsList(room), order: order.map(rotOf(s)), R: rotR(g.R, s), G: rotG(g.G, s), names: rotArr(room.names, s) });
     },
   });

@@ -1427,6 +1427,7 @@ socket.on("result",d=>{
   showResult();
 });
 socket.on("ready",r=>{ document.querySelectorAll("button[data-a=next]").forEach(b=>{ if(b.dataset.waiting) b.textContent=`待機中 ${r.ready}/${r.total}`; }); });
+socket.on("totals",list=>{ TOTALS=list||[]; const el=document.querySelector(".card.fin .tots"); if(el){ el.outerHTML=totalsHTML(TOTALS); fitFinal(); } });
 socket.on("final",d=>{ R=d.R; NAMES=d.names; G=Object.assign({},G||{},d.G); TOTALS=d.totals||[]; showFinal(d.order); });
 socket.on("se",e=>{ if(e.say) SE.say(e.say,e.seat); else if(e.t&&SE[e.t]) SE[e.t](); });
 
