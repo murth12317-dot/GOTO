@@ -51,6 +51,7 @@ function sendToSheet(room, order) {
     broadcastLobby(room);
   });
 }
+if (SHEET_URL && !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(SHEET_URL)) console.log("sheet WARNING: SHEET_URL は https://script.google.com/macros/s/…/exec の形にしてください（今: " + SHEET_URL.slice(0, 60) + "…）");
 if (SHEET_URL) callSheet(null); else console.log("sheet off (SHEET_URL not set)");
 
 // 名前ごとの通算成績（スプレッドシートがあればそこの合計、なければこのルームで終わった半荘の合計）
