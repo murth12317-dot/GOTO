@@ -26,7 +26,6 @@ const rotArr = (arr, me) => [0, 1, 2].map(i => arr[(i + me) % 3]);
 const SHEET_URL = (process.env.SHEET_URL || "").trim(), SHEET_SECRET = (process.env.SHEET_SECRET || "").trim();
 // テスト用：true の間は、最初からCPUが入っている半荘も記録する（確認が終わったら false に戻す）
 const RECORD_CPU_GAMES = true;
-let sheetTotals = null; // スプレッドシートの今週の通算
 async function callSheet(body) {
   for (let i = 0; i < 3; i++) {
     try {
@@ -35,7 +34,7 @@ async function callSheet(body) {
       const text = await res.text(); let d;
       try { d = JSON.parse(text); }
       catch { console.log(`sheet bad response ${res.status} ${res.url.slice(0, 60)} :: ${text.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 300)}`); throw new Error("not JSON"); }
-      if (d.ok) { if (Array.isArray(d.totals)) sheetTotals = d.totals; console.log(`sheet ok (${body ? `recorded ${body.gameKey}, ${(d.totals || []).length} names this week` : "connected"})`); return true; }
+      if (d.ok) { console.log(`sheet ok (${body ? `recorded ${body.gameKey}, ${(d.totals || []).length} names this week` : "connected"})`); return true; }
       console.log("sheet error", d.error); return false;
     } catch (e) { console.log("sheet failed", e.message); await new Promise(r => setTimeout(r, 3000 * (i + 1))); }
   }
@@ -46,18 +45,13 @@ function sendToSheet(room, order) {
   room.sentGid = room.gameId;
   const G = room.game.G;
   const players = [0, 1, 2].map(s => ({ name: room.names[s], rank: order.indexOf(s) + 1, chips: G.chips[s] }));
-  callSheet({ secret: SHEET_SECRET, room: room.code, gameKey: room.gameKey, rate: room.gameRate || 1, players }).then(ok => {
-    if (!ok || !rooms.has(room.code)) return;
-    for (const s of humanSeats(room)) emitTo(room, s, "totals", totalsInfo(room));
-    broadcastLobby(room);
-  });
+  callSheet({ secret: SHEET_SECRET, room: room.code, gameKey: room.gameKey, rate: room.gameRate || 1, players });
 }
-// ゲーム画面に出す通算（スプレッドシートがあれば今週の分、なければこのルームで終わった半荘の分）
+// ゲーム画面に出す通算（このルームで終わった半荘の合計。全員がルームを出るとリセット）
 function totalsInfo(room) {
-  if (SHEET_URL && sheetTotals) return { scope: "week", list: sheetTotals };
   const list = Object.entries(room.totals || {}).map(([name, t]) => ({ name, ...t, ranks: t.ranks.slice() }))
     .sort((a, b) => b.amount - a.amount || b.chips - a.chips);
-  return { scope: "room", list };
+  return { list };
 }
 function addTotals(room, order) {
   if (room.totalledGid === room.gameId) return;
@@ -200,7 +194,6 @@ function startGame(room) {
   room.gameId = (room.gameId || 0) + 1;
   room.gameKey = room.code + "-" + Date.now();
   room.gameRate = room.rate || 1; // 対局中に変わらないよう、開始時の倍率で記録する
-  if (SHEET_URL) callSheet(null); // 週が変わっていても今週の通算を読み直しておく
   // 席をシャッフル（起家はランダム）
   const people = room.seats.map((p, i) => p || { name: CPU_NAMES[i], cpu: true, token: null, socket: null });
   shuffleArr(people);

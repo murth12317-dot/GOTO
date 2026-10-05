@@ -1285,13 +1285,13 @@ function histPagedHTML(){
     <table class="ht"><thead><tr><th>局・結果</th>${[0,1,2].map(s=>`<th>${SN[s]}</th>`).join("")}</tr></thead><tbody>${rows}
     <tr class="tot"><td class="hl"><b>合計</b></td>${[0,1,2].map(s=>`<td><b>${sg(tot[s],"枚")}</b><small class="zero">${G.scores[s].toLocaleString()}</small></td>`).join("")}</tr></tbody></table>`;
 }
-// 名前ごとの通算（スプレッドシートがあれば今週の分、なければこのルームの分）
+// 名前ごとの通算（このルームで終わった半荘の合計）
 let TOTALS=null;
 function totalsHTML(t){
   if(!t||!t.list||!t.list.length) return "";
   const cl=v=>v>0?"pos":v<0?"neg":"zero", sg=v=>v>0?"+"+v.toLocaleString():v<0?"-"+(-v).toLocaleString():"±0";
   const rows=t.list.map(x=>`<tr><td class="nmc">${esc(x.name)}</td><td>${x.games}</td><td>${x.ranks.join("-")}</td><td class="${cl(x.chips)}">${sg(x.chips)}枚</td><td class="fc ${cl(x.amount||0)}">${sg(x.amount||0)}</td></tr>`).join("");
-  return `<div class="tots"><h3>${t.scope==="week"?"今週の通算":"通算（このルーム）"}</h3><table class="stbl"><thead><tr><th></th><th>半荘</th><th>着順</th><th>祝儀計</th><th>×倍率</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<div class="tots"><h3>通算（このルーム）</h3><table class="stbl"><thead><tr><th></th><th>半荘</th><th>着順</th><th>祝儀計</th><th>×倍率</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function showFinal(order){
   render(); histPage=0;
@@ -1434,8 +1434,6 @@ socket.on("result",d=>{
 });
 socket.on("yame",y=>{ if(R&&R.yame) R.yame.choice=y.stop; toast(y.msg); const m=document.querySelector(".card.res .msg"); if(m) m.textContent=y.msg; });
 socket.on("ready",r=>{ document.querySelectorAll("button[data-a=next]").forEach(b=>{ if(b.dataset.waiting) b.textContent=`待機中 ${r.ready}/${r.total}`; }); });
-socket.on("totals",t=>{ TOTALS=t; const el=document.querySelector(".card.fin .tots"), tb=document.querySelector(".card.fin .ftbl");
-  if(el) el.outerHTML=totalsHTML(TOTALS); else if(tb) tb.insertAdjacentHTML("afterend",totalsHTML(TOTALS)); if(document.querySelector(".card.fin")) fitFinal(); });
 socket.on("final",d=>{ R=d.R; NAMES=d.names; G=Object.assign({},G||{},d.G); TOTALS=d.totals||null; showFinal(d.order); });
 socket.on("se",e=>{ if(e.say) SE.say(e.say,e.seat); else if(e.t&&SE[e.t]) SE[e.t](); });
 
