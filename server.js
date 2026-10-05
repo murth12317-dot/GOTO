@@ -24,6 +24,8 @@ const rotArr = (arr, me) => [0, 1, 2].map(i => arr[(i + me) % 3]);
 
 // ---------- 通算成績をスプレッドシートに記録（環境変数 SHEET_URL があるとき） ----------
 const SHEET_URL = process.env.SHEET_URL, SHEET_SECRET = process.env.SHEET_SECRET || "";
+// テスト用：true の間は、最初からCPUが入っている半荘も記録する（確認が終わったら false に戻す）
+const RECORD_CPU_GAMES = true;
 let sheetTotals = null; // スプレッドシートの通算（全ルーム・全期間の合計）
 async function callSheet(body) {
   for (let i = 0; i < 3; i++) {
@@ -222,7 +224,7 @@ function startGame(room) {
       room.phase = "final"; room.ready = new Set();
       const g = room.game;
       // 最初からCPUが入っている半荘は通算に入れない（途中の切断で代打になった人は本人の名前で入れる）
-      if (!room.seats.some(p => p && p.cpu)) { addTotals(room, order); sendToSheet(room, order); }
+      if (RECORD_CPU_GAMES || !room.seats.some(p => p && p.cpu)) { addTotals(room, order); sendToSheet(room, order); }
       else console.log("sheet skip (CPU game) room " + room.code);
       for (const s of humanSeats(room)) emitTo(room, s, "final", { gid: room.gameId, totals: totalsList(room), order: order.map(rotOf(s)), R: rotR(g.R, s), G: rotG(g.G, s), names: rotArr(room.names, s) });
     },
