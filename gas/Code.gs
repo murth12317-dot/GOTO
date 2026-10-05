@@ -6,7 +6,7 @@
 const SECRET = "ここに合言葉を入れる";
 
 const REC = "記録", TOT = "通算";
-const REC_HEAD = ["日時", "ルーム", "半荘ID", "名前", "CPU", "着順", "持ち点", "点数±", "祝儀"];
+const REC_HEAD = ["日時", "ルーム", "半荘ID", "名前", "着順", "持ち点", "点数±", "祝儀"];
 const TOT_HEAD = ["名前", "半荘", "1着", "2着", "3着", "平均着順", "点数±", "祝儀計"];
 
 // ゲームのサーバーから半荘の結果が届く
@@ -20,7 +20,7 @@ function doPost(e) {
     const ids = sh.getLastRow() > 1 ? sh.getRange(2, 3, sh.getLastRow() - 1, 1).getValues().flat().map(String) : [];
     if (!ids.includes(String(d.gameKey))) {
       const now = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm");
-      const rows = d.players.map(p => [now, d.room, d.gameKey, p.name, p.cpu ? "CPU" : "", p.rank, p.score, p.score - 35000, p.chips]);
+      const rows = d.players.map(p => [now, d.room, d.gameKey, p.name, p.rank, p.score, p.score - 35000, p.chips]);
       sh.getRange(sh.getLastRow() + 1, 1, rows.length, REC_HEAD.length).setValues(rows);
     }
     return json({ ok: true, totals: rebuild() });
@@ -39,7 +39,7 @@ function rebuild() {
   for (const r of vals) {
     const name = String(r[3]); if (!name) continue;
     const t = by[name] = by[name] || { name, games: 0, ranks: [0, 0, 0], pts: 0, chips: 0 };
-    t.games++; t.ranks[Number(r[5]) - 1]++; t.pts += Number(r[7]) || 0; t.chips += Number(r[8]) || 0;
+    t.games++; t.ranks[Number(r[4]) - 1]++; t.pts += Number(r[6]) || 0; t.chips += Number(r[7]) || 0;
   }
   const list = Object.values(by).sort((a, b) => b.chips - a.chips || b.pts - a.pts);
   tot.getRange(2, 1, Math.max(tot.getMaxRows() - 1, 1), TOT_HEAD.length).clearContent();

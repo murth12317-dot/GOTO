@@ -39,7 +39,7 @@ async function callSheet(body) {
 function sendToSheet(room, order) {
   if (!SHEET_URL) return;
   const G = room.game.G;
-  const players = [0, 1, 2].map(s => ({ name: room.names[s], cpu: !!(room.seats[s] && room.seats[s].cpu), rank: order.indexOf(s) + 1, score: G.scores[s], chips: G.chips[s] }));
+  const players = [0, 1, 2].map(s => ({ name: room.names[s], rank: order.indexOf(s) + 1, score: G.scores[s], chips: G.chips[s] }));
   callSheet({ secret: SHEET_SECRET, room: room.code, gameKey: room.gameKey, players }).then(ok => {
     if (!ok || !rooms.has(room.code)) return;
     for (const s of humanSeats(room)) emitTo(room, s, "totals", totalsList(room));
@@ -219,8 +219,8 @@ function startGame(room) {
     final: order => {
       room.phase = "final"; room.ready = new Set();
       const g = room.game;
-      addTotals(room, order);
-      sendToSheet(room, order);
+      // 最初からCPUが入っている半荘は通算に入れない（途中の切断で代打になった人は本人の名前で入れる）
+      if (!room.seats.some(p => p && p.cpu)) { addTotals(room, order); sendToSheet(room, order); }
       for (const s of humanSeats(room)) emitTo(room, s, "final", { gid: room.gameId, totals: totalsList(room), order: order.map(rotOf(s)), R: rotR(g.R, s), G: rotG(g.G, s), names: rotArr(room.names, s) });
     },
   });
