@@ -520,6 +520,19 @@ button[disabled]{opacity:.45;cursor:not-allowed;filter:grayscale(.4)}
   .card.fin .ftbl{font-size:13px} .card.fin .ftbl td{padding:4px 0 4px 8px !important} .card.fin .ftbl td.fc{font-size:17px}
   .card .ht{font-size:11px} .card .ht td{padding:2px 4px} .card .ht .hd{font-size:10px}
 }
+.nkF{display:none}
+.nkE{display:inline-flex;gap:1px}
+@media (orientation: landscape) and (max-height: 560px){
+  .layer.r .nkF,.layer.l .nkF{display:flex;gap:1px;position:absolute;left:50%;transform:translateX(-50%);bottom:calc(2% + var(--rt) * 1.3)}
+  .layer.r .nkE,.layer.l .nkE{display:none}
+  .layer.r .nm,.layer.l .nm{bottom:calc(2% + var(--rt) * 2.75)}
+}
+/* iPhoneのダブルタップ拡大を止めて、2回目のタップを必ず届ける */
+html,body,.hand,.hand .t,button{touch-action:manipulation}
+.hand .t{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.connbn{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:70;display:flex;align-items:center;gap:12px;background:rgba(8,20,22,.95);border:1px solid var(--gold);border-radius:14px;padding:14px 18px;font-weight:700;font-size:14px;max-width:88vw;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.spin{width:20px;height:20px;border-radius:50%;border:3px solid rgba(240,198,94,.3);border-top-color:var(--gold);animation:spin 1s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* ===== ロビー ===== */
 .card.lob{max-width:420px}
@@ -791,7 +804,8 @@ function seatLayer(s){
     ${P.riichi?'<div class="stick"></div>':""}
     <div class="rvg">${river}</div>
     ${s!==0?`<div class="nm">${NAMES[s]}${P.open?'<span class="opn">オープン</span>':""}</div>`:""}
-    <div class="edge">${backs}${nuki||melds?`<span class="ex">${nuki}${melds}</span>`:""}</div>
+    ${s!==0&&nuki?`<div class="nkF">${nuki}</div>`:""}
+    <div class="edge">${backs}${nuki||melds?`<span class="ex">${nuki?`<span class="nkE">${nuki}</span>`:""}${melds}</span>`:""}</div>
   </div>`;
 }
 function render(){
@@ -842,7 +856,7 @@ function render(){
   const wind=["東","南","東","南"][Math.min(G.phase,3)];
   document.getElementById("app").innerHTML=`
     <div class="bw"><div class="board">
-      <div class="dora"><span class="lb">ドラ</span>${dora}</div>
+      <div class="dora"><span class="lb">ドラ表</span>${dora}</div>
       <div class="box">
         <div class="rl">${wind}${V?V.kyoku:G.dealer+1}局</div>
         <div class="sub">${G.honba}本場　供託${G.kyotaku}${G.phase>=2?"　返り東":""}</div>
@@ -895,6 +909,7 @@ document.addEventListener("click",e=>{
   }
   const t=e.target.closest("#hand .t"); if(t) tapTile(+t.dataset.id);
 });
+document.addEventListener("dblclick",e=>{ if(e.target.closest("#hand")) e.preventDefault(); },{passive:false});
 document.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ") && e.target.matches && e.target.matches("#hand .t")){ e.preventDefault(); tapTile(+e.target.dataset.id); } });
 function tapTile(id){
   const P=H.p[0];
@@ -1155,7 +1170,7 @@ function showResult(){
         aliceRow=`<div class="row"><b>アリス</b>${tl}<span class="alit seq" style="--d:${dd}s">${tot?`+${tot}枚`:"なし"}${R.aliceOut?`<small>（めくる牌なし）</small>`:""}</span></div>`;
       }
       p1+=`<div class="p1top"><div><div class="rnm">${roundName}</div><div class="who2">${NAMES[x.s]}<span class="kind">${x.tsumo?"ツモ":"ロン"}${x.w.pocchi?"・白ポッチ":""}</span>${x.tsumo?"":`<span class="from">← ${NAMES[x.from]}</span>`}</div></div>
-        <div class="dbox"><div class="row"><b>ドラ</b>${dor}</div>${P.riichi?`<div class="row"><b>裏ドラ</b>${ura}</div>`:""}${aliceRow}</div></div>`;
+        <div class="dbox"><div class="row"><b>ドラ表</b>${dor}</div>${P.riichi?`<div class="row"><b>裏ドラ表</b>${ura}</div>`:""}${aliceRow}</div></div>`;
       p1+=`<div class="p1hand">${winHandHTML(x.w,P,x.tsumo)}</div>`;
       let ys="";
       const item=(name,val)=>{ const dd=step(.42); later(()=>SE.swoosh(),dd); ys+=`<span class="seq" style="--d:${dd}s">${name}</span><span class="seq" style="--d:${dd}s">${val}</span>`; };
@@ -1163,8 +1178,10 @@ function showResult(){
       if(r.ymN>0){ r.ym.forEach(y=>{ const dd=step(.42); later(()=>SE.swoosh(),dd); ymNames+=`<span class="ymn seq" style="--d:${dd}s">${y[0]}</span>`; }); }
       else {
         r.yaku.forEach(y=>item(y[0],`${y[1]}翻`));
-        if(di.dora) item("ドラ",`${di.dora}翻`);
-        if(di.akaDora) item(`赤・金${di.aki?"（秋）":""}`,`${di.akaDora}翻`);
+        // ドラ＝ドラ表で決まるドラ＋赤金（1枚につき1）。秋は赤金の枚数を別の行に
+        const akN=(di.aka||0)+(di.gold||0);
+        if(di.dora+akN) item("ドラ",`${di.dora+akN}翻`);
+        if(di.aki && akN) item("秋",`${akN}翻`);
         if(di.kitaDora) item("抜き北",`${di.kitaDora}翻`);
         if(di.ura) item("裏ドラ",`${di.ura}翻`);
         if(fp.fl.all.includes(35)) item("夏（ワンランクアップ）","↑");
@@ -1336,9 +1353,21 @@ function applyView(v){
   if(H.p[0].riichi) H.pick=null;
 }
 
-socket.on("connect",()=>{ if(ME.code&&ME.token) socket.emit("join",{code:ME.code,token:ME.token,name:ME.name}); else showLobbyStart(); });
+// 接続中・再接続中の表示
+function showConn(msg){
+  let el=document.getElementById("connbn");
+  if(!msg){ if(el) el.remove(); return; }
+  if(!el){ el=document.createElement("div"); el.id="connbn"; el.className="connbn"; document.body.appendChild(el); }
+  el.innerHTML=`<span class="spin"></span><span>${msg}</span>`;
+}
+showConn("サーバーに接続中…（最初は1分ほどかかることがあります）");
+socket.on("connect",()=>{ showConn(null); if(ME.code&&ME.token) socket.emit("join",{code:ME.code,token:ME.token,name:ME.name}); else showLobbyStart(); });
+socket.on("disconnect",()=>showConn("通信が切れました。再接続中…"));
+socket.on("connect_error",()=>showConn("サーバーに接続中…（最初は1分ほどかかることがあります）"));
+// アプリに戻ってきたら、すぐにつなぎ直す
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && !socket.connected){ showConn("再接続中…"); try{ socket.connect(); }catch(_){} } });
 socket.on("joined",j=>{ ME.code=j.code; ME.token=j.token; save(); history.replaceState(null,"","?room="+j.code); });
-socket.on("err",msg=>{ toast(msg); if(/見つかりません|始まって|満員/.test(msg)){ ME.code=null; ME.token=null; save(); showLobbyStart(); } });
+socket.on("err",msg=>{ toast(msg); if(/見つかりません|なくなりました|始まって|満員/.test(msg)){ ME.code=null; ME.token=null; save(); showLobbyStart(); } });
 socket.on("lobby",L=>{ if(L.phase==="lobby") showRoom(L); });
 socket.on("view",v=>{
   const ov=document.getElementById("ov");
@@ -1346,16 +1375,21 @@ socket.on("view",v=>{
   applyView(v); render(); afterRender();
 });
 // 代打中の表示と、手番の残り時間
-let tick=null;
+let turnEnd=null;
 function afterRender(){
   let bn=document.getElementById("awaybn");
   if(V&&V.away){ if(!bn){ bn=document.createElement("div"); bn.id="awaybn"; bn.className="awaybn"; bn.innerHTML=`<span>席を離れていたので、CPUが代わりに打っています</span><button data-a="back" class="b-gold">復帰する</button>`; document.body.appendChild(bn); } }
   else if(bn) bn.remove();
-  clearInterval(tick); tick=null;
-  if(V&&V.turnLeft!=null){ const end=Date.now()+V.turnLeft;
-    const upd=()=>{ const left=Math.ceil((end-Date.now())/1000); const h=document.querySelector(".hint"); if(h&&left<=30) h.innerHTML=`<b class="cd">残り ${Math.max(0,left)} 秒</b>　`+(h.dataset.base||(h.dataset.base=h.textContent)); };
-    upd(); tick=setInterval(upd,1000); }
+  turnEnd=V&&V.turnLeft!=null?Date.now()+V.turnLeft:null;
+  tickCountdown();
 }
+// 残り時間は1本のタイマーで、案内欄を毎回まるごと書き換える（二重表示しない）
+function tickCountdown(){
+  const h=document.querySelector(".hint"); if(!h) return;
+  const left=turnEnd?Math.ceil((turnEnd-Date.now())/1000):null;
+  h.innerHTML=left!=null&&left<=30?`<b class="cd">残り ${Math.max(0,left)} 秒</b>`:"";
+}
+setInterval(tickCountdown,500);
 socket.on("result",d=>{
   const key=d.gid+":"+d.hid;
   if(key===lastResultKey && document.querySelector("#ov .card.res")) return; // 同じ結果は出し直さない
