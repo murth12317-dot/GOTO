@@ -23,7 +23,7 @@ const rotOf = me => s => (s == null || s < 0) ? s : (s - me + 3) % 3;
 const rotArr = (arr, me) => [0, 1, 2].map(i => arr[(i + me) % 3]);
 
 // ---------- 通算成績をスプレッドシートに記録（環境変数 SHEET_URL があるとき） ----------
-const SHEET_URL = process.env.SHEET_URL, SHEET_SECRET = process.env.SHEET_SECRET || "";
+const SHEET_URL = (process.env.SHEET_URL || "").trim(), SHEET_SECRET = (process.env.SHEET_SECRET || "").trim();
 // テスト用：true の間は、最初からCPUが入っている半荘も記録する（確認が終わったら false に戻す）
 const RECORD_CPU_GAMES = true;
 let sheetTotals = null; // スプレッドシートの通算（全ルーム・全期間の合計）
