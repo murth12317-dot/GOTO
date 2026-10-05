@@ -29,7 +29,9 @@ async function callSheet(body) {
   for (let i = 0; i < 3; i++) {
     try {
       const res = await fetch(SHEET_URL, body ? { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(body) } : {});
-      const d = await res.json();
+      const text = await res.text(); let d;
+      try { d = JSON.parse(text); }
+      catch { console.log(`sheet bad response ${res.status} ${res.url.slice(0, 60)} :: ${text.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 300)}`); throw new Error("not JSON"); }
       if (d.ok) { sheetTotals = d.totals; console.log(`sheet ok (${body ? "recorded " + body.gameKey : "loaded"}, ${d.totals.length} names)`); return true; }
       console.log("sheet error", d.error); return false;
     } catch (e) { console.log("sheet failed", e.message); await new Promise(r => setTimeout(r, 3000 * (i + 1))); }
