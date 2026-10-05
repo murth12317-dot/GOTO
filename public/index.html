@@ -899,7 +899,7 @@ document.addEventListener("click",e=>{
     if(a==="hist"){ const o2=document.createElement("div"); o2.className="overlay ov2"; o2.innerHTML=`<div class="card wide"><h2 style="font-size:24px">全局の精算</h2>${histHTML()}<button data-a="close2" class="b-gold">閉じる</button></div>`; document.body.appendChild(o2); return; }
     if(a==="close2"){ const o2=b.closest(".ov2"); if(o2) o2.remove(); return; }
     if(a==="pg3"){ const c=b.closest(".card"); DICE.finish(); clearRT(); c.classList.add("instant"); ["pg1","pg2","pg3"].forEach(p=>c.querySelector("."+p).classList.toggle("on",p==="pg3")); c.scrollTop=0; return; }
-    if(a==="pg2"||a==="next"||a==="wpg"){ const c=b.closest(".card.res"); if(c && !c.classList.contains("instant") && Date.now() < +c.dataset.t0 + (+c.dataset.dur)*1000){ c.classList.add("instant"); if(c.dataset.f) c.classList.add(c.dataset.f); DICE.finish(); clearRT(); return; } }
+    if(a==="pg2"||a==="next"||a==="wpg"||a==="yame"){ const c=b.closest(".card.res"); if(c && !c.classList.contains("instant") && Date.now() < +c.dataset.t0 + (+c.dataset.dur)*1000){ c.classList.add("instant"); if(c.dataset.f) c.classList.add(c.dataset.f); DICE.finish(); clearRT(); return; } }
     if(a==="pg2"||a==="pg1"){ const c=b.closest(".card"); const from3=c.querySelector(".pg3.on"); c.classList.remove("instant"); ["pg1","pg2"].forEach(p=>c.querySelector("."+p).classList.toggle("on",p===a)); c.scrollTop=0;
       if(a==="pg2"&&from3){ c.classList.add("instant"); DICE.finish(); return; }
       if(a==="pg1"){ c.classList.add("instant"); DICE.finish(); clearRT(); return; }
@@ -907,6 +907,7 @@ document.addEventListener("click",e=>{
       else DICE.finish();
       return; }
     if(a==="wpg"){ showResult(+b.dataset.p); return; }
+    if(a==="yame"){ if(b.dataset.waiting) return; socket.emit("yame",b.dataset.v==="1"); document.querySelectorAll("button[data-a=yame]").forEach(x=>{ x.dataset.waiting="1"; x.disabled=true; }); b.textContent="待機中…"; return; }
     if(a==="hpg"){ histPage+=+b.dataset.d; const hb=document.getElementById("histbox"); if(hb) hb.innerHTML=histPagedHTML(); fitFinal(); return; }
     if(a==="skip"){ const c=b.closest(".card"); if(c) c.classList.add("instant"); DICE.finish(); clearRT(); return; }
     if(a==="next"){ if(b.dataset.waiting) return; socket.emit("next"); document.querySelectorAll("button[data-a=next]").forEach(x=>{ x.dataset.waiting="1"; x.textContent="待機中…"; }); return; }
@@ -1250,7 +1251,10 @@ function showResult(page=0){
     level=Math.max(level, amt>=20?2:amt>=10?1:0); }
   const fcls=level===2?"rainbowf":level===1?"goldf":"";
   const pgNo=nPg>1?`<span style="color:var(--muted);font-weight:700">${page+1} / ${nPg}</span>`:"<span></span>";
-  const nav=last?`<div class="pgnav">${pgNo}<span></span><button data-a="next" class="b-gold">次へ ▶</button></div>`
+  // オーラスの親の和了やめ：親（自分）はやめる／続けるを選ぶ
+  const yameMe=last && R.yame && R.yame.choice==null && R.yame.s===0;
+  const nav=yameMe?`<div class="pgnav">${pgNo}<button data-a="yame" data-v="0" class="b-pon">続ける</button><button data-a="yame" data-v="1" class="b-gold">やめる（終局）</button></div>`
+    :last?`<div class="pgnav">${pgNo}<span></span><button data-a="next" class="b-gold">次へ ▶</button></div>`
     :`<div class="pgnav">${pgNo}<span></span><button data-a="wpg" data-p="${page+1}" class="b-gold">次へ ▶</button></div>`;
   document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card res anim" data-t0="${Date.now()}" data-dur="${d}" data-f="${fcls}"><div class="pg pg1 on"><div class="pgin"><div class="fitw">${p1}</div></div>${nav}</div>${pop}</div></div>`;
   fitResult();
@@ -1284,8 +1288,8 @@ function totalsHTML(list){
   if(!list||!list.length) return "";
   const cl=v=>v>0?"pos":v<0?"neg":"zero", sg=v=>v>0?"+"+v.toLocaleString():v<0?"-"+(-v).toLocaleString():"±0";
   const n=Math.max(...list.map(t=>t.games));
-  const rows=list.map(t=>`<tr><td class="nmc">${esc(t.name)}</td><td>${t.games}</td><td>${t.ranks.join("-")}</td><td class="${cl(t.pts)}">${sg(t.pts)}</td><td class="fc ${cl(t.chips)}">${sg(t.chips)}枚</td></tr>`).join("");
-  return `<div class="tots"><h3>通算成績<small>（最大${n}半荘）</small></h3><table class="stbl"><thead><tr><th></th><th>半荘</th><th>着順</th><th>点数±</th><th>祝儀計</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  const rows=list.map(t=>`<tr><td class="nmc">${esc(t.name)}</td><td>${t.games}</td><td>${t.ranks.join("-")}</td><td class="fc ${cl(t.chips)}">${sg(t.chips)}枚</td></tr>`).join("");
+  return `<div class="tots"><h3>通算成績<small>（最大${n}半荘）</small></h3><table class="stbl"><thead><tr><th></th><th>半荘</th><th>着順</th><th>祝儀計</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function showFinal(order){
   render(); histPage=0;
@@ -1426,6 +1430,7 @@ socket.on("result",d=>{
     dead:{ dora:RS.dora, ura:RS.ura }, kanDora:RS.kanDora, kanUra:RS.kanUra });
   showResult();
 });
+socket.on("yame",y=>{ if(R&&R.yame) R.yame.choice=y.stop; toast(y.msg); const m=document.querySelector(".card.res .msg"); if(m) m.textContent=y.msg; });
 socket.on("ready",r=>{ document.querySelectorAll("button[data-a=next]").forEach(b=>{ if(b.dataset.waiting) b.textContent=`待機中 ${r.ready}/${r.total}`; }); });
 socket.on("totals",list=>{ TOTALS=list||[]; const el=document.querySelector(".card.fin .tots"); if(el){ el.outerHTML=totalsHTML(TOTALS); fitFinal(); } });
 socket.on("final",d=>{ R=d.R; NAMES=d.names; G=Object.assign({},G||{},d.G); TOTALS=d.totals||[]; showFinal(d.order); });

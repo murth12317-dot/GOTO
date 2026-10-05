@@ -14,7 +14,7 @@ const g = createGame({
   update() {}, result: onResult, final: onFinal,
 });
 
-let games = 0, hands = 0, lastKey = null, watchdog = null, gameHands = 0;
+let yames = 0, games = 0, hands = 0, lastKey = null, watchdog = null, gameHands = 0;
 const seen = new Set();
 function arm() {
   clearTimeout(watchdog);
@@ -30,6 +30,7 @@ function onResult() {
   if (pts !== 105000) fail(`点数の合計がずれました：${pts}（${key}）`);
   if (chips !== 0) fail(`祝儀の合計がずれました：${chips}（${key}）`);
   if (G.hist.length !== gameHands) fail(`履歴の数がずれました：${G.hist.length} / ${gameHands}`);
+  if (g.R.yame) { yames++; if (G.over) fail("和了やめを選ぶ前に終局になっています"); g.decideYame(Math.random() < 0.5); }
   arm();
   setImmediate(() => { try { G.over ? g.endGame() : g.startHand(); } catch (e) { fail(e.stack); finish(); } });
 }
@@ -44,7 +45,7 @@ function onFinal(order) {
 }
 function finish() {
   clearTimeout(watchdog); g.destroy();
-  console.log(`${games}半荘・${hands}局を打ちました。` + (failed ? `NG ${failed}件` : "問題なし"));
+  console.log(`${games}半荘・${hands}局を打ちました（和了やめの選択 ${yames}回）。` + (failed ? `NG ${failed}件` : "問題なし"));
   process.exit(failed ? 1 : 0);
 }
 process.on("uncaughtException", e => { fail(e.stack); finish(); });

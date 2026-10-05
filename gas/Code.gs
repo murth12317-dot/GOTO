@@ -6,8 +6,8 @@
 const SECRET = "ここに合言葉を入れる";
 
 const REC = "記録", TOT = "通算";
-const REC_HEAD = ["日時", "ルーム", "半荘ID", "名前", "着順", "持ち点", "点数±", "祝儀"];
-const TOT_HEAD = ["名前", "半荘", "1着", "2着", "3着", "平均着順", "点数±", "祝儀計"];
+const REC_HEAD = ["日時", "ルーム", "半荘ID", "名前", "着順", "祝儀"];
+const TOT_HEAD = ["名前", "半荘", "1着", "2着", "3着", "祝儀計"];
 
 // ゲームのサーバーから半荘の結果が届く（GET の ?data=… で届く。POST でも受け付ける）
 function doPost(e) { return record(JSON.parse(e.postData.contents)); }
@@ -20,7 +20,7 @@ function record(d) {
     const ids = sh.getLastRow() > 1 ? sh.getRange(2, 3, sh.getLastRow() - 1, 1).getValues().flat().map(String) : [];
     if (!ids.includes(String(d.gameKey))) {
       const now = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm");
-      const rows = d.players.map(p => [now, d.room, d.gameKey, p.name, p.rank, p.score, p.score - 35000, p.chips]);
+      const rows = d.players.map(p => [now, d.room, d.gameKey, p.name, p.rank, p.chips]);
       sh.getRange(sh.getLastRow() + 1, 1, rows.length, REC_HEAD.length).setValues(rows);
     }
     return json({ ok: true, totals: rebuild() });
@@ -41,13 +41,13 @@ function rebuild() {
   const by = {};
   for (const r of vals) {
     const name = String(r[3]); if (!name) continue;
-    const t = by[name] = by[name] || { name, games: 0, ranks: [0, 0, 0], pts: 0, chips: 0 };
-    t.games++; t.ranks[Number(r[4]) - 1]++; t.pts += Number(r[6]) || 0; t.chips += Number(r[7]) || 0;
+    const t = by[name] = by[name] || { name, games: 0, ranks: [0, 0, 0], chips: 0 };
+    t.games++; t.ranks[Number(r[4]) - 1]++; t.chips += Number(r[5]) || 0;
   }
-  const list = Object.values(by).sort((a, b) => b.chips - a.chips || b.pts - a.pts);
+  const list = Object.values(by).sort((a, b) => b.chips - a.chips || b.games - a.games);
   tot.getRange(2, 1, Math.max(tot.getMaxRows() - 1, 1), TOT_HEAD.length).clearContent();
   if (list.length) tot.getRange(2, 1, list.length, TOT_HEAD.length).setValues(list.map(t =>
-    [t.name, t.games, t.ranks[0], t.ranks[1], t.ranks[2], Math.round((t.ranks[0] + 2 * t.ranks[1] + 3 * t.ranks[2]) / t.games * 100) / 100, t.pts, t.chips]));
+    [t.name, t.games, t.ranks[0], t.ranks[1], t.ranks[2], t.chips]));
   return list;
 }
 

@@ -619,8 +619,19 @@ function finishHand(winners){
     }
   } else G.honba++;
   if(G.phase>=1 && Math.max(...G.scores)>40000) over=true;
+  // オーラス（親が流れたら終わる局）で親が和了したら、親がやめるか続けるかを選ぶ（流局・流し満貫は続行）
+  const dealerWon=!childWon && R.wins.some(x=>x.s===G.dealer && !x.nagashi);
+  const lastHand=G.dealer===2 && (G.phase>=1 || Math.max(...G.scores)>40000);
+  if(!over && dealerWon && lastHand){ R.yame={s:G.dealer,choice:null}; msg=`オーラスの親の和了：${NAMES[G.dealer]}がやめるか続けるかを選びます`; }
   G.over=over; H.state="result"; R.msg=msg;
   showResult();
+}
+// オーラスの親の和了やめ（stop=true で終局、false で続行）
+function decideYame(stop){
+  if(!R.yame || R.yame.choice!=null) return;
+  R.yame.choice=!!stop;
+  if(stop){ G.over=true; R.msg=`${NAMES[R.yame.s]}の和了やめで終局`; }
+  else R.msg=`${NAMES[R.yame.s]}が続行（${G.honba}本場）`;
 }
 function endGame(){
   const s0=G.scores.slice(), c0=G.chips.slice();
@@ -640,7 +651,7 @@ function endGame(){
   startHand = function(){ _startHand(); };
   return {
     get G(){return G;}, get H(){return H;}, get R(){return R;},
-    newGame, startHand, endGame, discard, tryTsumo, settleTsumo, riichiOptions, kanOptions, doKan,
+    newGame, startHand, endGame, decideYame, discard, tryTsumo, settleTsumo, riichiOptions, kanOptions, doKan,
     nukiKita, nukiHana, promptAnswer, riichiAuto, waits, shanten, seatWind, roundLabel, isClosed, openDanger, discardable,
     destroy(){ dead=true; }
   };

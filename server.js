@@ -58,7 +58,7 @@ if (SHEET_URL) callSheet(null); else console.log("sheet off (SHEET_URL not set)"
 function totalsList(room) {
   if (sheetTotals) return sheetTotals.map(t => ({ ...t, ranks: t.ranks.slice() }));
   return Object.entries(room.totals || {}).map(([name, t]) => ({ name, ...t, ranks: t.ranks.slice() }))
-    .sort((a, b) => b.chips - a.chips || b.pts - a.pts);
+    .sort((a, b) => b.chips - a.chips || b.games - a.games);
 }
 function addTotals(room, order) {
   if (room.totalledGid === room.gameId) return;
@@ -66,8 +66,8 @@ function addTotals(room, order) {
   const G = room.game.G; room.totals = room.totals || {};
   for (let s = 0; s < 3; s++) {
     const name = room.names[s];
-    const t = room.totals[name] = room.totals[name] || { games: 0, chips: 0, pts: 0, ranks: [0, 0, 0] };
-    t.games++; t.chips += G.chips[s]; t.pts += G.scores[s] - 35000; t.ranks[order.indexOf(s)]++;
+    const t = room.totals[name] = room.totals[name] || { games: 0, chips: 0, ranks: [0, 0, 0] };
+    t.games++; t.chips += G.chips[s]; t.ranks[order.indexOf(s)]++;
   }
 }
 function roomPublic(room) {
@@ -149,6 +149,7 @@ function rotR(R, seat) {
     dice: R.dice.map(d => ({ ...d, s: r(d.s) })),
     wins: R.wins.map(w => ({ ...w, s: r(w.s), from: r(w.from), pao: w.pao == null ? w.pao : r(w.pao), w: w.w ? { ...w.w, o: r(w.w.o) } : w.w })),
     draw: R.draw ? { ten: rotArr(R.draw.ten, seat), naga: R.draw.naga.map(r) } : null,
+    yame: R.yame ? { ...R.yame, s: r(R.yame.s) } : null,
   };
 }
 function resultFor(room, seat) {
@@ -252,6 +253,14 @@ function readyState(room) {
 function checkReady(room) {
   const need = humanSeats(room).filter(s => room.seats[s].socket && !room.seats[s].away);
   for (const s of humanSeats(room)) emitTo(room, s, "ready", readyState(room));
+  // オーラスの親の和了やめ：親がまだ選んでいなければ待つ（CPU・代打・切断中なら自動で決める）
+  const Y = room.phase === "result" && room.game && room.game.R.yame;
+  if (Y && Y.choice == null) {
+    const p = room.seats[Y.s];
+    if (p && !p.cpu && p.socket && !p.away) return;
+    const G = room.game.G;
+    room.game.decideYame(G.scores[Y.s] === Math.max(...G.scores)); // 代打はトップならやめる
+  }
   if (need.every(s => room.ready.has(s))) {
     room.ready = new Set();
     if (room.phase === "result") {
@@ -363,6 +372,15 @@ io.on("connection", socket => {
     if (!room || !["result", "final"].includes(room.phase)) return;
     { const pp = room.seats[seatNow()]; if (pp) pp.away = false; }
     room.ready.add(seatNow()); checkReady(room);
+  });
+
+  socket.on("yame", stop => {
+    if (!room || room.phase !== "result" || !room.game) return;
+    const Y = room.game.R.yame, seat = seatNow();
+    if (!Y || Y.choice != null || Y.s !== seat) return;
+    room.game.decideYame(!!stop);
+    for (const s of humanSeats(room)) emitTo(room, s, "yame", { stop: !!stop, msg: room.game.R.msg });
+    room.ready.add(seat); checkReady(room);
   });
 
   socket.on("leaveRoom", () => {
