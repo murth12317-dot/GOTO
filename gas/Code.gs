@@ -6,8 +6,8 @@
 // Render の環境変数 SHEET_SECRET と同じ文字列にする（他の人に書き込まれないための合言葉）
 const SECRET = "ここに合言葉を入れる";
 
-const REC_HEAD = ["日時", "ルーム", "半荘ID", "名前", "着順", "祝儀"];
-const TOT_HEAD = ["名前", "半荘", "1着", "2着", "3着", "祝儀計"];
+const REC_HEAD = ["日時", "ルーム", "半荘ID", "名前", "着順", "祝儀", "倍率", "祝儀×倍率"];
+const TOT_HEAD = ["名前", "半荘", "1着", "2着", "3着", "祝儀計", "祝儀×倍率計"];
 const TOT_COL = REC_HEAD.length + 2; // 記録の右に1列あけて通算を出す
 
 // ゲームのサーバーから半荘の結果が届く（GET の ?data=… で届く。POST でも受け付ける）
@@ -23,7 +23,8 @@ function record(d) {
     const ids = last > 1 ? sh.getRange(2, 3, last - 1, 1).getValues().flat().map(String) : [];
     if (!ids.includes(String(d.gameKey))) {
       const at = Utilities.formatDate(now, "Asia/Tokyo", "yyyy/MM/dd HH:mm");
-      const rows = d.players.map(p => [at, d.room, d.gameKey, p.name, p.rank, p.chips]);
+      const rate = Number(d.rate) || 1;
+      const rows = d.players.map(p => [at, d.room, d.gameKey, p.name, p.rank, p.chips, rate, Math.round(p.chips * rate * 1000) / 1000]);
       sh.getRange(last + 1, 1, rows.length, REC_HEAD.length).setValues(rows);
     }
     return json({ ok: true, totals: rebuild(sh) });
@@ -76,13 +77,14 @@ function rebuild(sh) {
   const by = {};
   for (const r of vals) {
     const name = String(r[3]); if (!name) continue;
-    const t = by[name] = by[name] || { name, games: 0, ranks: [0, 0, 0], chips: 0 };
-    t.games++; t.ranks[Number(r[4]) - 1]++; t.chips += Number(r[5]) || 0;
+    const t = by[name] = by[name] || { name, games: 0, ranks: [0, 0, 0], chips: 0, amount: 0 };
+    t.games++; t.ranks[Number(r[4]) - 1]++; t.chips += Number(r[5]) || 0; t.amount += Number(r[7]) || 0;
   }
-  const list = Object.values(by).sort((a, b) => b.chips - a.chips || b.games - a.games);
+  const list = Object.values(by).sort((a, b) => b.amount - a.amount || b.chips - a.chips);
+  list.forEach(t => t.amount = Math.round(t.amount * 1000) / 1000);
   sh.getRange(2, TOT_COL, Math.max(sh.getMaxRows() - 1, 1), TOT_HEAD.length).clearContent();
   if (list.length) sh.getRange(2, TOT_COL, list.length, TOT_HEAD.length).setValues(list.map(t =>
-    [t.name, t.games, t.ranks[0], t.ranks[1], t.ranks[2], t.chips]));
+    [t.name, t.games, t.ranks[0], t.ranks[1], t.ranks[2], t.chips, t.amount]));
   return list;
 }
 

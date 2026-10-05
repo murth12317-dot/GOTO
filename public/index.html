@@ -543,6 +543,10 @@ html,body,.hand,.hand .t,button{touch-action:manipulation}
 .joinrow{display:flex;gap:8px}
 .joinrow button{width:auto !important;margin:0 !important}
 .code{font-family:"Shippori Mincho B1",serif;font-size:56px;font-weight:800;color:var(--gold);letter-spacing:.2em;line-height:1.1;margin:2px 0 8px}
+.raterow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 2px;font-weight:700}
+.raterow b{color:var(--gold)}
+.raterow input{width:90px;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:var(--text);font:inherit;font-size:16px}
+.raterow small{flex-basis:100%;font-size:11px;color:var(--muted);font-weight:700}
 .seatrow{display:flex;justify-content:space-between;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);margin:6px 0;font-weight:700}
 .seatrow.me{outline:1px solid var(--gold)}
 .seatrow .st{color:var(--muted);font-size:12px;font-weight:500}
@@ -1449,10 +1453,13 @@ function showRoom(L){
   const rows=L.seats.map((p,i)=>`<div class="seatrow${i===me?" me":""}"><span class="sn">${p?esc(p.name):"空席"}</span><span class="st">${p?`${p.host?"ホスト　":""}${p.online?"":"（切断中）　"}${p.ready?'<b class="rdy">準備OK</b>':'<span class="nrd">準備中</span>'}`:"CPUが入ります"}</span></div>`).join("");
   const n=L.seats.filter(Boolean).length;
   const myReady=L.seats[me]&&L.seats[me].ready;
+  // 倍率の入力中に画面が書き換わっても、入れかけの数字を残す
+  const ri=document.getElementById("rate"), typing=ri&&document.activeElement===ri?ri.value:null;
   document.getElementById("app").innerHTML="";
   document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card lob room">
     <div class="rl2"><div><div class="rnm">ルーム番号</div><div class="code">${L.code}</div></div>
-    <div class="mem"><h3>メンバー（${n}/3）</h3>${rows}</div></div>
+    <div class="mem"><h3>メンバー（${n}/3）</h3>${rows}
+      <div class="raterow"><b>倍率</b>${L.isHost?`<input id="rate" type="number" inputmode="decimal" min="0" step="any" value="${L.rate}">`:`<span>${L.rate}</span>`}<small>祝儀×倍率をスプレッドシートに記録</small></div></div></div>
     <div class="lbtns">
       ${n<3?`<button data-a="share" data-url="${esc(location.origin+location.pathname+"?room="+L.code+"&openExternalBrowser=1")}" class="b-pon">招待リンクを送る</button>`:""}
       <button data-a="lready" class="${myReady?"b-skip":"b-kita"}">${myReady?"準備OKを取り消す":"準備OK"}</button>
@@ -1460,7 +1467,9 @@ function showRoom(L){
       <button data-a="leave" class="b-skip">ルームを出る</button>
     </div>
   </div></div>`;
+  if(typing!=null){ const r2=document.getElementById("rate"); if(r2){ r2.value=typing; r2.focus(); } }
 }
+document.addEventListener("change",e=>{ if(e.target.id==="rate") socket.emit("setRate",e.target.value); });
 document.addEventListener("click",e=>{
   const b=e.target.closest("button[data-a]"); if(!b) return;
   const a=b.dataset.a;

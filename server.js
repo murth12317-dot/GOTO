@@ -45,14 +45,14 @@ function sendToSheet(room, order) {
   room.sentGid = room.gameId;
   const G = room.game.G;
   const players = [0, 1, 2].map(s => ({ name: room.names[s], rank: order.indexOf(s) + 1, chips: G.chips[s] }));
-  callSheet({ secret: SHEET_SECRET, room: room.code, gameKey: room.gameKey, players });
+  callSheet({ secret: SHEET_SECRET, room: room.code, gameKey: room.gameKey, rate: room.gameRate || 1, players });
 }
 if (SHEET_URL && !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(SHEET_URL)) console.log("sheet WARNING: SHEET_URL は https://script.google.com/macros/s/…/exec の形にしてください（今: " + SHEET_URL.slice(0, 60) + "…）");
 if (SHEET_URL) callSheet(null); else console.log("sheet off (SHEET_URL not set)");
 
 function roomPublic(room) {
   return {
-    code: room.code, phase: room.phase,
+    code: room.code, phase: room.phase, rate: room.rate || 1,
     seats: room.seats.map((p, i) => p ? { name: p.name, cpu: !!p.cpu, online: p.cpu || !!p.socket, host: p.token === room.hostToken, ready: !!p.ready } : null),
     allReady: room.seats.filter(p => p && !p.cpu).every(p => p.ready),
   };
@@ -178,6 +178,7 @@ function pushViews(room) {
 function startGame(room) {
   room.gameId = (room.gameId || 0) + 1;
   room.gameKey = room.code + "-" + Date.now();
+  room.gameRate = room.rate || 1; // 対局中に変わらないよう、開始時の倍率で記録する
   // 席をシャッフル（起家はランダム）
   const people = room.seats.map((p, i) => p || { name: CPU_NAMES[i], cpu: true, token: null, socket: null });
   shuffleArr(people);
@@ -308,6 +309,16 @@ io.on("connection", socket => {
     if (room.seats[seatNow()].token !== room.hostToken) return err("開始できるのはルームを作った人です");
     if (!room.seats.filter(p => p && !p.cpu).every(p => p.ready)) return err("全員の準備OKがそろっていません");
     startGame(room);
+  });
+
+  // 倍率（スプレッドシートに祝儀×倍率を書く）。ルームを作った人だけが変えられる
+  socket.on("setRate", v => {
+    if (!room || room.phase !== "lobby") return;
+    if (room.seats[seatNow()].token !== room.hostToken) return err("倍率を変えられるのはルームを作った人です");
+    const n = Number(v);
+    if (!(n > 0 && n <= 1000000)) return err("倍率は0より大きい数字で入れてください");
+    room.rate = Math.round(n * 1000) / 1000;
+    broadcastLobby(room);
   });
 
   socket.on("lobbyReady", () => {
