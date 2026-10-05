@@ -30,9 +30,8 @@ let sheetTotals = null; // スプレッドシートの通算（全ルーム・�
 async function callSheet(body) {
   for (let i = 0; i < 3; i++) {
     try {
-      let res = await fetch(SHEET_URL, body ? { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(body), redirect: "manual" } : {});
-      // Apps Script は POST を受けたあと結果のページへ転送する。転送先は GET で読まないと 405 になる
-      if (res.status >= 300 && res.status < 400 && res.headers.get("location")) res = await fetch(res.headers.get("location"));
+      // POST は Apps Script の転送先で失敗することがあるので、結果も GET の ?data=… で送る
+      const res = await fetch(body ? SHEET_URL + (SHEET_URL.includes("?") ? "&" : "?") + "data=" + encodeURIComponent(JSON.stringify(body)) : SHEET_URL);
       const text = await res.text(); let d;
       try { d = JSON.parse(text); }
       catch { console.log(`sheet bad response ${res.status} ${res.url.slice(0, 60)} :: ${text.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 300)}`); throw new Error("not JSON"); }

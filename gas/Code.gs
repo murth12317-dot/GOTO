@@ -9,9 +9,9 @@ const REC = "記録", TOT = "通算";
 const REC_HEAD = ["日時", "ルーム", "半荘ID", "名前", "着順", "持ち点", "点数±", "祝儀"];
 const TOT_HEAD = ["名前", "半荘", "1着", "2着", "3着", "平均着順", "点数±", "祝儀計"];
 
-// ゲームのサーバーから半荘の結果が届く
-function doPost(e) {
-  const d = JSON.parse(e.postData.contents);
+// ゲームのサーバーから半荘の結果が届く（GET の ?data=… で届く。POST でも受け付ける）
+function doPost(e) { return record(JSON.parse(e.postData.contents)); }
+function record(d) {
   if (d.secret !== SECRET) return json({ ok: false, error: "secret" });
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
@@ -27,8 +27,11 @@ function doPost(e) {
   } finally { lock.releaseLock(); }
 }
 
-// 通算成績を返す（サーバーの起動時に読む）
-function doGet() { return json({ ok: true, totals: rebuild() }); }
+// 通算成績を返す（サーバーの起動時に読む）。?data=… が付いていれば半荘の結果として記録する
+function doGet(e) {
+  if (e && e.parameter && e.parameter.data) return record(JSON.parse(e.parameter.data));
+  return json({ ok: true, totals: rebuild() });
+}
 
 // 「記録」シートから名前ごとに合計して「通算」シートを作り直す
 // 記録の行を消したり直したりしたら、メニューの「通算を再計算」で反映できる
