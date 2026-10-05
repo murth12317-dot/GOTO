@@ -584,6 +584,7 @@ function kName(k){
   if(k<9) return NUMS[k]+"萬"; if(k<18) return NUMS[k-9]+"筒"; if(k<27) return NUMS[k-18]+"索";
   return HON[k-27];
 }
+function kShort(k){ return k<27 ? (k%9+1)+"mps"[Math.floor(k/9)] : HON[k-27]; }
 function tName(t){ return (t.red?"赤":t.gold?"金":t.pocchi?"ポッチ":"")+kName(t.k); }
 
 // 牌の絵（60×80）
@@ -954,7 +955,11 @@ function winHandHTML(w,P,tsumo,extra){
   const wt=wi>=0?conc.splice(wi,1)[0]:null;
   const melds=P.melds.map(m=>`<span style="display:flex;align-items:flex-end;margin-left:6px">${meldHTML(m,P===H.p[0]?0:H.p.indexOf(P))}</span>`).join("");
   const nuki=(P.kita.length||P.hana.length||extra)?`<div class="nukirow">${P.kita.length?`<span class="ng"><b>抜き北</b>${P.kita.map(t=>tileHTML(t,"rv")).join("")}</span>`:""}${P.hana.length?`<span class="ng"><b>抜き華</b>${P.hana.map(t=>tileHTML(t,"rv")).join("")}</span>`:""}${extra||""}</div>`:"";
-  return `<div class="whand">${sortHand(conc).map(t=>tileHTML(t,"rv")).join("")}${melds}${wt?`<span class="wt">${tileHTML(wt,"rv")}<small>${tsumo?"ツモ":"ロン"}</small></span>`:""}</div>${nuki}`;
+  // 白ポッチ和了はツモ牌を白ポッチで表示し、何の牌として使ったかを添える
+  const wtHTML=!wt?"":w.pocchi
+    ?`<span class="wt">${tileHTML({k:31,pocchi:true,id:wt.id},"rv")}<small>白ポッチ（${kShort(w.winK)}）</small></span>`
+    :`<span class="wt">${tileHTML(wt,"rv")}<small>${tsumo?"ツモ":"ロン"}</small></span>`;
+  return `<div class="whand">${sortHand(conc).map(t=>tileHTML(t,"rv")).join("")}${melds}${wtHTML}</div>${nuki}`;
 }
 function netSummary(){
   const pt=[0,0,0], ch=[0,0,0];
