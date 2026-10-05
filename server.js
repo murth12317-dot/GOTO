@@ -22,8 +22,24 @@ const newToken = () => Math.random().toString(36).slice(2) + Date.now().toString
 const rotOf = me => s => (s == null || s < 0) ? s : (s - me + 3) % 3;
 const rotArr = (arr, me) => [0, 1, 2].map(i => arr[(i + me) % 3]);
 
+// 名前ごとの通算成績（このルームで終わった半荘の合計）
+function totalsList(room) {
+  return Object.entries(room.totals || {}).map(([name, t]) => ({ name, ...t, ranks: t.ranks.slice() }))
+    .sort((a, b) => b.chips - a.chips || b.pts - a.pts);
+}
+function addTotals(room, order) {
+  if (room.totalledGid === room.gameId) return;
+  room.totalledGid = room.gameId;
+  const G = room.game.G; room.totals = room.totals || {};
+  for (let s = 0; s < 3; s++) {
+    const name = room.names[s];
+    const t = room.totals[name] = room.totals[name] || { games: 0, chips: 0, pts: 0, ranks: [0, 0, 0] };
+    t.games++; t.chips += G.chips[s]; t.pts += G.scores[s] - 35000; t.ranks[order.indexOf(s)]++;
+  }
+}
 function roomPublic(room) {
   return {
+    totals: totalsList(room),
     code: room.code, phase: room.phase,
     seats: room.seats.map((p, i) => p ? { name: p.name, cpu: !!p.cpu, online: p.cpu || !!p.socket, host: p.token === room.hostToken, ready: !!p.ready } : null),
     allReady: room.seats.filter(p => p && !p.cpu).every(p => p.ready),
@@ -175,7 +191,8 @@ function startGame(room) {
     final: order => {
       room.phase = "final"; room.ready = new Set();
       const g = room.game;
-      for (const s of humanSeats(room)) emitTo(room, s, "final", { gid: room.gameId, order: order.map(rotOf(s)), R: rotR(g.R, s), G: rotG(g.G, s), names: rotArr(room.names, s) });
+      addTotals(room, order);
+      for (const s of humanSeats(room)) emitTo(room, s, "final", { gid: room.gameId, totals: totalsList(room), order: order.map(rotOf(s)), R: rotR(g.R, s), G: rotG(g.G, s), names: rotArr(room.names, s) });
     },
   });
   broadcastLobby(room);
