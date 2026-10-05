@@ -30,7 +30,7 @@ async function callSheet(body) {
     try {
       const res = await fetch(SHEET_URL, body ? { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(body) } : {});
       const d = await res.json();
-      if (d.ok) { sheetTotals = d.totals; return true; }
+      if (d.ok) { sheetTotals = d.totals; console.log(`sheet ok (${body ? "recorded " + body.gameKey : "loaded"}, ${d.totals.length} names)`); return true; }
       console.log("sheet error", d.error); return false;
     } catch (e) { console.log("sheet failed", e.message); await new Promise(r => setTimeout(r, 3000 * (i + 1))); }
   }
@@ -46,7 +46,7 @@ function sendToSheet(room, order) {
     broadcastLobby(room);
   });
 }
-if (SHEET_URL) callSheet(null);
+if (SHEET_URL) callSheet(null); else console.log("sheet off (SHEET_URL not set)");
 
 // 名前ごとの通算成績（スプレッドシートがあればそこの合計、なければこのルームで終わった半荘の合計）
 function totalsList(room) {
@@ -221,6 +221,7 @@ function startGame(room) {
       const g = room.game;
       // 最初からCPUが入っている半荘は通算に入れない（途中の切断で代打になった人は本人の名前で入れる）
       if (!room.seats.some(p => p && p.cpu)) { addTotals(room, order); sendToSheet(room, order); }
+      else console.log("sheet skip (CPU game) room " + room.code);
       for (const s of humanSeats(room)) emitTo(room, s, "final", { gid: room.gameId, totals: totalsList(room), order: order.map(rotOf(s)), R: rotR(g.R, s), G: rotG(g.G, s), names: rotArr(room.names, s) });
     },
   });
