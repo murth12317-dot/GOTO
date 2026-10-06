@@ -367,7 +367,6 @@ io.on("connection", socket => {
     if (room.seats[seatNow()].token !== room.hostToken) return err("ルールを変えられるのはルームを作った人です");
     const cur = room.rules || { hana: 4, shuba: false, wareme: false };
     room.rules = { hana: v.hana === 8 ? 8 : 4, shuba: !!v.shuba, wareme: !!v.wareme };
-    if (room.rules.hana === 8) { room.rules.hana = cur.hana; err("華8はまだ準備中です"); }
     broadcastLobby(room);
   });
 

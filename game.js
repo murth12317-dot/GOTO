@@ -41,7 +41,7 @@ function buildTiles(){
     else if(k===31){ add(k,{pocchi:true}); add(k); add(k); add(k); }
     else for(let j=0;j<4;j++) add(k);
   }
-  for(let f=34;f<=37;f++) add(f);
+  for(let n=0;n<(RULES.hana===8?2:1);n++) for(let f=34;f<=37;f++) add(f);
   return a;
 }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -95,7 +95,7 @@ function basePts(han,fu){
   if(han>=13) return 8000; if(han>=11) return 6000; if(han>=8) return 4000; if(han>=6) return 3000; if(han>=5) return 2000;
   return Math.min(fu*Math.pow(2,han+2), 2000);
 }
-const RANK = {2000:"満貫",3000:"跳満",4000:"倍満",6000:"三倍満",8000:"数え役満",10000:"5倍満"};
+const RANK = {2000:"満貫",3000:"跳満",4000:"倍満",6000:"三倍満",8000:"数え役満",10000:"5倍満",12000:"6倍満"};
 const roundWind = () => G.phase%2===0?27:28;
 const seatWind = s => 27+((s-G.dealer+3)%3);
 
@@ -217,7 +217,7 @@ function newGame(){
 function log(s){ G.log.unshift(s); if(G.log.length>60) G.log.pop(); }
 var startHand=function(){
   const all=shuffle(buildTiles());
-  const dead={kan:all.splice(-4),kita:all.splice(-4),hana:all.splice(-4),dora:all.splice(-2),ura:all.splice(-2)};
+  const dead={kan:all.splice(-4),kita:all.splice(-4),hana:all.splice(-RULES.hana),dora:all.splice(-2),ura:all.splice(-2)};
   H={id:++handSeq,live:all,dead,p:[0,1,2].map(()=>({hand:[],melds:[],river:[],kita:[],hana:[],riichi:false,shuba:false,dbl:false,ippatsu:false,tempF:false,riichiF:false,calledFrom:false})),
      turn:G.dealer,noCalls:true,noNaki:[false,false,false],kanDora:[],kanUra:[],state:"idle",drawn:null,tobiPaid:[0,0,0],sel:null,prompt:null};
   H.startScores=G.scores.slice(); H.startChips=G.chips.slice(); H.label=roundLabel();
@@ -252,10 +252,11 @@ function nukiHana(s){
   P.hand.splice(P.hand.indexOf(t),1); P.hana.push(t);
   log(`${NAMES[s]}：${HON[t.k-27]}を抜いた`);
   const KN=["","一","二","三","四"];
-  const hasSpring=P.hana.some(x=>x.k===34);
-  if(t.k===34){ const n=P.hana.length; SE.say(n===1?"春の、一枚です":`春で、${KN[n]}枚です`,s); }
+  const hasSpring=P.hana.some(x=>x.k===34), secondSpring=t.k===34&&P.hana.filter(x=>x.k===34).length>=2;
+  if(secondSpring) SE.say("春、二枚目です",s);
+  else if(t.k===34){ const n=P.hana.length; SE.say(n===1?"春の、一枚です":`春で、${KN[n]}枚です`,s); }
   else SE.say(hasSpring?`${HON[t.k-27]}で、追加一枚です`:HON[t.k-27],s);
-  if(hasSpring){ const n=t.k===34?P.hana.length:1; for(const o of [0,1,2]) if(o!==s) payChips(o,s,n,"春"); }
+  if(hasSpring && !secondSpring){ const n=t.k===34?P.hana.length:1; for(const o of [0,1,2]) if(o!==s) payChips(o,s,n,"春"); }
   const r=H.dead.hana.pop(); if(r){ P.hand.push(r); H.drawn=r; H.rinshan=false; }
   return true;
 }
@@ -496,15 +497,17 @@ function doraInfo(s, conc){
   const tiles=conc.concat(...P.melds.map(m=>m.tiles));
   const dk=doraKinds(H.dead.dora.concat(H.kanDora)), uk=P.riichi?doraKinds(H.dead.ura.concat(H.kanUra)):[];
   const fl=flowersFor(s);
-  const aki=fl.all.includes(36);
+  const akiN=fl.all.filter(k=>k===36).length, aki=akiN>0;
   let dora=0; for(const t of tiles) for(const k of dk) if(t.k===k&&!t.virtualSkip) dora++;
   const aka=tiles.filter(t=>t.red).length, gold=tiles.filter(t=>t.gold).length;
   const akaDora=(aka+gold)*(aki?2:1);
   const kn=P.kita.length;
-  const kitaDora=kn===4?8:kn+kn*dk.filter(k=>k===30).length;
+  const aki2=akiN>=2; // 秋秋
+  const kitaDora=(kn===4?8:kn)*(aki2?2:1)+kn*dk.filter(k=>k===30).length;
+  const plain5=aki2?tiles.filter(t=>(t.k===13||t.k===22)&&!t.red&&!t.gold).length*2:0; // 秋秋：普通の5は1枚でドラ2つ
   let ura=0; for(const t of tiles) for(const k of uk) if(t.k===k) ura++;
   if(kn<4) ura+=kn*uk.filter(k=>k===30).length;
-  return {dora,aka,gold,akaDora,kitaDora,kn,ura,total:dora+akaDora+kitaDora+ura,aki};
+  return {dora,aka,gold,akaDora,kitaDora,kn,ura,total:dora+akaDora+kitaDora+ura+plain5,aki,aki2,plain5};
 }
 function flowersFor(s){
   const P=H.p[s];
@@ -527,16 +530,16 @@ function payPts(from,to,n,why,noTobi,hb=0){
 function finalPoints(s, w){
   const r=w.res; const di=doraInfo(s,w.conc); const fl=flowersFor(s);
   let base, han=r.han+di.total, label;
-  const summer=fl.all.includes(35);
+  const summer=fl.all.filter(k=>k===35).length; // 夏1枚につきワンランクアップ
   let kazoe=false;
   if(r.ymN>0){
     base=8000*r.ymN; label=r.ymN>1?`${r.ymN}倍役満`:"役満"; han=null;
-    if(summer){ const m=4*r.ymN+1; base=2000*m; label=`${m}倍満`; } // 夏：役満→5倍満、ダブル役満→9倍満…（祝儀は役満のまま）
+    if(summer){ const m=4*r.ymN+summer; base=2000*m; label=`${m}倍満`; } // 夏：役満→5倍満（夏2枚なら6倍満）、ダブル役満→9倍満…（祝儀は役満のまま）
   } else {
     base=basePts(han,r.fu);
-    if(summer){
+    for(let i=0;i<summer;i++){
       if(base<2000){ han+=1; base=basePts(han,r.fu); }
-      else base={2000:3000,3000:4000,4000:6000,6000:8000,8000:10000}[base];
+      else base={2000:3000,3000:4000,4000:6000,6000:8000,8000:10000,10000:12000}[base]||base;
     }
     kazoe=base>=8000;
     label=RANK[base]||`${r.fu}符${han}翻`;
@@ -594,7 +597,10 @@ function winChips(s,w,fp,tsumo,d){
   const tiles=w.conc.concat(...P.melds.map(m=>m.tiles));
   if(closed && tiles.some(t=>t.red&&t.k===13)&&tiles.some(t=>t.gold&&t.k===13)&&tiles.some(t=>t.red&&t.k===22)&&tiles.some(t=>t.gold&&t.k===22)) dice("赤金4枚");
   if(P.kita.length===4) dice("北4枚");
-  if(P.hana.length===4) dice("華牌4枚");
+  const sets=Math.min(...[34,35,36,37].map(k=>P.hana.filter(t=>t.k===k).length));
+  for(let i=0;i<sets;i++) dice(RULES.hana===8?"春夏秋冬":"華牌4枚");
+  // 2枚目の春：和了したときに、その時点の華牌の枚数×1枚を2人から
+  if(P.hana.filter(t=>t.k===34).length>=2) pay(P.hana.length,"2枚目の春",true);
   if(w.pocchi){ if(pocchiIppatsu){ pay(4,"白ポッチ一発",true); dice("白ポッチ一発"); } else pay(1,"白ポッチ",true); }
   const spInd=fp.fl.ind.filter(k=>k===34).length+fp.fl.ura.filter(k=>k===34).length;
   if(spInd) pay((P.hana.length+spInd),"表示牌の春",true);

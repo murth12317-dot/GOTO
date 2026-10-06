@@ -884,7 +884,7 @@ function render(){
       <div class="box">
         <div class="rl">${wind}${V?V.kyoku:G.dealer+1}局</div>
         <div class="sub">${G.honba}本場　供託${G.kyotaku}${G.phase>=2?"　返り東":""}</div>
-        ${H.rules&&(H.rules.shuba||H.rules.wareme)?`<div class="rtag">${[H.rules.shuba?"シュバ":"",H.rules.wareme?"割れ目":""].filter(Boolean).join("・")}</div>`:""}
+        ${H.rules&&(H.rules.shuba||H.rules.wareme||H.rules.hana===8)?`<div class="rtag">${[H.rules.hana===8?"華8":"",H.rules.shuba?"シュバ":"",H.rules.wareme?"割れ目":""].filter(Boolean).join("・")}</div>`:""}
         <div class="rest">残り ${H.live.length}</div>
       </div>
       ${seatLayer(2)}${seatLayer(1)}${seatLayer(0)}
@@ -1220,7 +1220,9 @@ function showResult(page=0){
         if(di.aki && akN) item("秋",`${akN}翻`);
         if(di.kitaDora) item("抜き北",`${di.kitaDora}翻`);
         if(di.ura) item("裏ドラ",`${di.ura}翻`);
-        if(fp.fl.all.includes(35)) item("夏（ワンランクアップ）","↑");
+        const natsu=fp.fl.all.filter(k=>k===35).length;
+        if(natsu) item(natsu>1?`夏×${natsu}（${natsu}ランクアップ）`:"夏（ワンランクアップ）","↑".repeat(natsu));
+        if(di.plain5) item("秋秋（普通の5）",`${di.plain5}翻`);
       }
       const dealer=x.s===(R.handDealer??G.dealer);
       let payStr;
@@ -1490,7 +1492,7 @@ function rulesHTML(L){
   const r=L.rules||{hana:4,shuba:false,wareme:false};
   const seg=(key,opts)=>opts.map(([v,label,dis])=>`<button data-a="rule" data-k="${key}" data-v="${v}" class="seg${String(r[key])===String(v)?" on":""}" ${!L.isHost||dis?"disabled":""}>${label}</button>`).join("");
   return `<div class="rules">
-    <div class="rrow"><b>華</b>${seg("hana",[[4,"4枚"],[8,"8枚（準備中）",true]])}</div>
+    <div class="rrow"><b>華</b>${seg("hana",[[4,"4枚"],[8,"8枚"]])}</div>
     <div class="rrow"><b>シュバ</b>${seg("shuba",[[true,"あり"],[false,"なし"]])}</div>
     <div class="rrow"><b>割れ目</b>${seg("wareme",[[true,"あり"],[false,"なし"]])}</div>
   </div>`;
