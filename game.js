@@ -256,7 +256,8 @@ function nukiHana(s){
   if(secondSpring) SE.say("春、二枚目です",s);
   else if(t.k===34){ const n=P.hana.length; SE.say(n===1?"春の、一枚です":`春で、${KN[n]}枚です`,s); }
   else SE.say(hasSpring?`${HON[t.k-27]}で、追加一枚です`:HON[t.k-27],s);
-  if(hasSpring && !secondSpring){ const n=t.k===34?P.hana.length:1; for(const o of [0,1,2]) if(o!==s) payChips(o,s,n,"春"); }
+  // 春を持っていれば、華牌を抜くたびに1枚（2枚目の春も、1枚目の春の効果で1枚。2枚目の春そのものの効果は和了時）
+  if(hasSpring){ const n=t.k===34&&!secondSpring?P.hana.length:1; for(const o of [0,1,2]) if(o!==s) payChips(o,s,n,"春"); }
   const r=H.dead.hana.pop(); if(r){ P.hand.push(r); H.drawn=r; H.rinshan=false; }
   return true;
 }
@@ -503,7 +504,7 @@ function doraInfo(s, conc){
   const akaDora=(aka+gold)*(aki?2:1);
   const kn=P.kita.length;
   const aki2=akiN>=2; // 秋秋
-  const kitaDora=(kn===4?8:kn)*(aki2?2:1)+kn*dk.filter(k=>k===30).length;
+  const kitaDora=kn+(aki2?kn:0)+(kn===4?4:0)+kn*dk.filter(k=>k===30).length; // 北1枚1つ（秋秋で2つ）、4枚そろえば＋4
   const plain5=aki2?tiles.filter(t=>(t.k===13||t.k===22)&&!t.red&&!t.gold).length*2:0; // 秋秋：普通の5は1枚でドラ2つ
   let ura=0; for(const t of tiles) for(const k of uk) if(t.k===k) ura++;
   if(kn<4) ura+=kn*uk.filter(k=>k===30).length;
@@ -615,7 +616,7 @@ function winChips(s,w,fp,tsumo,d){
     // チューリップ：めくった牌と前後1つ（9→1・白發中・東南西北はつながる）が当たり。抜き北も持っている北として数える
     const own=tulip?tiles.concat(P.kita):tiles;
     for(const t of src){
-      if(t.k>=34){ const n=P.hana.length*mult; R.alice.push({t,hit:true,n}); total+=n; continue; }
+      if(t.k>=34){ const n=fp.fl.all.length*mult; R.alice.push({t,hit:true,n}); total+=n; continue; } // 抜いた華牌＋ドラ表示・裏ドラ表示の華牌
       const kc=tulip?tulipKinds(t.k).reduce((a,k)=>a+own.filter(x=>x.k===k).length,0):tiles.filter(x=>x.k===t.k).length;
       if(kc>0){ R.alice.push({t,hit:true,n:kc*mult}); total+=kc*mult; } else { R.alice.push({t,hit:false}); R.aliceOut=false; break; }
     }
