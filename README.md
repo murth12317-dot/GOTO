@@ -9,7 +9,9 @@
 - `game.js` … 対局のルール処理（点数・祝儀・華牌など）
 - `public/index.html` … 画面
 - `package.json` … 必要なライブラリ（express / socket.io）
-- `gas/Code.gs` … 通算成績をスプレッドシートに記録する Apps Script（任意）
+- `records.js` … 成績を GitHub の data ブランチに保存する
+- `public/stats.html` … 成績表ページ（/stats）
+- `gas/Code.gs` … 通算成績をスプレッドシートに記録する Apps Script（任意・旧方式）
 
 ## Renderで公開する手順（4人麻雀と同じ流れ）
 
@@ -39,6 +41,23 @@
 - 自分の番で2分操作がないと、自動でツモ切りしてCPUが代わりに打ちます。「復帰する」を押すか開き直せば本人に戻ります
 - 対局中にページを閉じても、同じ端末で開き直せば同じ席に戻れます。戻るまでの間はCPUが代わりに打ちます
 - 対局の途中経過はサーバーのメモリにあるので、Renderが再起動するとルームは消えます
+
+## 成績表（みんなで見られる管理表）
+
+半荘が終わるたびに、結果が GitHub リポジトリの `data` ブランチ（`records/YYYY-MM.json`）に自動で保存され、
+`https://（このアプリのURL）/stats` の成績表ページで週ごと（日曜はじまり）の通算と半荘ごとの記録が見られます。「Excel保存」で .xlsx もダウンロードできます。
+表の形は `public/stats.html` で作っているので、ルールが変わってもこのファイルを直すだけで過去の記録ごと表示が変わります。
+
+設定（最初の1回だけ）
+1. GitHub の「Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token」
+   - Repository access：Only select repositories → このリポジトリ
+   - Permissions → Repository permissions → Contents：Read and write
+2. できたトークン（`github_pat_…`）を Render の環境変数 `GITHUB_TOKEN` に入れて保存
+3. 別のリポジトリに保存するときは `GITHUB_REPO`（例：`owner/repo`）も入れる
+
+- 記録の修正は `data` ブランチの `records/YYYY-MM.json` を直接直せば、1分以内に成績表に反映されます
+- `data` ブランチへの書き込みでは Render は再デプロイされません
+- トークンの期限が切れると保存が止まります（Render のログに `records failed` と出ます）。作り直して入れ替えてください
 
 ## 通算成績をスプレッドシートに記録する（任意）
 

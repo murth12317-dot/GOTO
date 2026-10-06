@@ -5,11 +5,15 @@ const http = require("http");
 const express = require("express");
 const { Server } = require("socket.io");
 const { createGame } = require("./game.js");
+const records = require("./records.js");
 
 const app = express();
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/game.js", (req, res) => res.sendFile(path.join(__dirname, "game.js")));
 app.get("/healthz", (req, res) => res.send("ok"));
+// 成績ページ（みんなで見られる管理表）と、その生データ
+app.get("/stats", (req, res) => res.sendFile(path.join(__dirname, "public", "stats.html")));
+app.get("/api/records", async (req, res) => { res.set("Cache-Control", "no-store"); res.json({ enabled: records.enabled, records: await records.list() }); });
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
@@ -46,6 +50,16 @@ function sendToSheet(room, order) {
   const G = room.game.G;
   const players = [0, 1, 2].map(s => ({ name: room.names[s], rank: order.indexOf(s) + 1, chips: G.chips[s] }));
   callSheet({ secret: SHEET_SECRET, room: room.code, gameKey: room.gameKey, rate: room.gameRate || 1, players });
+}
+// 成績ページ用に、半荘の生の結果を保存する（records.js → GitHub の data ブランチ）
+function saveRecord(room, order) {
+  if (room.savedGid === room.gameId) return;
+  room.savedGid = room.gameId;
+  const G = room.game.G;
+  records.add({
+    id: room.gameKey, at: new Date().toISOString(), room: room.code, rate: room.gameRate || 1,
+    players: [0, 1, 2].map(s => ({ name: room.names[s], rank: order.indexOf(s) + 1, score: G.scores[s], chips: G.chips[s], cpu: !!(room.seats[s] && room.seats[s].cpu) })),
+  });
 }
 // ゲーム画面に出す通算（このルームで終わった半荘の合計。全員がルームを出るとリセット）
 function totalsInfo(room) {
@@ -222,7 +236,7 @@ function startGame(room) {
       room.phase = "final"; room.ready = new Set();
       const g = room.game;
       // 最初からCPUが入っている半荘は通算に入れない（途中の切断で代打になった人は本人の名前で入れる）
-      if (RECORD_CPU_GAMES || !room.seats.some(p => p && p.cpu)) { addTotals(room, order); sendToSheet(room, order); }
+      if (RECORD_CPU_GAMES || !room.seats.some(p => p && p.cpu)) { addTotals(room, order); sendToSheet(room, order); saveRecord(room, order); }
       else console.log("sheet skip (CPU game) room " + room.code);
       for (const s of humanSeats(room)) emitTo(room, s, "final", { gid: room.gameId, totals: totalsInfo(room), order: order.map(rotOf(s)), R: rotR(g.R, s), G: rotG(g.G, s), names: rotArr(room.names, s) });
     },

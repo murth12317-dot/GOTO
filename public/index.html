@@ -545,6 +545,8 @@ html,body,.hand,.hand .t,button{touch-action:manipulation}
 .joinrow{display:flex;gap:8px}
 .joinrow button{width:auto !important;margin:0 !important}
 .code{font-family:"Shippori Mincho B1",serif;font-size:56px;font-weight:800;color:var(--gold);letter-spacing:.2em;line-height:1.1;margin:2px 0 8px}
+.statlink{display:block;text-align:center;margin:12px 0 0;color:var(--gold);font-weight:700;font-size:14px}
+.card.lob.start .statlink{grid-column:2}
 .raterow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 2px;font-weight:700}
 .raterow b{color:var(--gold)}
 .raterow input{width:90px;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:var(--text);font:inherit;font-size:16px}
@@ -1455,6 +1457,7 @@ function showLobbyStart(){
     <button data-a="create" class="b-gold">ルームを作る</button>
     <div class="or">または</div>
     <div class="joinrow"><input id="rc" inputmode="numeric" maxlength="4" value="${esc(q)}" placeholder="ルーム番号（4桁）"><button data-a="join" class="b-pon">参加</button></div>
+    <a class="statlink" href="/stats" target="_blank" rel="noopener">成績表を見る</a>
   </div></div>`;
 }
 function showRoom(L){
@@ -1477,6 +1480,7 @@ function showRoom(L){
       ${L.isHost?`<button data-a="start" class="b-gold" ${L.allReady?"":"disabled"}>${n<3?`CPUを${3-n}人入れて開始`:"対局開始"}</button>`:`<p class="wait">${L.allReady?"ホストの開始を待っています…":"全員の準備OKを待っています…"}</p>`}
       <button data-a="leave" class="b-skip">ルームを出る</button>
     </div>
+    <a class="statlink" href="/stats" target="_blank" rel="noopener">成績表を見る</a>
   </div></div>`;
   if(typing!=null){ const r2=document.getElementById("rate"); if(r2){ r2.value=typing; r2.focus(); } }
 }
