@@ -604,17 +604,26 @@ function winChips(s,w,fp,tsumo,d){
   if(w.pocchi){ if(pocchiIppatsu){ pay(4,"白ポッチ一発",true); dice("白ポッチ一発"); } else pay(1,"白ポッチ",true); }
   const spInd=fp.fl.ind.filter(k=>k===34).length+fp.fl.ura.filter(k=>k===34).length;
   if(spInd) pay((P.hana.length+spInd),"表示牌の春",true);
-  if(fp.fl.all.includes(37)){ // 冬：アリス
+  if(fp.fl.all.includes(37)){ // 冬：アリス（冬2枚ならチューリップ）
     // ドラ表示牌の隣（残りの山の最後）から順にめくる。嶺上牌はさわらない
+    const tulip=fp.fl.all.filter(k=>k===37).length>=2; R.tulip=tulip;
     const src=H.live.slice().reverse(); const mult=closed?2:1; let total=0; R.aliceOut=true;
+    // チューリップ：めくった牌と前後1つ（9→1・白發中・東南西北はつながる）が当たり。抜き北も持っている北として数える
+    const own=tulip?tiles.concat(P.kita):tiles;
     for(const t of src){
       if(t.k>=34){ const n=P.hana.length*mult; R.alice.push({t,hit:true,n}); total+=n; continue; }
-      const kc=tiles.filter(x=>x.k===t.k).length;
+      const kc=tulip?tulipKinds(t.k).reduce((a,k)=>a+own.filter(x=>x.k===k).length,0):tiles.filter(x=>x.k===t.k).length;
       if(kc>0){ R.alice.push({t,hit:true,n:kc*mult}); total+=kc*mult; } else { R.alice.push({t,hit:false}); R.aliceOut=false; break; }
     }
-    pay(total,"アリス");
+    pay(total,tulip?"チューリップ":"アリス");
   }
   return lines;
+}
+// チューリップで当たりになる牌の種類：同じ牌と前後1つ（数牌は9の次が1、三元牌は白發中、風牌は東南西北でつながる）
+function tulipKinds(k){
+  if(k<27){ const b=k-k%9, n=k%9; return [b+(n+8)%9, k, b+(n+1)%9]; }
+  if(k<31){ const n=k-27; return [27+(n+3)%4, k, 27+(n+1)%4]; }
+  const n=k-31; return [31+(n+2)%3, k, 31+(n+1)%3];
 }
 function exhaustive(){
   newR(); H.state="result";

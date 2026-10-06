@@ -1203,7 +1203,7 @@ function showResult(page=0){
           else tl+=`<span class="t rv back"></span>`;
         }
         const tot=flips.filter(a=>a.hit).reduce((s,a)=>s+a.n,0); const dd=step(.4);
-        aliceRow=`<div class="row"><b>アリス</b>${tl}<span class="alit seq" style="--d:${dd}s">${tot?`+${tot}枚`:"なし"}${R.aliceOut?`<small>（めくる牌なし）</small>`:""}</span></div>`;
+        aliceRow=`<div class="row"><b>${R.tulip?"チューリップ":"アリス"}</b>${tl}<span class="alit seq" style="--d:${dd}s">${tot?`+${tot}枚`:"なし"}${R.aliceOut?`<small>（めくる牌なし）</small>`:""}</span></div>`;
       }
       p1+=`<div class="p1top"><div><div class="rnm">${roundName}</div><div class="who2">${NAMES[x.s]}<span class="kind">${x.tsumo?"ツモ":"ロン"}${x.w.pocchi?"・白ポッチ":""}</span>${x.tsumo?"":`<span class="from">← ${NAMES[x.from]}</span>`}</div></div>
         <div class="dbox"><div class="row"><b>ドラ表</b>${dor}</div>${P.riichi?`<div class="row"><b>裏ドラ表</b>${ura}</div>`:""}${aliceRow}</div></div>`;
