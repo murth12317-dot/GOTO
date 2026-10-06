@@ -312,7 +312,7 @@ function discard(s, id, riichi, open){
   if(P.ippatsu && !riichi) P.ippatsu=false;
   if(riichi){ SE.say(open?"オープンリーチ":"リーチ",s); P.riichi=true; P.open=!!open; P.dbl=P.river.length===0&&H.noCalls; P.ippatsu=true; G.scores[s]-=open?2000:1000; G.kyotaku+=open?2:1; log(`${NAMES[s]}：${open?"オープンリーチ":"リーチ"}`); }
   if(!P.riichi) P.tempF=false;
-  P.river.push({t,riichi}); H.drawn=null; H.rinshan=false; H.last={s,t}; SE.clack();
+  P.river.push({t,riichi,tg:t===H.drawn}); H.drawn=null; // tg：ツモ切り（引いた牌をそのまま切った） H.rinshan=false; H.last={s,t}; SE.clack();
   log(`${NAMES[s]}：${tName(t)}を切った`);
   afterDiscard(s,t);
 }

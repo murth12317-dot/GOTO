@@ -81,6 +81,8 @@ html,body{overflow:hidden}
 .t.rv{--w:var(--rt);box-shadow:0 calc(var(--w) * .07) 0 var(--edge), 0 calc(var(--w) * .1) calc(var(--w) * .12) rgba(0,0,0,.35);margin-bottom:calc(var(--w) * .07)}
 .t.rv.rot{transform:rotate(90deg) scale(.9)}
 .t.rv.gone{opacity:.35}
+/* ツモ切りの牌は少し暗く（手出しと見分ける） */
+.t.rv.tg{filter:brightness(.82)}
 .t.big{--w:calc(var(--rt) * 1.25)}
 .t.back{background:linear-gradient(180deg,#38b886,#239267);box-shadow:0 calc(var(--w) * .07) 0 #f3ead0, 0 calc(var(--w) * .1) calc(var(--w) * .12) rgba(0,0,0,.35)}
 .t.gold{background:linear-gradient(180deg,#fdf7e2 0%,#f8edc6 70%,#eedca6 100%);
@@ -803,7 +805,7 @@ const fmtChip = n => (n>0?"+":"")+n+"枚";
 const SIDE = {0:" me", 1:" r", 2:" l"};
 function seatLayer(s){
   const P=H.p[s]; const on=H.turn===s && H.state!=="result";
-  const river=P.river.map(r=>tileHTML(r.t,"rv"+(r.riichi?" rot":"")+(r.called?" gone":""))).join("");
+  const river=P.river.map(r=>tileHTML(r.t,"rv"+(r.riichi?" rot":"")+(r.called?" gone":"")+(r.tg?" tg":""))).join("");
   const nuki=P.kita.concat(P.hana).map(t=>tileHTML(t,"rv")).join("");
   const melds=P.melds.map(m=>`<span class="meld">${meldHTML(m,s)}</span>`).join("");
   const backs=s===0?"":P.open&&P.hand[0]&&P.hand[0].k>=0?sortHand(P.hand.slice()).map(t=>tileHTML(t,"rv")).join(""):P.hand.map(()=>`<span class="t rv back"></span>`).join("");
