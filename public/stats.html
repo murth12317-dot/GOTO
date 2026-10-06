@@ -79,12 +79,12 @@ function render() {
   const out = document.getElementById("out");
   if (!w) { out.innerHTML = `<div class="card"><p class="empty">まだ記録がありません</p></div>`; return; }
   const tot = totals(w.games);
-  // 時間順に並べて、ルームと倍率が同じ半荘が続く間を1つにまとめる（変わったら次のまとまり）
-  const blocks = [];
+  // ルームと倍率が同じ半荘を1つにまとめる（間が空いても同じまとまり）。並びは最初に打った順
+  const blocks = [], byKey = {};
   for (const g of w.games.slice().sort((a, b) => a.at.localeCompare(b.at))) {
-    const last = blocks[blocks.length - 1], rate = g.rate || 1;
-    if (last && last.room === g.room && last.rate === rate) last.games.push(g);
-    else blocks.push({ room: g.room, rate, games: [g] });
+    const rate = g.rate || 1, key = g.room + "|" + rate;
+    if (!byKey[key]) blocks.push(byKey[key] = { room: g.room, rate, games: [] });
+    byKey[key].games.push(g);
   }
   const hm = iso => fmtAt(iso).slice(11);
   out.innerHTML = `
@@ -94,7 +94,7 @@ function render() {
     </table></div></div>
     ${blocks.map(b => { const first = b.games[0].at, lastAt = b.games[b.games.length - 1].at; return `
     <div class="card"><h2>ルーム ${esc(b.room)}　倍率 ${b.rate}（${b.games.length}半荘）</h2>
-      <p class="when">${fmtAt(first).slice(0, 10)} ${hm(first)}${b.games.length > 1 ? "〜" + hm(lastAt) : ""}</p>
+      <p class="when">${fmtAt(first)}${b.games.length > 1 ? "〜" + (fmtAt(lastAt).slice(0, 10) === fmtAt(first).slice(0, 10) ? hm(lastAt) : fmtAt(lastAt).slice(5)) : ""}</p>
       <div class="scroll"><table>
       <thead><tr><th>名前</th><th>半荘</th><th>1着</th><th>2着</th><th>3着</th><th>祝儀計</th><th>×倍率</th></tr></thead>
       <tbody>${totals(b.games).map(t => `<tr><td>${esc(t.name)}</td><td>${t.games}</td><td>${t.ranks[0]}</td><td>${t.ranks[1]}</td><td>${t.ranks[2]}</td><td class="${cls(t.chips)}">${sg(t.chips)}</td><td class="big ${cls(t.amount)}">${sg(t.amount)}</td></tr>`).join("")}</tbody>
