@@ -569,6 +569,14 @@ function settleTsumo(s,w){
 }
 function settleRon(d,t,list){
   list.forEach(x=>SE.say("ロン",x.o)); SE.win();
+  // リーチ（シュバリー）の宣言牌でロンされたら不成立：リーチ棒は払わない扱いで戻し、シュバ棒も使っていない扱いにする
+  { const D=H.p[d], last=D.river[D.river.length-1];
+    if(D.riichi && last && last.riichi && last.t===t){
+      const amt=D.open?2000:1000; G.scores[d]+=amt; G.kyotaku=Math.max(0,G.kyotaku-amt/1000);
+      D.riichi=false; D.open=false; D.ippatsu=false; D.dbl=false;
+      if(D.shuba){ D.shuba=false; G.shubaUsed[d]=false; }
+      log(`${NAMES[d]}：宣言牌でロンされたのでリーチは不成立`);
+    } }
   newR();
   list.forEach((w,i)=>{
     const s=w.o; const fp=finalPoints(s,w); const mult=s===G.dealer?6:4;
