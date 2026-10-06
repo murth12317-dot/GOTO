@@ -59,7 +59,7 @@ function saveRecord(room, order) {
   room.savedGid = room.gameId;
   const G = room.game.G;
   records.add({
-    id: room.gameKey, at: new Date().toISOString(), room: room.code, rate: room.gameRate || 1,
+    id: room.gameKey, at: new Date().toISOString(), room: room.code, rate: room.gameRate || 1, rules: room.gameRules,
     ...(FEE_CHIPS > 0 ? { fee: FEE_CHIPS, feeTo: FEE_TO } : {}),
     players: [0, 1, 2].map(s => ({ name: room.names[s], rank: order.indexOf(s) + 1, score: G.scores[s], chips: G.chips[s], cpu: !!(room.seats[s] && room.seats[s].cpu) })),
   });
@@ -88,7 +88,7 @@ if (SHEET_URL) callSheet(null); else console.log("sheet off (SHEET_URL not set)"
 
 function roomPublic(room) {
   return {
-    code: room.code, phase: room.phase, rate: room.rate || 1, totals: totalsInfo(room),
+    code: room.code, phase: room.phase, rate: room.rate || 1, rules: room.rules || { hana: 4, shuba: false, wareme: false }, totals: totalsInfo(room),
     seats: room.seats.map((p, i) => p ? { name: p.name, cpu: !!p.cpu, online: p.cpu || !!p.socket, host: p.token === room.hostToken, ready: !!p.ready } : null),
     allReady: room.seats.filter(p => p && !p.cpu).every(p => p.ready),
   };
@@ -102,13 +102,13 @@ function viewFor(room, seat) {
   const pl = H.p.map((P, s) => ({
     hand: s === seat || P.open ? P.hand : null, handCount: P.hand.length, open: !!P.open,
     melds: P.melds.map(m => ({ ...m, from: r(m.from) })),
-    river: P.river, kita: P.kita, hana: P.hana, riichi: P.riichi,
+    river: P.river, kita: P.kita, hana: P.hana, riichi: P.riichi, shuba: !!P.shuba, shubaUsed: !!(G.shubaUsed && G.shubaUsed[s]),
   }));
   const me = H.p[seat];
   let acts = null;
   if (H.state === "play" && H.turn === seat) {
     const tw = g.tryTsumo(seat);
-    acts = { tsumo: !!tw, pocchi: !!(tw && tw.pocchi), riichi: g.riichiOptions(seat), openRiichi: g.riichiOptions(seat, true), kan: g.kanOptions(seat),
+    acts = { tsumo: !!tw, pocchi: !!(tw && tw.pocchi), riichi: g.riichiOptions(seat), openRiichi: g.riichiOptions(seat, true), kan: g.kanOptions(seat), shuba: g.canShuba(seat),
       kita: me.hand.some(t => t.k === 30), hana: me.hand.some(t => t.k >= 34) };
   }
   let prompt = null, othersDeciding = false;
@@ -125,6 +125,7 @@ function viewFor(room, seat) {
     dealer: r(G.dealer), turn: r(H.turn), state: H.state, live: H.live.length,
     scores: rotArr(G.scores, seat), chips: rotArr(G.chips, seat),
     dora: H.dead.dora.concat(H.kanDora), players: rotArr(pl, seat),
+    rules: g.rules, wareme: H.wareme == null ? null : r(H.wareme),
     drawnId: H.turn === seat && H.drawn ? H.drawn.id : null,
     acts, prompt, othersDeciding, danger: g.openDanger(seat), allowed: g.discardable(seat),
     tp: tenpaiFor(g, seat), noNaki: !!H.noNaki[seat], autoWin: g.autoWinOf(seat), log: G.log.slice(0, 40),
@@ -165,6 +166,7 @@ function rotR(R, seat) {
     wins: R.wins.map(w => ({ ...w, s: r(w.s), from: r(w.from), pao: w.pao == null ? w.pao : r(w.pao), w: w.w ? { ...w.w, o: r(w.w.o) } : w.w })),
     draw: R.draw ? { ten: rotArr(R.draw.ten, seat), naga: R.draw.naga.map(r) } : null,
     yame: R.yame ? { ...R.yame, s: r(R.yame.s) } : null,
+    wareme: R.wareme == null ? null : r(R.wareme), shuba: R.shuba ? rotArr(R.shuba, seat) : null,
   };
 }
 function resultFor(room, seat) {
@@ -229,8 +231,10 @@ function startGame(room) {
     shuffle: () => { for (const h of humanSeats(room)) emitTo(room, h, "se", { t: "shuffle" }); },
     win: () => {},
   };
+  room.rules = room.rules || { hana: 4, shuba: false, wareme: false };
+  room.gameRules = { ...room.rules }; // 対局中に変わらないよう、開始時のルールで打つ
   room.game = createGame({
-    names: room.names,
+    names: room.names, rules: room.gameRules,
     isCPU: s => { const p = room.seats[s]; return !p || p.cpu || !p.socket || p.away; },
     SE,
     update: () => schedulePush(room),
@@ -357,6 +361,16 @@ io.on("connection", socket => {
     broadcastLobby(room);
   });
 
+  // ルールの選択（華・シュバ・割れ目）。ルームを作った人だけが変えられる
+  socket.on("setRules", v => {
+    if (!room || room.phase !== "lobby" || !v) return;
+    if (room.seats[seatNow()].token !== room.hostToken) return err("ルールを変えられるのはルームを作った人です");
+    const cur = room.rules || { hana: 4, shuba: false, wareme: false };
+    room.rules = { hana: v.hana === 8 ? 8 : 4, shuba: !!v.shuba, wareme: !!v.wareme };
+    if (room.rules.hana === 8) { room.rules.hana = cur.hana; err("華8はまだ準備中です"); }
+    broadcastLobby(room);
+  });
+
   socket.on("lobbyReady", () => {
     if (!room || room.phase !== "lobby") return;
     const p = room.seats[seatNow()]; if (!p) return;
@@ -380,7 +394,7 @@ io.on("connection", socket => {
           const P = H.p[s]; if (P.hand.some(t => t.k >= 34)) return;
           if (a.riichi && !g.riichiOptions(s, !!a.open).includes(a.id)) return;
           if (P.riichi && H.drawn && a.id !== H.drawn.id) return;
-          g.discard(s, a.id, !!a.riichi, !!(a.riichi && a.open)); break;
+          g.discard(s, a.id, !!a.riichi, !!(a.riichi && a.open), !!(a.riichi && a.shuba)); break;
         }
         case "tsumo": { if (H.state !== "play" || H.turn !== s) return; const w = g.tryTsumo(s); if (w) g.settleTsumo(s, w); break; }
         case "kita": { if (H.state !== "play" || H.turn !== s) return; g.nukiKita(s); schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }

@@ -4,6 +4,8 @@ function createGame(hooks){
   let G, H, R, handSeq=0, dead=false;
   const AUTO_WIN=[false,false,false]; // 自動和了（席ごと。局をまたいでも続く）
   const NAMES = hooks.names;
+  // ルールの選択：shuba（シュバリーあり）、wareme（割れ目あり）
+  const RULES = Object.assign({ hana:4, shuba:false, wareme:false }, hooks.rules||{});
   const isCPU = s => hooks.isCPU(s);
   const SE = hooks.SE;
   const render = () => hooks.update && hooks.update();
@@ -209,19 +211,21 @@ function waits(seat, conc){
 const isClosed = P => P.melds.every(m=>m.t==="ankan");
 // ===== ゲーム状態 =====
 function newGame(){
-  G={scores:[35000,35000,35000],chips:[0,0,0],dealer:0,phase:0,honba:0,kyotaku:0,over:false,log:[],hist:[]};
+  G={scores:[35000,35000,35000],chips:[0,0,0],dealer:0,phase:0,honba:0,kyotaku:0,over:false,log:[],hist:[],shubaUsed:[false,false,false]};
   startHand();
 }
 function log(s){ G.log.unshift(s); if(G.log.length>60) G.log.pop(); }
 var startHand=function(){
   const all=shuffle(buildTiles());
   const dead={kan:all.splice(-4),kita:all.splice(-4),hana:all.splice(-4),dora:all.splice(-2),ura:all.splice(-2)};
-  H={id:++handSeq,live:all,dead,p:[0,1,2].map(()=>({hand:[],melds:[],river:[],kita:[],hana:[],riichi:false,dbl:false,ippatsu:false,tempF:false,riichiF:false,calledFrom:false})),
+  H={id:++handSeq,live:all,dead,p:[0,1,2].map(()=>({hand:[],melds:[],river:[],kita:[],hana:[],riichi:false,shuba:false,dbl:false,ippatsu:false,tempF:false,riichiF:false,calledFrom:false})),
      turn:G.dealer,noCalls:true,noNaki:[false,false,false],kanDora:[],kanUra:[],state:"idle",drawn:null,tobiPaid:[0,0,0],sel:null,prompt:null};
   H.startScores=G.scores.slice(); H.startChips=G.chips.slice(); H.label=roundLabel();
+  // 割れ目：局の始めにランダムで1人（サイコロは使わない）
+  H.wareme=RULES.wareme?Math.floor(Math.random()*3):null;
   for(let r=0;r<13;r++) for(let i=0;i<3;i++) H.p[(G.dealer+i)%3].hand.push(H.live.shift());
   for(const p of H.p) sortHand(p.hand);
-  log(`── ${roundLabel()} 開始`); SE.shuffle();
+  log(`── ${roundLabel()} 開始`); if(H.wareme!=null) log(`割れ目：${NAMES[H.wareme]}`); SE.shuffle();
   // 配牌の華牌・北は、各自の最初の手番で抜く（ツモ順を守る）
   for(let i=0;i<3;i++){ sortHand(H.p[(G.dealer+i)%3].hand); }
   drawFor(G.dealer);
@@ -233,7 +237,16 @@ function roundLabel(){
 function doraKinds(list){ return list.filter(t=>t.k<34).map(t=>nextKind(t.k)); }
 
 // ===== 華牌・北 =====
-function payChips(from,to,n,why){ if(n<=0||from===to) return; G.chips[from]-=n; G.chips[to]+=n; if(R) R.chips.push({from,to,n,why}); else log(`${NAMES[from]} → ${NAMES[to]} 祝儀${n}枚（${why}）`); }
+// 祝儀の倍率：シュバリーした人がもらう分×2、割れ目の人が払う・もらう分×2（重なれば×4）。ウマ・8万点超えは普通通り
+const CHIP_PLAIN=["ウマ","8万点超え"];
+function chipMult(from,to,why){
+  if(!H||CHIP_PLAIN.includes(why)) return 1;
+  let m=1;
+  if(RULES.shuba && H.p[to] && H.p[to].shuba) m*=2;
+  if(RULES.wareme && H.wareme!=null && (from===H.wareme||to===H.wareme)) m*=2;
+  return m;
+}
+function payChips(from,to,n,why){ if(n<=0||from===to) return; n*=chipMult(from,to,why); G.chips[from]-=n; G.chips[to]+=n; if(R) R.chips.push({from,to,n,why}); else log(`${NAMES[from]} → ${NAMES[to]} 祝儀${n}枚（${why}）`); }
 function nukiHana(s){
   const P=H.p[s]; const t=P.hand.find(x=>x.k>=34); if(!t) return false;
   P.hand.splice(P.hand.indexOf(t),1); P.hana.push(t);
@@ -287,6 +300,8 @@ function tryTsumo(s){
   const r=evaluate(s,P.hand,H.drawn.k,ctx);
   return r?{res:r,conc:P.hand.slice(),winK:H.drawn.k}:null;
 }
+// シュバリーできるか：ルールであり、この半荘でまだシュバ棒を出していない人間
+function canShuba(s){ return !!(RULES.shuba && G.shubaUsed && !G.shubaUsed[s] && !isCPU(s)); }
 function riichiOptions(s,open){
   const P=H.p[s];
   if(P.riichi||!isClosed(P)||G.scores[s]<(open?2000:1000)||H.live.length<3||P.hand.some(x=>x.k>=34)) return [];
@@ -317,12 +332,14 @@ function riichiAuto(s){
 }
 
 // ===== 打牌 =====
-function discard(s, id, riichi, open){
+function discard(s, id, riichi, open, shuba){
   const P=H.p[s]; const t=P.hand.find(x=>x.id===id); if(!t||t.k===30||t.k>=34) return;
   if(!P.riichi && !discardable(s).includes(id)) return;
   P.hand.splice(P.hand.indexOf(t),1); sortHand(P.hand);
   if(P.ippatsu && !riichi) P.ippatsu=false;
-  if(riichi){ SE.say(open?"オープンリーチ":"リーチ",s); P.riichi=true; P.open=!!open; P.dbl=P.river.length===0&&H.noCalls; P.ippatsu=true; G.scores[s]-=open?2000:1000; G.kyotaku+=open?2:1; log(`${NAMES[s]}：${open?"オープンリーチ":"リーチ"}`); }
+  const doShuba=!!(riichi && shuba && canShuba(s));
+  if(doShuba){ P.shuba=true; G.shubaUsed[s]=true; log(`${NAMES[s]}：シュバ棒を出した（このあともらう祝儀が2倍）`); }
+  if(riichi){ SE.say(doShuba?(open?"シュバオープン":"シュバリー"):open?"オープンリーチ":"リーチ",s); P.riichi=true; P.open=!!open; P.dbl=P.river.length===0&&H.noCalls; P.ippatsu=true; G.scores[s]-=open?2000:1000; G.kyotaku+=open?2:1; log(`${NAMES[s]}：${open?"オープンリーチ":"リーチ"}`); }
   if(!P.riichi) P.tempF=false;
   P.river.push({t,riichi,tg:t===H.drawn}); H.drawn=null; // tg：ツモ切り（引いた牌をそのまま切った） H.rinshan=false; H.last={s,t}; SE.clack();
   log(`${NAMES[s]}：${tName(t)}を切った`);
@@ -499,7 +516,11 @@ function flowersFor(s){
 
 // ===== 精算 =====
 function tier(sc){ return sc<=0?3+Math.floor(-sc/10000):0; }
-function payPts(from,to,n,why,noTobi){
+// 割れ目の人が払う・もらう和了の点数は2倍（hb＝本場の分は倍にしない。ノーテン罰符も普通通り）
+const PTS_WAREME=["ツモ","ロン","包（全額）","包（折半）","流し役満"];
+function payPts(from,to,n,why,noTobi,hb=0){
+  if(RULES.wareme && H && H.wareme!=null && (from===H.wareme||to===H.wareme) && PTS_WAREME.includes(why)) n*=2;
+  n+=hb;
   if(n<=0) return; G.scores[from]-=n; G.scores[to]+=n; R.pts.push({from,to,n,why});
   if(!noTobi){ const due=tier(G.scores[from])-H.tobiPaid[from]; if(due>0){ H.tobiPaid[from]+=due; payChips(from,to,due,"トビ賞"); } }
 }
@@ -522,20 +543,20 @@ function finalPoints(s, w){
   }
   return {base,han,label,di,fl,kazoe};
 }
-function newR(){ R={pts:[],chips:[],dice:[],alice:[],wins:[],draw:null,handDealer:G.dealer,handPhase:G.phase,handHonba:G.honba}; }
+function newR(){ R={pts:[],chips:[],dice:[],alice:[],wins:[],draw:null,handDealer:G.dealer,handPhase:G.phase,handHonba:G.honba,wareme:H?H.wareme:null,shuba:H?H.p.map(p=>!!p.shuba):[false,false,false]}; }
 function settleTsumo(s,w){
   SE.say("ツモ",s); SE.win();
   newR(); const P=H.p[s]; const fp=finalPoints(s,w); const dealerWin=s===G.dealer;
   const pao=paoOf(s,w);
   if(pao!=null){
     // 包の役満（大三元）1つ分は包の人が全額、残り（複合分・夏の上乗せ）は普通のツモ
-    payPts(pao,s,ceil1000(8000*(dealerWin?6:4))+2000*G.honba,"包（全額）");
+    payPts(pao,s,ceil1000(8000*(dealerWin?6:4)),"包（全額）",false,2000*G.honba);
     const rest=fp.base-8000;
     if(rest>0) for(const o of [0,1,2]) if(o!==s){ const mult=(dealerWin||o===G.dealer)?2:1; payPts(o,s,ceil1000(rest*mult)+1000,"ツモ"); }
   }
   else for(const o of [0,1,2]) if(o!==s){
     const mult=(dealerWin||o===G.dealer)?2:1;
-    payPts(o,s,ceil1000(fp.base*mult)+1000+1000*G.honba,"ツモ");
+    payPts(o,s,ceil1000(fp.base*mult)+1000,"ツモ",false,1000*G.honba);
   }
   if(G.kyotaku){ G.scores[s]+=1000*G.kyotaku; R.pts.push({from:-1,to:s,n:1000*G.kyotaku,why:"供託"}); G.kyotaku=0; }
   const chips=winChips(s,w,fp,true,null);
@@ -548,8 +569,8 @@ function settleRon(d,t,list){
   list.forEach((w,i)=>{
     const s=w.o; const fp=finalPoints(s,w); const mult=s===G.dealer?6:4;
     const pao=paoOf(s,w), amt=ceil1000(fp.base*mult), hb=(i===0?2000*G.honba:0);
-    if(pao!=null && pao!==d){ const pa=ceil1000(8000*mult); payPts(d,s,pa/2+(amt-pa)+hb,"ロン"); payPts(pao,s,pa/2,"包（折半）"); }
-    else payPts(d,s,amt+hb,"ロン");
+    if(pao!=null && pao!==d){ const pa=ceil1000(8000*mult); payPts(d,s,pa/2+(amt-pa),"ロン",false,hb); payPts(pao,s,pa/2,"包（折半）"); }
+    else payPts(d,s,amt,"ロン",false,hb);
     if(i===0&&G.kyotaku){ G.scores[s]+=1000*G.kyotaku; R.pts.push({from:-1,to:s,n:1000*G.kyotaku,why:"供託"}); G.kyotaku=0; }
     const chips=winChips(s,w,fp,false,d);
     R.wins.push({s,w,fp,tsumo:false,from:d,chips,pao});
@@ -666,7 +687,7 @@ function endGame(){
   startHand = function(){ _startHand(); };
   return {
     get G(){return G;}, get H(){return H;}, get R(){return R;},
-    newGame, startHand, endGame, decideYame, autoTsumo, setAutoWin, autoWinOf: s=>AUTO_WIN[s], discard, tryTsumo, settleTsumo, riichiOptions, kanOptions, doKan,
+    newGame, startHand, endGame, decideYame, canShuba, rules: RULES, autoTsumo, setAutoWin, autoWinOf: s=>AUTO_WIN[s], discard, tryTsumo, settleTsumo, riichiOptions, kanOptions, doKan,
     nukiKita, nukiHana, promptAnswer, riichiAuto, waits, shanten, seatWind, roundLabel, isClosed, openDanger, discardable,
     destroy(){ dead=true; }
   };

@@ -56,6 +56,11 @@ html,body{overflow:hidden}
 .sc.on{color:#fff}
 .turnbar{position:absolute;left:calc(50% - var(--box) * .39);width:calc(var(--box) * .78);top:calc(50% + var(--box) * .467);height:calc(var(--box) * .02);border-radius:4px;background:var(--gold);box-shadow:0 0 10px var(--gold)}
 .stick{position:absolute;left:calc(50% - var(--box) * .19);width:calc(var(--box) * .39);top:calc(50% + var(--box) * .517);height:calc(var(--box) * .036);border-radius:4px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.4)}
+.stick.shb{width:calc(var(--box) * .2);left:calc(50% - var(--box) * .1);top:calc(50% + var(--box) * .565);background:#fff}
+.stick.shb::after{background:transparent;width:auto;height:auto;border-radius:0;content:"• • •";color:#333;font-size:calc(var(--box) * .03);line-height:1;letter-spacing:-1px}
+.sc .wm{display:inline-grid;place-items:center;background:#d8402c;color:#fff;border-radius:4px;font-size:.8em;padding:0 4px;margin-right:4px;font-weight:900}
+.rtag{font-size:calc(var(--box) * .045);color:var(--gold);font-weight:700;margin-top:2px}
+.b-shuba{background:linear-gradient(180deg,#8a6cf0,#5a3fc7)} .b-shuba.on{box-shadow:0 0 0 2px #fff inset}
 .stick::after{content:"";position:absolute;left:50%;top:50%;width:calc(var(--box) * .025);height:calc(var(--box) * .025);border-radius:50%;background:var(--red);transform:translate(-50%,-50%)}
 .rvg{position:absolute;top:calc(50% + var(--box) * .545);left:50%;transform:translateX(-50%);display:grid;grid-template-columns:repeat(6,var(--rt));gap:1px 1px;width:calc(var(--rt) * 6 + 5px);justify-items:center}
 .layer.r .edge .t.back,.layer.l .edge .t.back{--w:calc(var(--rt) * .72);margin-right:-1px}
@@ -549,6 +554,13 @@ html,body,.hand,.hand .t,button{touch-action:manipulation}
 .code{font-family:"Shippori Mincho B1",serif;font-size:56px;font-weight:800;color:var(--gold);letter-spacing:.2em;line-height:1.1;margin:2px 0 8px}
 .statlink{display:block;text-align:center;margin:12px 0 0;color:var(--gold);font-weight:700;font-size:14px}
 .card.lob.start .statlink{grid-column:2}
+.rules{margin:10px 0 2px;display:flex;flex-direction:column;gap:6px}
+.rrow{display:flex;align-items:center;gap:6px}
+.rrow b{color:var(--gold);width:4em;font-size:14px}
+.seg{flex:1;min-height:34px;padding:4px 6px;font-size:13px;border-radius:8px;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.2);box-shadow:none;letter-spacing:0}
+.seg.on{background:linear-gradient(180deg,#f6d77e,#d9a845);color:#2a1d05;border-color:transparent}
+.seg[disabled]{opacity:1;filter:none;cursor:default}
+.seg[disabled]:not(.on){opacity:.5}
 .raterow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 2px;font-weight:700}
 .raterow b{color:var(--gold)}
 .raterow input{width:90px;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:var(--text);font:inherit;font-size:16px}
@@ -811,8 +823,8 @@ function seatLayer(s){
   const backs=s===0?"":P.open&&P.hand[0]&&P.hand[0].k>=0?sortHand(P.hand.slice()).map(t=>tileHTML(t,"rv")).join(""):P.hand.map(()=>`<span class="t rv back"></span>`).join("");
   return `<div class="layer${SIDE[s]}">
     ${on?'<div class="turnbar"></div>':""}
-    <div class="sc${on?" on":""}"><span class="wd">${HON[seatWind(s)-27]}</span><span>${G.scores[s].toLocaleString()}</span><span class="cp">${fmtChip(G.chips[s])}</span></div>
-    ${P.riichi?'<div class="stick"></div>':""}
+    <div class="sc${on?" on":""}">${H.wareme===s?'<span class="wm" title="割れ目">割</span>':""}<span class="wd">${HON[seatWind(s)-27]}</span><span>${G.scores[s].toLocaleString()}</span><span class="cp">${fmtChip(G.chips[s])}</span></div>
+    ${P.riichi?'<div class="stick"></div>':""}${P.shuba?'<div class="stick shb" title="シュバ棒"></div>':""}
     <div class="rvg">${river}</div>
     ${s!==0?`<div class="nm">${NAMES[s]}${P.open?'<span class="opn">オープン</span>':""}</div>`:""}
     ${s!==0&&nuki?`<div class="nkF">${nuki}</div>`:""}
@@ -849,7 +861,8 @@ function render(){
     if(hasHana) acts+=`<button data-a="hana" class="b-kita">華</button>`;
     if(P.hand.some(x=>x.k===30)) acts+=`<button data-a="kita" class="b-kita">北</button>`;
     for(const o of kanOptions(0)) acts+=`<button data-a="kan2" data-k="${o.k}" data-t="${o.type}" class="b-pon">カン ${kName(o.k)}</button>`;
-    if(H.sel){ const nm=H.sel==="open"?"オープンリーチ":"リーチ"; acts+=`<button data-a="cancel" class="b-skip">キャンセル</button>`; hint=H.pick!=null?`もう一度タップで${nm}`:`${nm}で切る牌を選んでください`; }
+    if(H.sel){ const nm=H.shubaSel?(H.sel==="open"?"シュバオープン":"シュバリー"):H.sel==="open"?"オープンリーチ":"リーチ"; acts+=`<button data-a="cancel" class="b-skip">キャンセル</button>`;
+      if(V&&V.acts&&V.acts.shuba) acts+=`<button data-a="shubatog" class="b-riichi b-shuba${H.shubaSel?" on":""}" aria-pressed="${!!H.shubaSel}">${H.shubaSel?"✓ ":""}シュバ棒も出す</button>`; hint=H.pick!=null?`もう一度タップで${nm}`:`${nm}で切る牌を選んでください`; }
     else { if(riichiOptions(0).length) acts+=`<button data-a="riichi" class="b-riichi">リーチ</button>`;
       if(riichiOptions(0,true).length) acts+=`<button data-a="open" class="b-riichi b-open">オープン</button>`; }
     if(!hint && forced) hint="当たり牌しか残っていません。どれで放銃するか選んでください";
@@ -871,6 +884,7 @@ function render(){
       <div class="box">
         <div class="rl">${wind}${V?V.kyoku:G.dealer+1}局</div>
         <div class="sub">${G.honba}本場　供託${G.kyotaku}${G.phase>=2?"　返り東":""}</div>
+        ${H.rules&&(H.rules.shuba||H.rules.wareme)?`<div class="rtag">${[H.rules.shuba?"シュバ":"",H.rules.wareme?"割れ目":""].filter(Boolean).join("・")}</div>`:""}
         <div class="rest">残り ${H.live.length}</div>
       </div>
       ${seatLayer(2)}${seatLayer(1)}${seatLayer(0)}
@@ -895,9 +909,10 @@ document.addEventListener("click",e=>{
     if(a==="tsumo"){ act({t:"tsumo"}); return; }
     if(a==="hana"){ act({t:"hana"}); return; }
     if(a==="kita"){ act({t:"kita"}); return; }
-    if(a==="riichi"){ H.sel="riichi"; render(); return; }
+    if(a==="riichi"){ H.sel="riichi"; H.shubaSel=false; render(); return; }
+    if(a==="shubatog"){ H.shubaSel=!H.shubaSel; render(); return; }
     if(a==="open"){ H.sel="open"; render(); return; }
-    if(a==="cancel"){ H.sel=null; render(); return; }
+    if(a==="cancel"){ H.sel=null; H.shubaSel=false; render(); return; }
     if(a==="ron"||a==="pon"||a==="kan"||a==="pass"){ act({t:"answer",a}); H.state="wait"; H.prompt=null; render(); return; }
     if(a==="kan2"){ act({t:"kan",type:b.dataset.t,k:+b.dataset.k}); return; }
     if(a==="autowin"){ act({t:"autowin"}); H.autoWin=!H.autoWin; render(); return; }
@@ -943,7 +958,7 @@ function tapTile(id){
   // 選んでいない牌は選ぶだけ。選んである牌（先に選んでおいた牌も含む）をタップで切る
   if(H.pick!==id){ H.pick=id; render(); return; }
   H.pick=null;
-  if(H.sel){ const op=H.sel==="open"; H.sel=null; discard(0,id,true,op); return; }
+  if(H.sel){ const op=H.sel==="open", sb=!!H.shubaSel; H.sel=null; H.shubaSel=false; discard(0,id,true,op,sb); return; }
   discard(0,id,false);
 }
 const who = s => s<0?"供託":NAMES[s];
@@ -1211,8 +1226,14 @@ function showResult(page=0){
       let payStr;
       if(x.tsumo){ const ko=ceil1000(fp.base)+1000, oya=ceil1000(fp.base*2)+1000; payStr=dealer?`${oya.toLocaleString()}オール`:`${ko.toLocaleString()}・${oya.toLocaleString()}`; }
       else payStr=ceil1000(fp.base*(dealer?6:4)).toLocaleString();
+      // 割れ目が関わる和了は、実際に払った額（本場を除く）を人ごとに出す
+      if(R.wareme!=null && (x.tsumo || x.s===R.wareme || x.from===R.wareme)){
+        const hbT=1000*(R.handHonba||0), hbR=R.wins[0]===x?2000*(R.handHonba||0):0;
+        const ps=R.pts.filter(q=>q.to===x.s && ["ツモ","ロン","包（全額）","包（折半）"].includes(q.why));
+        payStr=ps.map(q=>`${NAMES[q.from]} ${(q.n-(q.why==="ツモ"?hbT:q.why==="ロン"?hbR:q.why==="包（全額）"?2*hbT:0)).toLocaleString()}`).join("・");
+      }
       const honba=R.handHonba||0, kyo=R.pts.filter(p=>p.to===x.s && p.from<0).reduce((a,p)=>a+p.n,0);
-      const extraTxt=[x.pao!=null?`包：${NAMES[x.pao]}`:"",honba&&(R.wins[0]===x||x.tsumo)?`${honba}本場 +${(honba*2000).toLocaleString()}`:"",kyo?`供託 +${kyo.toLocaleString()}`:""].filter(Boolean).join("　");
+      const extraTxt=[R.wareme!=null?`割れ目：${NAMES[R.wareme]}`:"",R.shuba&&R.shuba[x.s]?"シュバ（祝儀2倍）":"",x.pao!=null?`包：${NAMES[x.pao]}`:"",honba&&(R.wins[0]===x||x.tsumo)?`${honba}本場 +${(honba*2000).toLocaleString()}`:"",kyo?`供託 +${kyo.toLocaleString()}`:""].filter(Boolean).join("　");
       const dd=step(.5);
       const hanTxt=r.ymN>0?ymNames:(fp.han!=null?`${fp.han}翻`:"");
       const rank=fp.base>=2000||r.ymN>0?fp.label:"";
@@ -1367,15 +1388,15 @@ function openDanger(s){ return s===0&&V?V.danger||[]:[]; }
 function discardable(s){ return s===0&&V&&V.allowed?V.allowed:(H?H.p[0].hand.filter(t=>t.k!==30&&t.k<34).map(t=>t.id):[]); }
 function kanOptions(s){ return s===0&&V&&V.acts?V.acts.kan:[]; }
 function waits(s){ return (RS&&RS.waits&&RS.waits[s])||[]; }
-function discard(s,id,riichi,open){ act({t:"discard",id,riichi:!!riichi,open:!!open}); H.pick=null; H.sel=null; }
+function discard(s,id,riichi,open,shuba){ act({t:"discard",id,riichi:!!riichi,open:!!open,shuba:!!shuba}); H.pick=null; H.sel=null; }
 
 let curGid=null, lastResultKey=null;
 function applyView(v){
   if(v.gid!==curGid){ curGid=v.gid; if(G) G.hist=[]; lastResultKey=null; }
   V=v; NAMES=v.names;
   G={ scores:v.scores, chips:v.chips, dealer:v.dealer, phase:v.phase, honba:v.honba, kyotaku:v.kyotaku, log:v.log, hist:(G&&G.hist)||[], over:false };
-  const keepPick=H&&H.pick, keepSel=H&&H.sel;
-  const p=v.players.map((P,i)=>({ hand: P.hand?P.hand:Array.from({length:P.handCount},()=>({k:-1})), melds:P.melds, river:P.river, kita:P.kita, hana:P.hana, riichi:P.riichi, open:P.open, waits:P.waits||[] }));
+  const keepPick=H&&H.pick, keepSel=H&&H.sel, keepShuba=H&&H.shubaSel;
+  const p=v.players.map((P,i)=>({ hand: P.hand?P.hand:Array.from({length:P.handCount},()=>({k:-1})), melds:P.melds, river:P.river, kita:P.kita, hana:P.hana, riichi:P.riichi, shuba:!!P.shuba, shubaUsed:!!P.shubaUsed, open:P.open, waits:P.waits||[] }));
   let state;
   if(v.state==="play") state=v.turn===0?"play":"cpu";
   else if(v.state==="prompt") state=v.prompt?"prompt":"wait";
@@ -1383,7 +1404,8 @@ function applyView(v){
   else state="cpu";
   H={ p, turn:v.turn, state, live:{length:v.live}, dead:{dora:v.dora, ura:[]}, kanDora:[], kanUra:[],
       drawn: v.drawnId!=null ? p[0].hand.find(t=>t.id===v.drawnId)||null : null,
-      noNaki:v.noNaki, autoWin:v.autoWin, prompt:v.prompt, pick:keepPick, sel:state==="play"?keepSel:null };
+      noNaki:v.noNaki, autoWin:v.autoWin, prompt:v.prompt, pick:keepPick, sel:state==="play"?keepSel:null,
+      shubaSel:state==="play"&&keepSel?keepShuba:false, wareme:v.wareme, rules:v.rules||{} };
   if(H.pick!=null && !p[0].hand.some(t=>t.id===H.pick)) H.pick=null;
   if(H.p[0].riichi) H.pick=null;
 }
@@ -1463,7 +1485,19 @@ function showLobbyStart(){
     <a class="statlink" href="/stats" target="_blank" rel="noopener">成績表を見る</a>
   </div></div>`;
 }
+// ルールの選択（ルームを作った人だけが押せる）
+function rulesHTML(L){
+  const r=L.rules||{hana:4,shuba:false,wareme:false};
+  const seg=(key,opts)=>opts.map(([v,label,dis])=>`<button data-a="rule" data-k="${key}" data-v="${v}" class="seg${String(r[key])===String(v)?" on":""}" ${!L.isHost||dis?"disabled":""}>${label}</button>`).join("");
+  return `<div class="rules">
+    <div class="rrow"><b>華</b>${seg("hana",[[4,"4枚"],[8,"8枚（準備中）",true]])}</div>
+    <div class="rrow"><b>シュバ</b>${seg("shuba",[[true,"あり"],[false,"なし"]])}</div>
+    <div class="rrow"><b>割れ目</b>${seg("wareme",[[true,"あり"],[false,"なし"]])}</div>
+  </div>`;
+}
+let LOBBY=null;
 function showRoom(L){
+  LOBBY=L;
   const me=L.mySeat;
   const humans=L.seats.filter(p=>p&&!p.cpu);
   const rows=L.seats.map((p,i)=>`<div class="seatrow${i===me?" me":""}"><span class="sn">${p?esc(p.name):"空席"}</span><span class="st">${p?`${p.host?"ホスト　":""}${p.online?"":"（切断中）　"}${p.ready?'<b class="rdy">準備OK</b>':'<span class="nrd">準備中</span>'}`:"CPUが入ります"}</span></div>`).join("");
@@ -1476,7 +1510,8 @@ function showRoom(L){
     <div class="rl2"><div><div class="rnm">ルーム番号</div><div class="code">${L.code}</div></div>
     <div class="mem"><h3>メンバー（${n}/3）</h3>${rows}
       ${totalsHTML(L.totals)}
-      <div class="raterow"><b>倍率</b>${L.isHost?`<input id="rate" type="number" inputmode="decimal" min="0" step="any" value="${L.rate}">`:`<span>${L.rate}</span>`}<small>祝儀×倍率をスプレッドシートに記録</small></div></div></div>
+      ${rulesHTML(L)}
+      <div class="raterow"><b>倍率</b>${L.isHost?`<input id="rate" type="number" inputmode="decimal" min="0" step="any" value="${L.rate}">`:`<span>${L.rate}</span>`}<small>祝儀×倍率を成績表に記録</small></div></div></div>
     <div class="lbtns">
       ${n<3?`<button data-a="share" data-url="${esc(location.origin+location.pathname+"?room="+L.code+"&openExternalBrowser=1")}" class="b-pon">招待リンクを送る</button>`:""}
       <button data-a="lready" class="${myReady?"b-skip":"b-kita"}">${myReady?"準備OKを取り消す":"準備OK"}</button>
@@ -1495,6 +1530,7 @@ document.addEventListener("click",e=>{
   else if(a==="join"){ ME.name=(document.getElementById("nm").value||"").trim(); if(!ME.name) return toast("名前を入れてください"); const code=(document.getElementById("rc").value||"").trim(); if(!/^\d{4}$/.test(code)) return toast("4桁のルーム番号を入れてください"); save(); socket.emit("join",{code,name:ME.name}); }
   else if(a==="start") socket.emit("start");
   else if(a==="lready") socket.emit("lobbyReady");
+  else if(a==="rule"&&LOBBY){ const r={...(LOBBY.rules||{hana:4,shuba:false,wareme:false})}; const k=b.dataset.k, v=b.dataset.v; r[k]=k==="hana"?+v:v==="true"; socket.emit("setRules",r); }
   else if(a==="toroom") socket.emit("toRoom");
   else if(a==="back"){ act({t:"back"}); const bn=document.getElementById("awaybn"); if(bn) bn.remove(); }
   else if(a==="leave"){ socket.emit("leaveRoom"); ME.code=null; ME.token=null; save(); history.replaceState(null,"",location.pathname); showLobbyStart(); }
