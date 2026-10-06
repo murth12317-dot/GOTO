@@ -1493,8 +1493,8 @@ function rulesHTML(L){
   const seg=(key,opts)=>opts.map(([v,label,dis])=>`<button data-a="rule" data-k="${key}" data-v="${v}" class="seg${String(r[key])===String(v)?" on":""}" ${!L.isHost||dis?"disabled":""}>${label}</button>`).join("");
   return `<div class="rules">
     <div class="rrow"><b>華</b>${seg("hana",[[4,"4枚"],[8,"8枚"]])}</div>
-    <div class="rrow"><b>シュバ</b>${seg("shuba",[[true,"あり"],[false,"なし"]])}</div>
-    <div class="rrow"><b>割れ目</b>${seg("wareme",[[true,"あり"],[false,"なし"]])}</div>
+    <div class="rrow"><b>シュバ</b>${seg("shuba",[[false,"なし"],[true,"あり"]])}</div>
+    <div class="rrow"><b>割れ目</b>${seg("wareme",[[false,"なし"],[true,"あり"]])}</div>
   </div>`;
 }
 let LOBBY=null;
