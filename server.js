@@ -123,7 +123,7 @@ function viewFor(room, seat) {
     away: !!(room.seats[seat] && room.seats[seat].away),
     turnLeft: room.turnTimer && room.turnTimer.seat === seat ? Math.max(0, room.turnTimer.until - Date.now()) : null, phase: G.phase, honba: G.honba, kyotaku: G.kyotaku,
     dealer: r(G.dealer), turn: r(H.turn), state: H.state, live: H.live.length,
-    scores: rotArr(G.scores, seat), chips: rotArr(G.chips, seat),
+    scores: rotArr(G.scores, seat), chips: rotArr(G.chips, seat), stick: stickOf(G, seat),
     dora: H.dead.dora.concat(H.kanDora), players: rotArr(pl, seat),
     rules: g.rules, wareme: H.wareme == null ? null : r(H.wareme),
     drawnId: H.turn === seat && H.drawn ? H.drawn.id : null,
@@ -151,8 +151,10 @@ function tenpaiFor(g, seat) {
   }
   return out;
 }
+// シュバ棒（100点）をまだ持っているか。表示の点数にだけ足す（順位や点数の計算には使わない）
+const stickOf = (G, seat) => G.shubaOn ? rotArr(G.shubaUsed.map(u => !u), seat) : null;
 function rotG(G, seat) {
-  return { scores: rotArr(G.scores, seat), chips: rotArr(G.chips, seat), dealer: rotOf(seat)(G.dealer), phase: G.phase, honba: G.honba, kyotaku: G.kyotaku, over: G.over,
+  return { scores: rotArr(G.scores, seat), chips: rotArr(G.chips, seat), dealer: rotOf(seat)(G.dealer), phase: G.phase, honba: G.honba, kyotaku: G.kyotaku, over: G.over, stick: stickOf(G, seat),
     log: G.log.slice(0, 60), hist: G.hist.map(h => ({ ...h, dp: rotArr(h.dp, seat), dc: rotArr(h.dc, seat), sc: rotArr(h.sc, seat), ch: rotArr(h.ch, seat) })) };
 }
 function rotR(R, seat) {

@@ -211,7 +211,7 @@ function waits(seat, conc){
 const isClosed = P => P.melds.every(m=>m.t==="ankan");
 // ===== ゲーム状態 =====
 function newGame(){
-  G={scores:[35000,35000,35000],chips:[0,0,0],dealer:0,phase:0,honba:0,kyotaku:0,over:false,log:[],hist:[],shubaUsed:[false,false,false]};
+  G={scores:[35000,35000,35000],chips:[0,0,0],dealer:0,phase:0,honba:0,kyotaku:0,over:false,log:[],hist:[],shubaUsed:[false,false,false],shubaOn:!!RULES.shuba};
   startHand();
 }
 function log(s){ G.log.unshift(s); if(G.log.length>60) G.log.pop(); }

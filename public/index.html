@@ -814,6 +814,8 @@ function meldHTML(m,s){
 }
 
 const fmtChip = n => (n>0?"+":"")+n+"枚";
+// 表示用の持ち点：シュバ棒（100点）をまだ出していない人は＋100（35100と35000は同じ扱いなので計算には使わない）
+const dispSc = s => G.scores[s]+(G.stick&&G.stick[s]?100:0);
 const SIDE = {0:" me", 1:" r", 2:" l"};
 function seatLayer(s){
   const P=H.p[s]; const on=H.turn===s && H.state!=="result";
@@ -823,7 +825,7 @@ function seatLayer(s){
   const backs=s===0?"":P.open&&P.hand[0]&&P.hand[0].k>=0?sortHand(P.hand.slice()).map(t=>tileHTML(t,"rv")).join(""):P.hand.map(()=>`<span class="t rv back"></span>`).join("");
   return `<div class="layer${SIDE[s]}">
     ${on?'<div class="turnbar"></div>':""}
-    <div class="sc${on?" on":""}">${H.wareme===s?'<span class="wm" title="割れ目">割</span>':""}<span class="wd">${HON[seatWind(s)-27]}</span><span>${G.scores[s].toLocaleString()}</span><span class="cp">${fmtChip(G.chips[s])}</span></div>
+    <div class="sc${on?" on":""}">${H.wareme===s?'<span class="wm" title="割れ目">割</span>':""}<span class="wd">${HON[seatWind(s)-27]}</span><span>${dispSc(s).toLocaleString()}</span><span class="cp">${fmtChip(G.chips[s])}</span></div>
     ${P.riichi?'<div class="stick"></div>':""}${P.shuba?'<div class="stick shb" title="シュバ棒"></div>':""}
     <div class="rvg">${river}</div>
     ${s!==0?`<div class="nm">${NAMES[s]}${P.open?'<span class="opn">オープン</span>':""}</div>`:""}
@@ -884,7 +886,7 @@ function render(){
       <div class="box">
         <div class="rl">${wind}${V?V.kyoku:G.dealer+1}局</div>
         <div class="sub">${G.honba}本場　供託${G.kyotaku}${G.phase>=2?"　返り東":""}</div>
-        ${H.rules&&(H.rules.shuba||H.rules.wareme||H.rules.hana===8)?`<div class="rtag">${[H.rules.hana===8?"華8":"",H.rules.shuba?"シュバ":"",H.rules.wareme?"割れ目":""].filter(Boolean).join("・")}</div>`:""}
+        ${H.rules&&(H.rules.wareme||H.rules.hana===8)?`<div class="rtag">${[H.rules.hana===8?"華8":"",H.rules.wareme?"割れ目":""].filter(Boolean).join("・")}</div>`:""}
         <div class="rest">残り ${H.live.length}</div>
       </div>
       ${seatLayer(2)}${seatLayer(1)}${seatLayer(0)}
@@ -965,7 +967,7 @@ const who = s => s<0?"供託":NAMES[s];
 const ptLine=p=>`<tr><td>${who(p.from)} → ${NAMES[p.to]}　${p.why}</td><td>${p.n.toLocaleString()}点</td></tr>`;
 const chipLine=c=>`<tr><td>${NAMES[c.from]} → ${NAMES[c.to]}　${c.why}</td><td>${c.n}枚</td></tr>`;
 const diceHTML=d=>`<div>${d.why}　${d.rolls.map(r=>`<span class="dice"><span class="die">${r[0]}</span><span class="die">${r[1]}</span></span>`).join("")} → <b>${d.total}枚</b></div>`;
-function nowTable(){ return `<table class="now">${[0,1,2].map(s=>`<tr><td>${NAMES[s]}</td><td>${G.scores[s].toLocaleString()}点　${fmtChip(G.chips[s])}</td></tr>`).join("")}</table>`; }
+function nowTable(){ return `<table class="now">${[0,1,2].map(s=>`<tr><td>${NAMES[s]}</td><td>${dispSc(s).toLocaleString()}点　${fmtChip(G.chips[s])}</td></tr>`).join("")}</table>`; }
 function winTileOf(w){ for(let i=w.conc.length-1;i>=0;i--) if(w.conc[i].k===w.winK) return w.conc[i]; return null; }
 // 手牌の同じ牌を2回キラリと光らせる（華牌なら抜き華）
 function sparkle(k){
@@ -1051,7 +1053,7 @@ function netCards(){
     <div class="nn">${NAMES[s]}</div>
     <div class="cv ${cls(ch[s])}">${sg(ch[s])}<small>枚</small></div>
     <div class="pv ${cls(pt[s])}">${sg(pt[s])}点</div>
-    <div class="tot">合計 <b>${G.chips[s]>0?"+":""}${G.chips[s]}枚</b>・${G.scores[s].toLocaleString()}点</div></div>`).join("")}</div>`;
+    <div class="tot">合計 <b>${G.chips[s]>0?"+":""}${G.chips[s]}枚</b>・${dispSc(s).toLocaleString()}点</div></div>`).join("")}</div>`;
 }
 function breakdownLines(x,hideDice){
   const got=R.chips.filter(c=>c.to===x.s);
@@ -1072,7 +1074,7 @@ function breakdownLines(x,hideDice){
   const sg=v=>v>0?"+"+v.toLocaleString():v<0?"-"+(-v).toLocaleString():"±0";
   const hd=R.handDealer??G.dealer;
   const rows=[0,1,2].map(s=>`<tr><td class="nmc"><span class="wnd">${HON[(s-hd+3)%3]}</span>${NAMES[s]}</td>
-    <td class="${cl(pt[s])}">${sg(pt[s])}</td><td>${G.scores[s].toLocaleString()}</td>
+    <td class="${cl(pt[s])}">${sg(pt[s])}</td><td>${dispSc(s).toLocaleString()}</td>
     <td class="${cl(net[s])}">${sg(net[s])}枚${dice[s]?"<small>＋🎲</small>":""}</td><td>${(G.chips[s]-hid[s])}枚</td></tr>`).join("");
   return `<div class="bc2"><div class="rrs">${rs}</div><table class="stbl"><thead><tr><th></th><th colspan="2">点数</th><th colspan="2">祝儀</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
@@ -1154,7 +1156,7 @@ function settleTableHTML(){
   const sg=v=>v>0?"+"+v.toLocaleString():v<0?"-"+(-v).toLocaleString():"±0";
   const hd=R.handDealer??G.dealer;
   const rows=[0,1,2].map(s=>`<tr><td class="nmc"><span class="wnd">${HON[(s-hd+3)%3]}</span>${NAMES[s]}</td>
-    <td class="${cl(dp[s])}">${sg(dp[s])}</td><td>${G.scores[s].toLocaleString()}</td>
+    <td class="${cl(dp[s])}">${sg(dp[s])}</td><td>${dispSc(s).toLocaleString()}</td>
     <td class="${cl(dc[s])}">${sg(dc[s])}枚</td><td>${G.chips[s]}枚</td></tr>`).join("");
   const rs=reasonsHTML();
   return `<div class="bc2">${rs?`<div class="rrs">${rs}</div>`:""}<table class="stbl"><thead><tr><th></th><th>点数±</th><th>持ち点</th><th>祝儀±</th><th>祝儀計</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -1298,7 +1300,7 @@ function histHTML(){
   const sg=(v,u)=>`<span class="${v>0?"pos":v<0?"neg":"zero"}">${v>0?"+":v<0?"−":"±"}${Math.abs(v).toLocaleString()}${u}</span>`;
   return `<div class="htw"><table class="ht"><thead><tr><th>局・結果</th>${[0,1,2].map(s=>`<th>${SN[s]}</th>`).join("")}</tr></thead><tbody>
     ${G.hist.map(r=>`<tr class="${r.final?"fin":""}"><td class="hl">${r.label}<div class="hd">${r.desc}</div></td>${[0,1,2].map(s=>`<td>${sg(r.dc[s],"枚")}<br><small>${sg(r.dp[s],"点")}</small></td>`).join("")}</tr>`).join("")}
-    <tr class="tot"><td class="hl">現在の合計</td>${[0,1,2].map(s=>`<td>${sg(G.chips[s],"枚")}<br><small class="zero">${G.scores[s].toLocaleString()}点</small></td>`).join("")}</tr>
+    <tr class="tot"><td class="hl">現在の合計</td>${[0,1,2].map(s=>`<td>${sg(G.chips[s],"枚")}<br><small class="zero">${dispSc(s).toLocaleString()}点</small></td>`).join("")}</tr>
   </tbody></table></div>`;
 }
 const HPG=5; let histPage=0;
@@ -1311,7 +1313,7 @@ function histPagedHTML(){
   const tot=[0,1,2].map(s=>list.reduce((a,r)=>a+r.dc[s],0));
   return `<div class="hhead"><b>全局の精算</b>${pages>1?`<span class="pgr"><button data-a="hpg" data-d="-1" class="b-skip" ${histPage===0?"disabled":""}>‹</button>${histPage+1}/${pages}<button data-a="hpg" data-d="1" class="b-skip" ${histPage===pages-1?"disabled":""}>›</button></span>`:""}</div>
     <table class="ht"><thead><tr><th>局・結果</th>${[0,1,2].map(s=>`<th>${SN[s]}</th>`).join("")}</tr></thead><tbody>${rows}
-    <tr class="tot"><td class="hl"><b>合計</b></td>${[0,1,2].map(s=>`<td><b>${sg(tot[s],"枚")}</b><small class="zero">${G.scores[s].toLocaleString()}</small></td>`).join("")}</tr></tbody></table>`;
+    <tr class="tot"><td class="hl"><b>合計</b></td>${[0,1,2].map(s=>`<td><b>${sg(tot[s],"枚")}</b><small class="zero">${dispSc(s).toLocaleString()}</small></td>`).join("")}</tr></tbody></table>`;
 }
 // 名前ごとの通算（このルームで終わった半荘の合計）
 let TOTALS=null;
@@ -1326,7 +1328,7 @@ function showFinal(order){
   const add=[0,0,0]; for(const c of R.chips){ add[c.from]-=c.n; add[c.to]+=c.n; }
   const cl=v=>v>0?"pos":v<0?"neg":"zero", sg=v=>v>0?"+"+v:v<0?"-"+(-v):"±0";
   const why=[...new Set(R.chips.map(c=>c.why))].join("・")||"ウマ";
-  const rows=order.map((s,i)=>`<tr><td class="rk">${i+1}位</td><td class="nmc">${NAMES[s]}</td><td>${G.scores[s].toLocaleString()}</td><td class="${cl(add[s])}">${sg(add[s])}枚</td><td class="fc ${cl(G.chips[s])}">${sg(G.chips[s])}枚</td></tr>`).join("");
+  const rows=order.map((s,i)=>`<tr><td class="rk">${i+1}位</td><td class="nmc">${NAMES[s]}</td><td>${dispSc(s).toLocaleString()}</td><td class="${cl(add[s])}">${sg(add[s])}枚</td><td class="fc ${cl(G.chips[s])}">${sg(G.chips[s])}枚</td></tr>`).join("");
   const h=`<div class="fgrid"><div class="fl2"><h2>終局</h2><table class="stbl ftbl"><thead><tr><th></th><th></th><th>持ち点</th><th>${why}</th><th>最終祝儀</th></tr></thead><tbody>${rows}</tbody></table>${totalsHTML(TOTALS)}<button data-a="toroom" class="b-gold">部屋に戻る</button></div>
     <div class="fr2" id="histbox">${histPagedHTML()}</div></div>`;
   document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card fin wide2"><div class="fitw">${h}</div></div></div>`;
@@ -1396,7 +1398,7 @@ let curGid=null, lastResultKey=null;
 function applyView(v){
   if(v.gid!==curGid){ curGid=v.gid; if(G) G.hist=[]; lastResultKey=null; }
   V=v; NAMES=v.names;
-  G={ scores:v.scores, chips:v.chips, dealer:v.dealer, phase:v.phase, honba:v.honba, kyotaku:v.kyotaku, log:v.log, hist:(G&&G.hist)||[], over:false };
+  G={ scores:v.scores, chips:v.chips, stick:v.stick, dealer:v.dealer, phase:v.phase, honba:v.honba, kyotaku:v.kyotaku, log:v.log, hist:(G&&G.hist)||[], over:false };
   const keepPick=H&&H.pick, keepSel=H&&H.sel, keepShuba=H&&H.shubaSel;
   const p=v.players.map((P,i)=>({ hand: P.hand?P.hand:Array.from({length:P.handCount},()=>({k:-1})), melds:P.melds, river:P.river, kita:P.kita, hana:P.hana, riichi:P.riichi, shuba:!!P.shuba, shubaUsed:!!P.shubaUsed, open:P.open, waits:P.waits||[] }));
   let state;
