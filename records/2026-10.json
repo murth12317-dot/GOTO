@@ -118,5 +118,36 @@
     "cpu": false
    }
   ]
+ },
+ {
+  "id": "4667-1791293469489",
+  "at": "2026-10-06T13:34:50.804Z",
+  "room": "4667",
+  "rate": 300,
+  "fee": 1,
+  "feeTo": "あつや",
+  "players": [
+   {
+    "name": "ガロ",
+    "rank": 2,
+    "score": 27000,
+    "chips": -4,
+    "cpu": false
+   },
+   {
+    "name": "CPU 一号",
+    "rank": 3,
+    "score": 27000,
+    "chips": -14,
+    "cpu": true
+   },
+   {
+    "name": "CPU 二号",
+    "rank": 1,
+    "score": 51000,
+    "chips": 18,
+    "cpu": true
+   }
+  ]
  }
 ]
