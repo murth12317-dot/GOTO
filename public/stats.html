@@ -85,8 +85,8 @@ function render() {
   const games = w.games.slice().sort((a, b) => b.at.localeCompare(a.at));
   out.innerHTML = `
     <div class="card"><h2>${esc(w.label)} の通算（${w.games.length}半荘）</h2><div class="scroll"><table>
-      <thead><tr><th>名前</th><th>半荘</th><th>1着</th><th>2着</th><th>3着</th><th>祝儀計</th><th>×倍率</th></tr></thead>
-      <tbody>${tot.map(t => `<tr><td>${esc(t.name)}</td><td>${t.games}</td><td>${t.ranks[0]}</td><td>${t.ranks[1]}</td><td>${t.ranks[2]}</td><td class="${cls(t.chips)}">${sg(t.chips)}</td><td class="big ${cls(t.amount)}">${sg(t.amount)}</td></tr>`).join("")}</tbody>
+      <thead><tr><th>名前</th><th>集計</th></tr></thead>
+      <tbody>${tot.map(t => `<tr><td>${esc(t.name)}</td><td class="big ${cls(t.amount)}">${sg(t.amount)}</td></tr>`).join("")}</tbody>
     </table></div></div>
     <div class="card"><h2>半荘ごとの記録</h2>${games.map(g => `
       <div class="game"><div class="gh"><span>${fmtAt(g.at)}　ルーム ${esc(g.room)}</span><span>倍率 ${g.rate || 1}</span></div>
