@@ -27,5 +27,34 @@
     "cpu": false
    }
   ]
+ },
+ {
+  "id": "3547-1791248052183",
+  "at": "2026-10-06T00:56:03.359Z",
+  "room": "3547",
+  "rate": 400,
+  "players": [
+   {
+    "name": "CPU 一号",
+    "rank": 3,
+    "score": 27000,
+    "chips": -26,
+    "cpu": true
+   },
+   {
+    "name": "あ",
+    "rank": 1,
+    "score": 47000,
+    "chips": 24,
+    "cpu": false
+   },
+   {
+    "name": "CPU 二号",
+    "rank": 2,
+    "score": 31000,
+    "chips": 2,
+    "cpu": true
+   }
+  ]
  }
 ]
