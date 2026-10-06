@@ -30,6 +30,8 @@ th:first-child,td:first-child{text-align:left}
 td:first-child{white-space:normal;word-break:break-all;min-width:4em}
 td.pos{color:var(--pos)} td.neg{color:var(--neg)} td.zero{color:var(--muted)}
 td.big{font-size:15px}
+.sec{font-size:13px;color:var(--muted);font-weight:700;margin:18px 4px 8px;display:flex;align-items:center;gap:8px}
+.sec::after{content:"";flex:1;height:1px;background:var(--line)}
 .when{color:var(--muted);font-size:12px;font-weight:700;margin:-4px 0 6px}
 .empty{color:var(--muted);text-align:center;padding:24px 0;font-weight:700}
 .note{color:var(--muted);font-size:12px;margin:6px 0 0}
@@ -80,21 +82,32 @@ function render() {
   if (!w) { out.innerHTML = `<div class="card"><p class="empty">まだ記録がありません</p></div>`; return; }
   const tot = totals(w.games);
   // ルームと倍率が同じ半荘を1つにまとめる（間が空いても同じまとまり）。並びは最初に打った順
+  // 時間帯：そのまとまりの半荘が続けて打たれていた間を1つの時間帯にする（間に別のまとまりが入ったら区切る）
   const blocks = [], byKey = {};
+  let prevKey = null;
   for (const g of w.games.slice().sort((a, b) => a.at.localeCompare(b.at))) {
     const rate = g.rate || 1, key = g.room + "|" + rate;
-    if (!byKey[key]) blocks.push(byKey[key] = { room: g.room, rate, games: [] });
-    byKey[key].games.push(g);
+    if (!byKey[key]) blocks.push(byKey[key] = { room: g.room, rate, games: [], spans: [] });
+    const b = byKey[key];
+    b.games.push(g);
+    if (prevKey === key) b.spans[b.spans.length - 1].to = g.at; else b.spans.push({ from: g.at, to: g.at });
+    prevKey = key;
   }
-  const hm = iso => fmtAt(iso).slice(11);
+  // 時間帯の書き方：日付は変わったときだけ書く
+  const spanText = spans => { let day = ""; return spans.map(sp => {
+    const f = fmtAt(sp.from), t = fmtAt(sp.to), fd = f.slice(5, 10), td = t.slice(5, 10);
+    const from = fd === day ? f.slice(11) : f.slice(5); day = fd;
+    const to = sp.from === sp.to ? "" : "〜" + (td === day ? t.slice(11) : t.slice(5)); day = td;
+    return from + to; }).join("／"); };
   out.innerHTML = `
     <div class="card"><h2>${esc(w.label)} の通算（${w.games.length}半荘）</h2><div class="scroll"><table>
       <thead><tr><th>名前</th><th>集計</th></tr></thead>
       <tbody>${tot.map(t => `<tr><td>${esc(t.name)}</td><td class="big ${cls(t.amount)}">${sg(t.amount)}</td></tr>`).join("")}</tbody>
     </table></div></div>
-    ${blocks.map(b => { const first = b.games[0].at, lastAt = b.games[b.games.length - 1].at; return `
+    <h3 class="sec">内訳（ルーム・倍率ごと）</h3>
+    ${blocks.map(b => { return `
     <div class="card"><h2>ルーム ${esc(b.room)}　倍率 ${b.rate}（${b.games.length}半荘）</h2>
-      <p class="when">${fmtAt(first)}${b.games.length > 1 ? "〜" + (fmtAt(lastAt).slice(0, 10) === fmtAt(first).slice(0, 10) ? hm(lastAt) : fmtAt(lastAt).slice(5)) : ""}</p>
+      <p class="when">${spanText(b.spans)}</p>
       <div class="scroll"><table>
       <thead><tr><th>名前</th><th>半荘</th><th>1着</th><th>2着</th><th>3着</th><th>祝儀計</th><th>×倍率</th></tr></thead>
       <tbody>${totals(b.games).map(t => `<tr><td>${esc(t.name)}</td><td>${t.games}</td><td>${t.ranks[0]}</td><td>${t.ranks[1]}</td><td>${t.ranks[2]}</td><td class="${cls(t.chips)}">${sg(t.chips)}</td><td class="big ${cls(t.amount)}">${sg(t.amount)}</td></tr>`).join("")}</tbody>
