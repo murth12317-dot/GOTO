@@ -599,11 +599,17 @@ function winChips(s,w,fp,tsumo,d){
   if(P.kita.length===4) dice("北4枚");
   const sets=Math.min(...[34,35,36,37].map(k=>P.hana.filter(t=>t.k===k).length));
   for(let i=0;i<sets;i++) dice(RULES.hana===8?"春夏秋冬":"華牌4枚");
-  // 2枚目の春：和了したときに、その時点の華牌の枚数×1枚を2人から
-  if(P.hana.filter(t=>t.k===34).length>=2) pay(P.hana.length,"2枚目の春",true);
+  // 華8の春（和了時）：1枚目の春は表示牌の華牌×1枚を追加、2枚目の春（自分の2枚目か表示牌の春）は全部の華牌×1枚
+  if(RULES.hana===8){
+    const indF=fp.fl.ind.length+fp.fl.ura.length, ownS=P.hana.filter(t=>t.k===34).length;
+    const springs=ownS+fp.fl.ind.filter(k=>k===34).length+fp.fl.ura.filter(k=>k===34).length, allF=P.hana.length+indF;
+    if(ownS>=1 && indF) pay(indF,"春（表示牌の華牌）",true);
+    if(ownS===0 && springs>=1) pay(allF,"表示牌の春",true); // 1枚目の春が表示牌のとき
+    if(springs>=2) pay(allF,"2枚目の春",true);
+  }
   if(w.pocchi){ if(pocchiIppatsu){ pay(4,"白ポッチ一発",true); dice("白ポッチ一発"); } else pay(1,"白ポッチ",true); }
   const spInd=fp.fl.ind.filter(k=>k===34).length+fp.fl.ura.filter(k=>k===34).length;
-  if(spInd) pay((P.hana.length+spInd),"表示牌の春",true);
+  if(spInd && RULES.hana!==8) pay((P.hana.length+spInd),"表示牌の春",true);
   if(fp.fl.all.includes(37)){ // 冬：アリス（冬2枚ならチューリップ）
     // ドラ表示牌の隣（残りの山の最後）から順にめくる。嶺上牌はさわらない
     const tulip=fp.fl.all.filter(k=>k===37).length>=2; R.tulip=tulip;
