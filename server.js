@@ -127,7 +127,7 @@ function viewFor(room, seat) {
     dora: H.dead.dora.concat(H.kanDora), players: rotArr(pl, seat),
     drawnId: H.turn === seat && H.drawn ? H.drawn.id : null,
     acts, prompt, othersDeciding, danger: g.openDanger(seat), allowed: g.discardable(seat),
-    tp: tenpaiFor(g, seat), noNaki: !!H.noNaki[seat], log: G.log.slice(0, 40),
+    tp: tenpaiFor(g, seat), noNaki: !!H.noNaki[seat], autoWin: g.autoWinOf(seat), log: G.log.slice(0, 40),
   };
 }
 // 聴牌補助：切るとテンパイになる牌と待ち・フリテン
@@ -383,8 +383,9 @@ io.on("connection", socket => {
           g.discard(s, a.id, !!a.riichi, !!(a.riichi && a.open)); break;
         }
         case "tsumo": { if (H.state !== "play" || H.turn !== s) return; const w = g.tryTsumo(s); if (w) g.settleTsumo(s, w); break; }
-        case "kita": { if (H.state !== "play" || H.turn !== s) return; g.nukiKita(s); schedulePush(room); if (H.p[s].riichi) setTimeout(() => g.riichiAuto(s), 380); break; }
-        case "hana": { if (H.state !== "play" || H.turn !== s) return; g.nukiHana(s); schedulePush(room); if (H.p[s].riichi) setTimeout(() => g.riichiAuto(s), 380); break; }
+        case "kita": { if (H.state !== "play" || H.turn !== s) return; g.nukiKita(s); schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
+        case "hana": { if (H.state !== "play" || H.turn !== s) return; g.nukiHana(s); schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
+        case "autowin": { g.setAutoWin(s, !g.autoWinOf(s)); schedulePush(room); break; }
         case "kan": { if (H.state !== "play" || H.turn !== s) return; if (!g.kanOptions(s).some(o => o.type === a.type && o.k === a.k)) return; g.doKan(s, a.type, a.k); break; }
         case "answer": { if (!g.promptAnswer(s, a.a)) return; break; }
         case "nonaki": { H.noNaki[s] = !H.noNaki[s];

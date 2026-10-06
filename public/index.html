@@ -878,7 +878,7 @@ function render(){
     <div class="bottom">
       ${play&&H.pick!=null&&TP.cand[H.pick]?waitBarHTML(TP.cand[H.pick]):(!play&&TP.cur?waitBarHTML(TP.cur):"")}
       <div class="acts">${acts}</div>
-      <div class="subrow"><button data-a="nonaki" class="tog${H.noNaki?" on":""}" aria-pressed="${H.noNaki}">${H.noNaki?"✓ ":""}鳴きなし</button><div class="hint"></div><span class="sp"></span></div>
+      <div class="subrow"><button data-a="nonaki" class="tog${H.noNaki?" on":""}" aria-pressed="${H.noNaki}">${H.noNaki?"✓ ":""}鳴きなし</button><div class="hint"></div><button data-a="autowin" class="tog${H.autoWin?" on":""}" aria-pressed="${!!H.autoWin}">${H.autoWin?"✓ ":""}自動和了</button></div>
       <div class="hand" id="hand">${hand}</div>
     </div>`;
 }
@@ -900,6 +900,7 @@ document.addEventListener("click",e=>{
     if(a==="cancel"){ H.sel=null; render(); return; }
     if(a==="ron"||a==="pon"||a==="kan"||a==="pass"){ act({t:"answer",a}); H.state="wait"; H.prompt=null; render(); return; }
     if(a==="kan2"){ act({t:"kan",type:b.dataset.t,k:+b.dataset.k}); return; }
+    if(a==="autowin"){ act({t:"autowin"}); H.autoWin=!H.autoWin; render(); return; }
     if(a==="nonaki"){ act({t:"nonaki"}); H.noNaki=!H.noNaki;
       if(H.noNaki && H.state==="prompt" && H.prompt && !H.prompt.human){ H.state="wait"; H.prompt=null; }
       render(); return; }
@@ -1382,7 +1383,7 @@ function applyView(v){
   else state="cpu";
   H={ p, turn:v.turn, state, live:{length:v.live}, dead:{dora:v.dora, ura:[]}, kanDora:[], kanUra:[],
       drawn: v.drawnId!=null ? p[0].hand.find(t=>t.id===v.drawnId)||null : null,
-      noNaki:v.noNaki, prompt:v.prompt, pick:keepPick, sel:state==="play"?keepSel:null };
+      noNaki:v.noNaki, autoWin:v.autoWin, prompt:v.prompt, pick:keepPick, sel:state==="play"?keepSel:null };
   if(H.pick!=null && !p[0].hand.some(t=>t.id===H.pick)) H.pick=null;
   if(H.p[0].riichi) H.pick=null;
 }

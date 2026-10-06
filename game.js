@@ -2,6 +2,7 @@
 "use strict";
 function createGame(hooks){
   let G, H, R, handSeq=0, dead=false;
+  const AUTO_WIN=[false,false,false]; // 自動和了（席ごと。局をまたいでも続く）
   const NAMES = hooks.names;
   const isCPU = s => hooks.isCPU(s);
   const SE = hooks.SE;
@@ -262,7 +263,7 @@ function drawFor(s){
   H.haitei=H.live.length===0;
   autoHana(s);
   if(isCPU(s)){ H.state="cpu"; render(); setTimeout(()=>cpuTurn(s),420); }
-  else { H.state="play"; render(); if(P.riichi) setTimeout(()=>riichiAuto(s),380); }
+  else { H.state="play"; render(); setTimeout(()=>{ if(!autoTsumo(s)&&P.riichi) riichiAuto(s); },380); }
 }
 function winCtx(s, tsumo){
   const P=H.p[s];
@@ -293,6 +294,17 @@ function riichiOptions(s,open){
   const ok=discardable(s);
   for(const t of P.hand){ if(t.k===30||t.k>=34||!ok.includes(t.id)) continue; const rest=P.hand.filter(x=>x!==t); if(shanten(rest,P.melds.length)===0 && waits(s,rest).length) ids.push(t.id); }
   return ids;
+}
+// 自動和了：ツモれるなら自動でツモ（手番の人が人間で、自動和了をオンにしているとき）
+function autoTsumo(s){
+  if(!AUTO_WIN[s]||isCPU(s)||H.state!=="play"||H.turn!==s) return false;
+  const w=tryTsumo(s); if(!w) return false;
+  settleTsumo(s,w); return true;
+}
+function setAutoWin(s,on){
+  AUTO_WIN[s]=!!on; if(!on) return;
+  if(H&&H.state==="play"&&H.turn===s) autoTsumo(s);
+  else if(H&&H.state==="prompt"&&H.prompt&&H.prompt.pend[s]&&H.prompt.pend[s].ron&&!H.prompt.pend[s].answer) promptAnswer(s,"ron");
 }
 function riichiAuto(s){
   if(H.state!=="play"||H.turn!==s||!H.drawn) return; const P=H.p[s];
@@ -346,6 +358,9 @@ function afterDiscard(s,t){
     if(hr||((pon||kan)&&!cpuR.length)) pend[o]={ron:hr,pon,kan,answer:null}; }
   if(Object.keys(pend).length){
     H.state="prompt"; H.prompt={s,t,cpuR,pend}; render();
+    // 自動和了：ロンできる人は自動でロン
+    const autoRon=Object.keys(pend).map(Number).filter(o=>pend[o].ron&&AUTO_WIN[o]);
+    if(autoRon.length){ setTimeout(()=>{ for(const o of autoRon) if(H.prompt&&H.prompt.pend[o]&&!H.prompt.pend[o].answer) promptAnswer(o,"ron"); },300); }
     H.promptTimer=setTimeout(()=>{ if(H.prompt) { for(const p of Object.values(H.prompt.pend)) if(!p.answer) p.answer="pass"; resolvePrompt(); } },30000);
     return;
   }
@@ -417,7 +432,7 @@ function doKan(s,type,k,from,t){
   const r=H.dead.kan.pop(); P.hand.push(r); H.drawn=r; H.rinshan=true; H.turn=s;
   autoHana(s);
   if(isCPU(s)){ autoKita(s); H.state="cpu"; render(); setTimeout(()=>cpuTurn(s),420); }
-  else { H.state="play"; render(); if(P.riichi) setTimeout(()=>riichiAuto(s),380); }
+  else { H.state="play"; render(); setTimeout(()=>{ if(!autoTsumo(s)&&P.riichi) riichiAuto(s); },380); }
 }
 
 // ===== CPU =====
@@ -651,7 +666,7 @@ function endGame(){
   startHand = function(){ _startHand(); };
   return {
     get G(){return G;}, get H(){return H;}, get R(){return R;},
-    newGame, startHand, endGame, decideYame, discard, tryTsumo, settleTsumo, riichiOptions, kanOptions, doKan,
+    newGame, startHand, endGame, decideYame, autoTsumo, setAutoWin, autoWinOf: s=>AUTO_WIN[s], discard, tryTsumo, settleTsumo, riichiOptions, kanOptions, doKan,
     nukiKita, nukiHana, promptAnswer, riichiAuto, waits, shanten, seatWind, roundLabel, isClosed, openDanger, discardable,
     destroy(){ dead=true; }
   };
