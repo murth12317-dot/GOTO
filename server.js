@@ -52,12 +52,15 @@ function sendToSheet(room, order) {
   callSheet({ secret: SHEET_SECRET, room: room.code, gameKey: room.gameKey, rate: room.gameRate || 1, players });
 }
 // 成績ページ用に、半荘の生の結果を保存する（records.js → GitHub の data ブランチ）
+// 場代：1半荘ごとにトップから祝儀 FEE_CHIPS 枚（×倍率）を引き、FEE_TO の人に足す。記録した時点の値で残す
+const FEE_CHIPS = +(process.env.FEE_CHIPS ?? 1), FEE_TO = process.env.FEE_TO || "あつや";
 function saveRecord(room, order) {
   if (room.savedGid === room.gameId) return;
   room.savedGid = room.gameId;
   const G = room.game.G;
   records.add({
     id: room.gameKey, at: new Date().toISOString(), room: room.code, rate: room.gameRate || 1,
+    ...(FEE_CHIPS > 0 ? { fee: FEE_CHIPS, feeTo: FEE_TO } : {}),
     players: [0, 1, 2].map(s => ({ name: room.names[s], rank: order.indexOf(s) + 1, score: G.scores[s], chips: G.chips[s], cpu: !!(room.seats[s] && room.seats[s].cpu) })),
   });
 }
@@ -73,8 +76,12 @@ function addTotals(room, order) {
   const G = room.game.G, rate = room.gameRate || 1; room.totals = room.totals || {};
   for (let s = 0; s < 3; s++) {
     const t = room.totals[room.names[s]] = room.totals[room.names[s]] || { games: 0, chips: 0, amount: 0, ranks: [0, 0, 0] };
-    t.games++; t.chips += G.chips[s]; t.amount = Math.round((t.amount + G.chips[s] * rate) * 1000) / 1000; t.ranks[order.indexOf(s)]++;
+    const fee = order.indexOf(s) === 0 ? FEE_CHIPS * rate : 0; // トップは場代を引く
+    t.games++; t.chips += G.chips[s]; t.amount = Math.round((t.amount + G.chips[s] * rate - fee) * 1000) / 1000; t.ranks[order.indexOf(s)]++;
   }
+  // 場代を受け取る人がこのルームにいれば、その人に足す
+  const to = room.totals[FEE_TO];
+  if (to && FEE_CHIPS > 0) to.amount = Math.round((to.amount + FEE_CHIPS * rate) * 1000) / 1000;
 }
 if (SHEET_URL && !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(SHEET_URL)) console.log("sheet WARNING: SHEET_URL は https://script.google.com/macros/s/…/exec の形にしてください（今: " + SHEET_URL.slice(0, 60) + "…）");
 if (SHEET_URL) callSheet(null); else console.log("sheet off (SHEET_URL not set)");

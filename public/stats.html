@@ -61,16 +61,23 @@ function weekOf(iso) {
   return { key: start.toISOString().slice(0, 10), label: `${start.getUTCFullYear()}/${md(start)}〜${md(end)}` };
 }
 const round = v => Math.round(v * 1000) / 1000;
-const amountOf = (g, p) => round(p.chips * (g.rate || 1));
+// 場代：記録に fee（祝儀の枚数）があれば、トップから fee×倍率 を引く（受け取る人 feeTo には通算で足す）
+const feeOf = g => round((g.fee || 0) * (g.rate || 1));
+const amountOf = (g, p) => round(p.chips * (g.rate || 1) - (p.rank === 1 ? feeOf(g) : 0));
 const cls = v => v > 0 ? "pos" : v < 0 ? "neg" : "zero";
 const sg = v => v > 0 ? "+" + v.toLocaleString() : v < 0 ? "-" + (-v).toLocaleString() : "±0";
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-function totals(games) {
+// withFee：場代を受け取る人の分も足す（週の通算だけ。内訳の表は打った分だけ）
+function totals(games, withFee) {
   const by = {};
   for (const g of games) for (const p of g.players) {
     const t = by[p.name] = by[p.name] || { name: p.name, games: 0, ranks: [0, 0, 0], chips: 0, amount: 0 };
     t.games++; t.ranks[p.rank - 1]++; t.chips += p.chips; t.amount = round(t.amount + amountOf(g, p));
+  }
+  if (withFee) for (const g of games) if (g.fee && g.feeTo) {
+    const t = by[g.feeTo] = by[g.feeTo] || { name: g.feeTo, games: 0, ranks: [0, 0, 0], chips: 0, amount: 0 };
+    t.amount = round(t.amount + feeOf(g));
   }
   return Object.values(by).sort((a, b) => b.amount - a.amount || b.chips - a.chips);
 }
@@ -80,7 +87,7 @@ function render() {
   const w = WEEKS.find(x => x.key === document.getElementById("week").value);
   const out = document.getElementById("out");
   if (!w) { out.innerHTML = `<div class="card"><p class="empty">まだ記録がありません</p></div>`; return; }
-  const tot = totals(w.games);
+  const tot = totals(w.games, true);
   // ルームと倍率が同じ半荘を1つにまとめる（間が空いても同じまとまり）。並びは最初に打った順
   // 時間帯：そのまとまりの半荘が続けて打たれていた間を1つの時間帯にする（間に別のまとまりが入ったら区切る）
   const blocks = [], byKey = {};
@@ -120,11 +127,11 @@ function download() {
   if (!WEEKS.length) return alert("まだ記録がありません");
   const wb = XLSX.utils.book_new();
   for (const w of WEEKS) {
-    const rows = [["日時", "ルーム", "名前", "着順", "祝儀", "倍率", "祝儀×倍率", "", "名前", "半荘", "1着", "2着", "3着", "祝儀計", "祝儀×倍率計"]];
+    const rows = [["日時", "ルーム", "名前", "着順", "祝儀", "倍率", "祝儀×倍率（場代引き後）", "", "名前", "半荘", "1着", "2着", "3着", "祝儀計", "集計（場代込み）"]];
     const recs = [];
     for (const g of w.games.slice().sort((a, b) => a.at.localeCompare(b.at)))
       for (const p of g.players.slice().sort((a, b) => a.rank - b.rank)) recs.push([fmtAt(g.at), g.room, p.name, p.rank, p.chips, g.rate || 1, amountOf(g, p)]);
-    const tot = totals(w.games).map(t => [t.name, t.games, t.ranks[0], t.ranks[1], t.ranks[2], t.chips, t.amount]);
+    const tot = totals(w.games, true).map(t => [t.name, t.games, t.ranks[0], t.ranks[1], t.ranks[2], t.chips, t.amount]);
     for (let i = 0; i < Math.max(recs.length, tot.length); i++) rows.push([...(recs[i] || ["", "", "", "", "", "", ""]), "", ...(tot[i] || [])]);
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), w.label.replace(/\//g, "-").slice(0, 31));
   }
