@@ -104,6 +104,8 @@ const seatWind = s => 27+((s-G.dealer+3)%3);
 function evaluate(seat, conc, winK, ctx, shapeOnly){
   const P=H.p[seat], called=P.melds, closed=called.every(m=>m.t==="ankan");
   const c=counts(conc); const rw=roundWind(), sw=seatWind(seat);
+  // セブンスター：7p・7sは6枚あるが、1人が使えるのは鳴きも含めて4枚まで（45677777 のような和了はできない）
+  if(RULES.hana===7) for(const k of [15,24]){ if(c[k]+called.reduce((n,m)=>n+m.tiles.filter(t=>t.k===k).length,0)>4) return shapeOnly?false:null; }
   const sit={yaku:[],ym:[]};
   if(ctx.tenhou) sit.ym.push(["天和",1]);
   if(ctx.chihou) sit.ym.push(["地和",1]);
