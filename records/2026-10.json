@@ -2700,5 +2700,41 @@
     "cpu": true
    }
   ]
+ },
+ {
+  "id": "2708-1791370237501",
+  "at": "2026-10-07T10:52:22.266Z",
+  "room": "2708",
+  "rate": 100,
+  "rules": {
+   "hana": 7,
+   "shuba": true,
+   "wareme": true
+  },
+  "fee": 1,
+  "feeTo": "あつや",
+  "players": [
+   {
+    "name": "Yujiro Okamo",
+    "rank": 3,
+    "score": -33000,
+    "chips": -42,
+    "cpu": false
+   },
+   {
+    "name": "CPU 三号",
+    "rank": 1,
+    "score": 72000,
+    "chips": 25,
+    "cpu": true
+   },
+   {
+    "name": "CPU 一号",
+    "rank": 2,
+    "score": 66000,
+    "chips": 17,
+    "cpu": true
+   }
+  ]
  }
 ]
