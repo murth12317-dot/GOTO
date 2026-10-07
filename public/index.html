@@ -971,6 +971,11 @@ document.addEventListener("touchstart",e=>{ const el=e.target.closest&&e.target.
 document.addEventListener("touchmove",e=>{ if(swipe) e.preventDefault(); },{passive:false}); // 華の7を触っている間は画面を動かさない
 document.addEventListener("touchend",e=>{ if(!swipe) return; const s0=swipe; swipe=null; const c=e.changedTouches[0]; const dx=c.clientX-s0.x, dy=c.clientY-s0.y;
   if(dy<-30 && Math.abs(dx)<-dy){ swipeAt=Date.now(); swipePull(s0.id); } });
+// PC：マウスで華の7をつかんで上にドラッグしても抜ける
+let mswipe=null;
+document.addEventListener("mousedown",e=>{ if(e.button!==0) return; const el=e.target.closest&&e.target.closest("#hand .t"); mswipe=starTile(el)?{id:+el.dataset.id,x:e.clientX,y:e.clientY}:null; if(mswipe) e.preventDefault(); });
+document.addEventListener("mouseup",e=>{ if(!mswipe) return; const s0=mswipe; mswipe=null; const dx=e.clientX-s0.x, dy=e.clientY-s0.y;
+  if(dy<-30 && Math.abs(dx)<-dy){ swipeAt=Date.now(); swipePull(s0.id); } });
 function swipePull(id){
   if(!(H.state==="play"&&H.turn===0) || H.sel || H.p[0].hand.some(x=>x.k>=34)) return;
   if(!(V&&V.acts&&(V.acts.stars||[]).includes(id))) return;
