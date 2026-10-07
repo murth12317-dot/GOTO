@@ -1232,8 +1232,8 @@ function showResult(page=0){
       if(r.ymN>0){ r.ym.forEach(y=>{ const dd=step(.42); later(()=>SE.swoosh(),dd); ymNames+=`<span class="ymn seq" style="--d:${dd}s">${y[0]}</span>`; }); }
       else {
         r.yaku.forEach(y=>item(y[0],`${y[1]}翻`));
-        // ドラ＝ドラ表で決まるドラ＋赤金（1枚につき1）。秋は赤金の枚数を別の行に
-        const akN=(di.aka||0)+(di.gold||0);
+        // ドラ＝ドラ表で決まるドラ＋赤金虹（1枚につき1）。秋は赤金虹の枚数を別の行に
+        const akN=(di.aka||0)+(di.gold||0)+(di.rainbow||0);
         if(di.dora+akN) item("ドラ",`${di.dora+akN}翻`);
         if(di.aki && akN) item("秋",`${akN}翻`);
         if(di.kitaDora) item("抜き北",`${di.kitaDora}翻`);
