@@ -791,16 +791,19 @@ function seenCount(k){
     for(const r of P.river) if(r.t.k===k) n++;
     for(const m of P.melds) for(const t of m.tiles) if(t.k===k) n++;
     if(k===30) n+=P.kita.length;
+    for(const t of P.hana||[]) if(t.k===k) n++; // 抜いた華の7
     if(P!==H.p[0] && P.open) for(const t of P.hand) if(t.k===k) n++;
   }
   for(const t of H.p[0].hand) if(t.k===k) n++;
   for(const t of H.dead.dora.concat(H.kanDora||[])) if(t.k===k) n++;
   return n;
 }
+// その牌が全部で何枚あるか（セブンスターの7p・7sは6枚）
+const totalOf=k=>H.rules&&H.rules.hana===7&&(k===15||k===24)?6:4;
 function waitBarHTML(info){
   if(!info||!info.waits.length) return "";
-  const items=info.waits.map(k=>{ const left=Math.max(0,4-seenCount(k)); return `<span class="wi${left?"":" zero"}">${tileHTML({k,id:-200-k},"rv")}<b>残${left}</b></span>`; }).join("");
-  const tot=info.waits.reduce((a,k)=>a+Math.max(0,4-seenCount(k)),0);
+  const items=info.waits.map(k=>{ const left=Math.max(0,totalOf(k)-seenCount(k)); return `<span class="wi${left?"":" zero"}">${tileHTML({k,id:-200-k},"rv")}<b>残${left}</b></span>`; }).join("");
+  const tot=info.waits.reduce((a,k)=>a+Math.max(0,totalOf(k)-seenCount(k)),0);
   return `<div class="waitbar"><span class="wl">待ち</span>${items}<span class="wt">計${tot}枚</span>${info.fu?'<span class="fu">フリテン</span>':""}</div>`;
 }
 function tenpaiData(){ return (V&&V.tp)||{cand:{},cur:null}; }
