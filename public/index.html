@@ -58,11 +58,10 @@ html,body{overflow:hidden}
 .stick{position:absolute;left:calc(50% - var(--box) * .19);width:calc(var(--box) * .39);top:calc(50% + var(--box) * .517);height:calc(var(--box) * .036);border-radius:4px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.4)}
 .stick.shb{width:calc(var(--box) * .2);left:calc(50% - var(--box) * .1);top:calc(50% + var(--box) * .565);background:#fff}
 .stick.shb::after{background:transparent;width:auto;height:auto;border-radius:0;content:"• • •";color:#333;font-size:calc(var(--box) * .03);line-height:1;letter-spacing:-1px}
-/* 割れ目の人：その人の側に、赤い斜線の帯と「割れ目」の文字 */
-.wmband{position:absolute;left:50%;transform:translateX(-50%);top:max(calc(50% + var(--box) * .62), calc(100% - 2.4% - var(--rt) * 3.85));width:78%;height:calc(var(--rt) * 1.25);border-radius:4px;
-  background:repeating-linear-gradient(-55deg,rgba(226,64,44,.85) 0 9px,rgba(255,255,255,.18) 9px 18px);box-shadow:0 0 0 2px rgba(226,64,44,.9),0 2px 10px rgba(0,0,0,.35);display:grid;place-items:center}
-.wmband b{font-family:"Shippori Mincho B1",serif;font-size:calc(var(--rt) * .9);font-weight:900;color:#ffe14d;letter-spacing:.5em;padding-left:.5em;text-shadow:0 0 3px #7a1408,0 0 6px #7a1408}
-.layer.r .wmband,.layer.l .wmband{top:max(calc(50% + var(--box) * .62), calc(100% - 2% - var(--rt) * 5.15))} /* 点棒（リーチ棒）や真ん中の点数の箱とは重ねない */
+/* 割れ目の人：その人の側全体に、薄い赤の斜線と「割れ目」の文字（点棒・真ん中の箱より外側） */
+.wmband{position:absolute;left:4%;right:4%;top:calc(50% + var(--box) * .6);bottom:1%;border-radius:10px;
+  background:repeating-linear-gradient(-55deg,rgba(226,64,44,.22) 0 10px,rgba(226,64,44,.05) 10px 22px);box-shadow:inset 0 0 0 1.5px rgba(226,64,44,.35);display:grid;place-items:center}
+.wmband b{font-family:"Shippori Mincho B1",serif;font-size:calc(var(--box) * .2);font-weight:900;color:rgba(255,225,77,.28);letter-spacing:.4em;padding-left:.4em}
 .sc .wm{display:inline-grid;place-items:center;background:#d8402c;color:#fff;border-radius:4px;font-size:.8em;padding:0 4px;margin-right:4px;font-weight:900}
 .rtag{font-size:calc(var(--box) * .045);color:var(--gold);font-weight:700;margin-top:2px}
 .b-shuba{background:linear-gradient(180deg,#8a6cf0,#5a3fc7)} .b-shuba.on{box-shadow:0 0 0 2px #fff inset}
