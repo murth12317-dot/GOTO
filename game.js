@@ -33,13 +33,13 @@ function kName(k){
   if(k<9) return NUMS[k]+"萬"; if(k<18) return NUMS[k-9]+"筒"; if(k<27) return NUMS[k-18]+"索";
   return HON[k-27];
 }
-function tName(t){ return (t.red?"赤":t.gold?"金":t.pocchi?"ポッチ":"")+kName(t.k); }
+function tName(t){ return (t.red?"赤":t.gold?"金":t.pocchi?"ポッチ":t.rainbow?"虹":t.fk?HON[t.fk-27]+"の":"")+kName(t.k); }
 function buildTiles(){
   let id=0; const a=[]; const add=(k,o={})=>a.push(Object.assign({id:id++,k},o));
   for(const k of ALLK){
     if(k===13||k===22){ add(k,{red:true}); add(k,{gold:true}); add(k); add(k); }
     else if(k===31){ add(k,{pocchi:true}); add(k); add(k); add(k); }
-    else if(RULES.hana===7&&(k===15||k===24)){ add(k,{fk:k===15?34:35}); add(k,{fk:k===15?37:36}); add(k); add(k); } // セブンスター：7p＝春・冬、7s＝夏・秋
+    else if(RULES.hana===7&&(k===15||k===24)){ add(k); add(k); add(k); add(k,{rainbow:true}); add(k,{fk:k===15?34:35}); add(k,{fk:k===15?37:36}); } // セブンスター：7p・7sは黒3・虹1・華2（7p＝春・冬、7s＝夏・秋）
     else for(let j=0;j<4;j++) add(k);
   }
   for(let n=0;n<(RULES.hana===8?2:1);n++) for(let f=34;f<=37;f++) add(f);
@@ -258,7 +258,29 @@ function starOptions(s){
 function nukiHana(s, id){
   const P=H.p[s]; const t=id!=null ? P.hand.find(x=>x.id===id&&x.fk) : P.hand.find(x=>x.k>=34); if(!t) return false;
   if(id!=null && !starOptions(s).includes(id)) return false;
-  P.hand.splice(P.hand.indexOf(t),1); P.hana.push(t);
+  P.hand.splice(P.hand.indexOf(t),1);
+  if(t.fk){
+    // 華の7は、その7で和了できる人がロンできる（抜いた効果より先に確かめる）
+    const order=[(s+1)%3,(s+2)%3];
+    const rons=[]; for(const o of order){ const r=ronResult(o,t,s); if(r) rons.push({o,...r,robbed:t}); }
+    if(rons.length){
+      const cpuR=rons.filter(x=>isCPU(x.o)), pend={};
+      for(const x of rons) if(!isCPU(x.o)) pend[x.o]={ron:x,pon:false,kan:false,answer:null};
+      H.limbo=t; // ロンを確かめている間の華の7（ロンされたら和了した人の手に入る）
+      H.prompt={s,t,cpuR,pend,rob:true}; H.state="prompt"; render();
+      if(!Object.keys(pend).length){ setTimeout(()=>resolvePrompt(),300); return "prompt"; }
+      const autoRon=Object.keys(pend).map(Number).filter(o=>AUTO_WIN[o]);
+      if(autoRon.length) setTimeout(()=>{ for(const o of autoRon) if(H.prompt&&H.prompt.pend[o]&&!H.prompt.pend[o].answer) promptAnswer(o,"ron"); },300);
+      H.promptTimer=setTimeout(()=>{ if(H.prompt) { for(const p of Object.values(H.prompt.pend)) if(!p.answer) p.answer="pass"; resolvePrompt(); } },30000);
+      return "prompt";
+    }
+  }
+  return finishNuki(s,t);
+}
+// 抜いた華（華牌・華の7）の効果と補充
+function finishNuki(s,t){
+  const P=H.p[s];
+  P.hana.push(t);
   const fk=fkOf(t), nm=HON[fk-27]+(t.fk?"の7":"");
   log(`${NAMES[s]}：${nm}を抜いた`);
   const KN=["","一","二","三","四","五","六","七","八"];
@@ -419,6 +441,12 @@ function resolvePrompt(){
     if(p.answer==="ron") ronList.push(p.ron);
     else if(p.ron){ const P=H.p[o]; if(P.riichi) P.riichiF=true; else P.tempF=true; } }
   if(ronList.length) return settleRon(pr.s,pr.t,ronList.sort((x,y)=>((x.o-pr.s+3)%3)-((y.o-pr.s+3)%3)));
+  if(pr.rob){ // 華の7を抜いたのをだれもロンしなかった：抜くのを続けて、その人の番を続ける
+    const s=pr.s; H.limbo=null; finishNuki(s,pr.t);
+    if(isCPU(s)){ autoHana(s); H.state="cpu"; render(); setTimeout(()=>cpuTurn(s),300); }
+    else { H.state="play"; H.turn=s; render(); setTimeout(()=>{ if(!autoTsumo(s)&&H.p[s].riichi) riichiAuto(s); },380); }
+    return;
+  }
   for(const o of order){ const p=pr.pend[o]; if(p&&p.answer==="kan") return doKan(o,"minkan",pr.t.k,pr.s,pr.t); if(p&&p.answer==="pon") return doPon(o,pr.s,pr.t); }
   for(const o of order){ if(isCPU(o) && canPonOf(o,pr.t) && cpuWantsPon(o,pr.t.k)) return doPon(o,pr.s,pr.t); }
   drawFor((pr.s+1)%3);
@@ -471,7 +499,7 @@ function cpuTurn(s){
   autoKita(s);
   const w=tryTsumo(s); if(w) return settleTsumo(s,w);
   const ko=kanOptions(s); if(ko.length) return doKan(s,ko[0].type,ko[0].k);
-  if(P.riichi){ if(H.drawn&&H.drawn.fk&&nukiHana(s,H.drawn.id)){ autoHana(s); return setTimeout(()=>cpuTurn(s),300); } return discard(s,H.drawn?H.drawn.id:P.hand[P.hand.length-1].id,false); }
+  if(P.riichi){ if(H.drawn&&H.drawn.fk){ const r=nukiHana(s,H.drawn.id); if(r==="prompt") return; if(r){ autoHana(s); return setTimeout(()=>cpuTurn(s),300); } } return discard(s,H.drawn?H.drawn.id:P.hand[P.hand.length-1].id,false); }
   cpuDiscard(s);
 }
 // 切れる牌：北・華は不可。リーチしていない人は、オープンリーチの当たり牌は不可（全部当たりなら全部可）
@@ -499,7 +527,7 @@ function cpuDiscard(s){
     const score=sh*100+v+(danger.includes(k)?100000:0);
     if(!best||score<best.score) best={t,score,sh};
   }
-  if(best.t.fk && nukiHana(s,best.t.id)){ autoHana(s); return setTimeout(()=>cpuTurn(s),300); } // 特別な7は切らずに抜く
+  if(best.t.fk){ const r=nukiHana(s,best.t.id); if(r==="prompt") return; if(r){ autoHana(s); return setTimeout(()=>cpuTurn(s),300); } } // 華の7は切らずに抜く
   const canR=!P.riichi&&isClosed(P)&&G.scores[s]>=1000&&H.live.length>=3&&best.sh===0&&waits(s,P.hand.filter(x=>x!==best.t)).length>0;
   discard(s,best.t.id,canR);
 }
@@ -512,15 +540,15 @@ function doraInfo(s, conc){
   const fl=flowersFor(s,conc);
   const akiN=fl.all.filter(k=>k===36).length, aki=akiN>0;
   let dora=0; for(const t of tiles) for(const k of dk) if(t.k===k&&!t.virtualSkip) dora++;
-  const aka=tiles.filter(t=>t.red).length, gold=tiles.filter(t=>t.gold).length;
-  const akaDora=(aka+gold)*(aki?2:1);
+  const aka=tiles.filter(t=>t.red).length, gold=tiles.filter(t=>t.gold).length, rainbow=tiles.filter(t=>t.rainbow).length;
+  const akaDora=(aka+gold+rainbow)*(aki?2:1); // 虹の7も赤5と同じくドラ1つ（秋で2倍）
   const kn=P.kita.length;
   const aki2=akiN>=2; // 秋秋
   const kitaDora=kn+(aki2?kn:0)+(kn===4?4:0)+kn*dk.filter(k=>k===30).length; // 北1枚1つ（秋秋で2つ）、4枚そろえば＋4
   const plain5=aki2?tiles.filter(t=>(t.k===13||t.k===22)&&!t.red&&!t.gold).length*2:0; // 秋秋：普通の5は1枚でドラ2つ
   let ura=0; for(const t of tiles) for(const k of uk) if(t.k===k) ura++;
   if(kn<4) ura+=kn*uk.filter(k=>k===30).length;
-  return {dora,aka,gold,akaDora,kitaDora,kn,ura,total:dora+akaDora+kitaDora+ura+plain5,aki,aki2,plain5};
+  return {dora,aka,gold,rainbow,akaDora,kitaDora,kn,ura,total:dora+akaDora+kitaDora+ura+plain5,aki,aki2,plain5};
 }
 function flowersFor(s,conc){
   const P=H.p[s];
@@ -608,7 +636,7 @@ function winChips(s,w,fp,tsumo,d){
   const pay=(n,why,both)=>{ if(n<=0) return; lines.push([why,n,both||tsumo?"2人から":"放銃者から"]); if(both||tsumo) others.forEach(o=>payChips(o,s,n,why)); else payChips(d,s,n,why); };
   const dice=(why)=>{ const x=rollDice(); R.dice.push({s,why,...x}); lines.push([why+"（サイコロ）",x.total,"2人から"]); others.forEach(o=>payChips(o,s,x.total,why+" サイコロ")); };
   const pocchiIppatsu=w.pocchi&&tsumo&&P.ippatsu;
-  pay(di.aka,"赤5"); pay(di.gold*2,"金5"); pay(di.kn,"抜き北"); pay(di.ura,"裏ドラ");
+  pay(di.aka,"赤5"); pay(di.gold*2,"金5"); pay((di.rainbow||0)*3,"虹7"); pay(di.kn,"抜き北"); pay(di.ura,"裏ドラ");
   if(P.ippatsu&&P.riichi&&!pocchiIppatsu) pay(1,"一発");
   if(r.ymN>0){ const pao=paoOf(s,w);
     if(pao!=null){ lines.push(["役満（包）",10,"包から"]); payChips(pao,s,10,"役満（包）"); if(r.ymN>1) pay(tsumo?5*(r.ymN-1):10*(r.ymN-1),"役満"); }
@@ -619,7 +647,8 @@ function winChips(s,w,fp,tsumo,d){
   const tiles=w.conc.concat(...P.melds.map(m=>m.tiles));
   if(closed && tiles.some(t=>t.red&&t.k===13)&&tiles.some(t=>t.gold&&t.k===13)&&tiles.some(t=>t.red&&t.k===22)&&tiles.some(t=>t.gold&&t.k===22)) dice("赤金4枚");
   if(P.kita.length===4) dice("北4枚");
-  const sets=Math.min(...[34,35,36,37].map(k=>P.hana.filter(t=>fkOf(t)===k).length));
+  const mine=P.hana.map(fkOf).concat(w.robbed&&w.robbed.fk?[w.robbed.fk]:[]); // 抜いた華（相手が抜いた華の7をロンしたら、その牌も）
+  const sets=Math.min(...[34,35,36,37].map(k=>mine.filter(f=>f===k).length));
   for(let i=0;i<sets;i++) dice(RULES.hana===4?"華牌4枚":"春夏秋冬");
   // 春（和了時）：1枚目の春は表示牌の華牌×1枚を追加、2枚目の春（自分の2枚目か表示牌の春）は全部の華牌×1枚（華4・華8共通）
   {

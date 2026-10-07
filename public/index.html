@@ -607,16 +607,19 @@ function kName(k){
   return HON[k-27];
 }
 function kShort(k){ return k<27 ? (k%9+1)+"mps"[Math.floor(k/9)] : HON[k-27]; }
-function tName(t){ return (t.red?"赤":t.gold?"金":t.pocchi?"ポッチ":"")+kName(t.k); }
+function tName(t){ return (t.red?"赤":t.gold?"金":t.pocchi?"ポッチ":t.rainbow?"虹":t.fk?HON[t.fk-27]+"の":"")+kName(t.k); }
 
 // 牌の絵（60×80）
 const CB="#2652a8", CG="#1d7a4a", CR="#c8372b", CK="#1b1a17", CO="#b8862f", IV="#fbf7ea";
 const FONT='font-family="Shippori Mincho B1, serif" font-weight="800" text-anchor="middle"';
+// セブンスターの7の色：華の7（春ピンク・夏緑・秋オレンジ・冬青）、虹の7は1つずつ色を変える
+const FKC={34:"#e2589a",35:"#1f9a50",36:"#ec7a12",37:"#2f62c8"}, RB=["#d8402c","#ec7a12","#e3b416","#1f9a50","#2f62c8","#7a4cc2","#c2456b"];
+const colOf=(over,c,i)=>over==="RAINBOW"?RB[i%RB.length]:(over||c);
 function pip(x,y,r,c,inner=IV){ const g=c==="GOLD"; const f=g?"url(#pO)":c, st=g?` stroke="#5a3d0c" stroke-width=".7"`:"";
   return `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}"${st}/><circle cx="${x}" cy="${y}" r="${(r*.7).toFixed(2)}" fill="${g?"#fdf5dc":inner}"/><circle cx="${x}" cy="${y}" r="${(r*.45).toFixed(2)}" fill="${f}"/><circle cx="${x}" cy="${y}" r="${(r*.17).toFixed(2)}" fill="${g?"#fdf5dc":inner}"/>`; }
 function stick(x,y,hgt,c,rot=0){
   const gold=c==="GOLD", red=c===CR;
-  const dk=gold?"url(#sO)":red?"#9b2a1f":"#1f6a3e", inner=gold?"#fdf5dc":IV;
+  const dk=gold?"url(#sO)":red?"#9b2a1f":(c&&c.startsWith("#")&&c!==CG)?c:"#1f6a3e", inner=gold?"#fdf5dc":IV;
   const W=9.6, S=6, cap=3, st=1.6;
   const seg=(y0,y1)=>{
     const o=`<rect x="${x-W/2}" y="${y0}" width="${W}" height="${cap}" rx="1.3" fill="${dk}"/><rect x="${x-S/2}" y="${y0+cap-.4}" width="${S}" height="${y1-y0-2*cap+.8}" fill="${dk}"/><rect x="${x-W/2}" y="${y1-cap}" width="${W}" height="${cap}" rx="1.3" fill="${dk}"/>`;
@@ -648,16 +651,16 @@ const SOU={
 };
 const faceCache={};
 function faceSVG(t){
-  const key=t.k+(t.red?"r":t.gold?"g":t.pocchi?"p":"")+(t.fk?"f"+t.fk:"");
+  const key=t.k+(t.red?"r":t.gold?"g":t.pocchi?"p":"")+(t.fk?"f"+t.fk:"")+(t.rainbow?"rb":"");
   if(faceCache[key]) return faceCache[key];
   const k=t.k; let b="";
-  const over=t.red?CR:t.gold?"GOLD":null;
+  const over=t.red?CR:t.gold?"GOLD":t.fk?FKC[t.fk]:t.rainbow?"RAINBOW":null;
   if(k<9){
     b=`<text x="30" y="35" font-size="31" fill="${CK}" ${FONT}>${NUMS[k]}</text><text x="30" y="72" font-size="30" fill="${CR}" ${FONT}>萬</text>`;
   } else if(k<18){
     const n=k-8;
     if(n===1) b=`<circle cx="30" cy="40" r="22" fill="${CG}"/><circle cx="30" cy="40" r="17" fill="${IV}"/><circle cx="30" cy="40" r="13" fill="${CR}"/><circle cx="30" cy="40" r="8.5" fill="${IV}"/><circle cx="30" cy="40" r="5" fill="${CB}"/>`+[0,1,2,3,4,5,6,7].map(i=>{const a=i*Math.PI/4;return `<circle cx="${(30+15*Math.cos(a)).toFixed(1)}" cy="${(40+15*Math.sin(a)).toFixed(1)}" r="1.6" fill="${IV}"/>`}).join("");
-    else b=PIN[n].map(([x,y,r,c])=>pip(x,y,r,over||c)).join("");
+    else b=PIN[n].map(([x,y,r,c],i)=>pip(x,y,r,colOf(over,c,i))).join("");
   } else if(k<27){
     const n=k-17;
     if(n===1){
@@ -685,7 +688,7 @@ function faceSVG(t){
       out.push(`<path d="M29 63 L28 70.5 M28 70.5 L25.5 72 M28 70.5 L28.6 72.8 M33 63 L33.5 70.5 M33.5 70.5 L31.4 72.3 M33.5 70.5 L35.8 72" stroke="${CR}" stroke-width="1.15" fill="none" stroke-linecap="round"/>`);
       b=out.join("");
     }
-    else b=SOU[n].map(([x,y,hh,c,r])=>stick(x,y,hh,over||c,r||0)).join("");
+    else b=SOU[n].map(([x,y,hh,c,r],i)=>stick(x,y,hh,colOf(over,c,i),r||0)).join("");
   } else if(k===31){
     b=`<rect x="12" y="13" width="36" height="54" rx="3" fill="none" stroke="#3f74d6" stroke-width="3.2"/><rect x="17" y="18" width="26" height="44" rx="2" fill="none" stroke="#3f74d6" stroke-width="1.2" opacity=".6"/>`+(t.pocchi?`<circle cx="30" cy="40" r="5.6" fill="url(#gem)"/><circle cx="30" cy="40" r="5.6" fill="none" stroke="#2a4f9e" stroke-width=".6" opacity=".7"/><ellipse cx="28.4" cy="38.2" rx="1.7" ry="1" fill="#fff" opacity=".5" transform="rotate(-25 28.4 38.2)"/>`:"");
   } else if(k>=34){
@@ -696,7 +699,7 @@ function faceSVG(t){
     b=`<text x="30" y="55" font-size="42" fill="${col}" ${FONT}>${HON[k-27]}</text>`;
   }
   // セブンスターの特別な7：左上に華の印（春・夏・秋・冬）
-  if(t.fk){ const FC={34:"#d8402c",35:"#1f8a4c",36:"#c77a12",37:"#2f62c8"}[t.fk]; b+=`<circle cx="48" cy="12" r="11.5" fill="${FC}" stroke="#fff" stroke-width="1.5"/><text x="48" y="17" font-size="14" fill="#fff" font-weight="900" text-anchor="middle" font-family="sans-serif">${HON[t.fk-27]}</text>`; }
+  if(t.fk){ const FC=FKC[t.fk]; b+=`<circle cx="48" cy="12" r="11.5" fill="${FC}" stroke="#fff" stroke-width="1.5"/><text x="48" y="17" font-size="14" fill="#fff" font-weight="900" text-anchor="middle" font-family="sans-serif">${HON[t.fk-27]}</text>`; }
   return faceCache[key]=`<svg viewBox="0 0 60 80" aria-hidden="true">${b}</svg>`;
 }
 function tileHTML(t, cls=""){
@@ -1241,7 +1244,7 @@ function showResult(page=0){
         payStr=ps.map(q=>`${NAMES[q.from]} ${(q.n-(q.why==="ツモ"?hbT:q.why==="ロン"?hbR:q.why==="包（全額）"?2*hbT:0)).toLocaleString()}`).join("・");
       }
       const honba=R.handHonba||0, kyo=R.pts.filter(p=>p.to===x.s && p.from<0).reduce((a,p)=>a+p.n,0);
-      const extraTxt=[R.wareme!=null?`割れ目：${NAMES[R.wareme]}`:"",R.shuba&&R.shuba[x.s]?"シュバ（祝儀2倍）":"",x.pao!=null?`包：${NAMES[x.pao]}`:"",honba&&(R.wins[0]===x||x.tsumo)?`${honba}本場 +${(honba*2000).toLocaleString()}`:"",kyo?`供託 +${kyo.toLocaleString()}`:""].filter(Boolean).join("　");
+      const extraTxt=[x.w&&x.w.robbed?`抜いた${HON[x.w.robbed.fk-27]}の7をロン`:"",R.wareme!=null?`割れ目：${NAMES[R.wareme]}`:"",R.shuba&&R.shuba[x.s]?"シュバ（祝儀2倍）":"",x.pao!=null?`包：${NAMES[x.pao]}`:"",honba&&(R.wins[0]===x||x.tsumo)?`${honba}本場 +${(honba*2000).toLocaleString()}`:"",kyo?`供託 +${kyo.toLocaleString()}`:""].filter(Boolean).join("　");
       const dd=step(.5);
       const hanTxt=r.ymN>0?ymNames:(fp.han!=null?`${fp.han}翻`:"");
       const rank=fp.base>=2000||r.ymN>0?fp.label:"";
