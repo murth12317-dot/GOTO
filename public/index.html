@@ -868,14 +868,14 @@ function render(){
     const hasHana=P.hand.some(x=>x.k>=34);
     if(hasHana) acts+=`<button data-a="hana" class="b-kita">華</button>`;
     if(P.hand.some(x=>x.k===30)) acts+=`<button data-a="kita" class="b-kita">北</button>`;
-    if(!hasHana && V&&V.acts&&V.acts.stars) for(const id of V.acts.stars){ const t=P.hand.find(x=>x.id===id); if(t) acts+=`<button data-a="star" data-id="${id}" class="b-kita">${HON[t.fk-27]}の7を抜く</button>`; }
+    if(!hasHana && P.riichi && V&&V.acts&&V.acts.stars) for(const id of V.acts.stars){ const t=P.hand.find(x=>x.id===id); if(t) acts+=`<button data-a="star" data-id="${id}" class="b-kita">${HON[t.fk-27]}の7を抜く</button>`; }
     for(const o of kanOptions(0)) acts+=`<button data-a="kan2" data-k="${o.k}" data-t="${o.type}" class="b-pon">カン ${kName(o.k)}</button>`;
     if(H.sel){ const nm=H.shubaSel?(H.sel==="open"?"シュバオープン":"シュバリー"):H.sel==="open"?"オープンリーチ":"リーチ"; acts+=`<button data-a="cancel" class="b-skip">キャンセル</button>`;
       if(V&&V.acts&&V.acts.shuba) acts+=`<button data-a="shubatog" class="b-riichi b-shuba${H.shubaSel?" on":""}" aria-pressed="${!!H.shubaSel}">${H.shubaSel?"✓ ":""}シュバ棒も出す</button>`; hint=H.pick!=null?`もう一度タップで${nm}`:`${nm}で切る牌を選んでください`; }
     else { if(riichiOptions(0).length) acts+=`<button data-a="riichi" class="b-riichi">リーチ</button>`;
       if(riichiOptions(0,true).length) acts+=`<button data-a="open" class="b-riichi b-open">オープン</button>`; }
     if(!hint && forced) hint="当たり牌しか残っていません。どれで放銃するか選んでください";
-    if(!hint) hint=hasHana?"華牌を抜いてください":P.riichi?"リーチ中":H.pick!=null&&P.hand.some(t=>t.id===H.pick)?"上がっている牌をタップで切る":"切る牌を選んでください";
+    if(!hint) hint=hasHana?"華牌を抜いてください":P.riichi?"リーチ中":H.pick!=null&&P.hand.some(t=>t.id===H.pick)?(P.hand.find(t=>t.id===H.pick).fk?"上がっている華の7をタップで抜く":"上がっている牌をタップで切る"):"切る牌を選んでください";
   } else if(H.state==="prompt"){
     const pr=H.prompt;
     hint="";
@@ -964,10 +964,11 @@ function tapTile(id){
   if(P.hand.some(x=>x.k>=34)) return;
   const tt=P.hand.find(x=>x.id===id); if(tt&&tt.k===30) return;
   if(!discardable(0).includes(id)) return;
-  if(H.sel && !riichiOptions(0,H.sel==="open").includes(id)) return;
+  if(H.sel && (!riichiOptions(0,H.sel==="open").includes(id) || (tt&&tt.fk))) return; // 華の7はリーチ宣言で切らない
   // 選んでいない牌は選ぶだけ。選んである牌（先に選んでおいた牌も含む）をタップで切る
   if(H.pick!==id){ H.pick=id; render(); return; }
   H.pick=null;
+  if(tt&&tt.fk){ if(V&&V.acts&&(V.acts.stars||[]).includes(id)) act({t:"star",id}); render(); return; } // 華の7は切らずに抜く
   if(H.sel){ const op=H.sel==="open", sb=!!H.shubaSel; H.sel=null; H.shubaSel=false; discard(0,id,true,op,sb); return; }
   discard(0,id,false);
 }
