@@ -101,6 +101,7 @@ html,body{overflow:hidden}
 .hand .t{cursor:pointer;transition:transform .09s ease}
 .hand .t:hover{transform:translateY(-7px)}
 .hand .t.drawn{margin-left:calc(var(--hw) * .35)}
+.hand .t.sel.sel2,.hand .t.sel.sel2:hover{transform:translateY(-22px) !important} /* 華の7：あと1回で切る */
 .hand .t.sel,.hand .t.sel:hover{transform:translateY(-14px) !important;box-shadow:0 0 0 2px var(--gold), 0 calc(var(--w) * .09) 0 var(--edge), 0 6px 14px rgba(0,0,0,.5)}
 .hand .t.dim{filter:brightness(.55) saturate(.6);cursor:not-allowed}
 .hand .t.dim:hover{transform:none}
@@ -865,7 +866,7 @@ function render(){
     if(TP.cand[t.id]) cls+=" tp";
     if(okIds && t.k!==30 && t.k<34 && !okIds.includes(t.id)) cls+=" dim";
     else if(forced && danger.includes(t.k)) cls+=" danger";
-    if(H.pick===t.id && !P.riichi) cls+=" sel";
+    if(H.pick===t.id && !P.riichi) cls+=" sel"+(t.fk&&pickTaps>=2?" sel2":"");
     if(rOpts && !rOpts.includes(t.id)) cls+=" dim";
     if(play && P.riichi && t!==drawn) cls+=" dim";
     if(play && (t.k===30||t.k>=34) && !cls.includes("dim")) cls+=" dim";
@@ -885,7 +886,7 @@ function render(){
     else { if(riichiOptions(0).length) acts+=`<button data-a="riichi" class="b-riichi">リーチ</button>`;
       if(riichiOptions(0,true).length) acts+=`<button data-a="open" class="b-riichi b-open">オープン</button>`; }
     if(!hint && forced) hint="当たり牌しか残っていません。どれで放銃するか選んでください";
-    if(!hint) hint=hasHana?"華牌を抜いてください":P.riichi?"リーチ中":H.pick!=null&&P.hand.some(t=>t.id===H.pick)?(P.hand.find(t=>t.id===H.pick).fk?"上がっている華の7をタップで抜く":"上がっている牌をタップで切る"):"切る牌を選んでください";
+    if(!hint) hint=hasHana?"華牌を抜いてください":P.riichi?"リーチ中":H.pick!=null&&P.hand.some(t=>t.id===H.pick)?(P.hand.find(t=>t.id===H.pick).fk?(pickTaps>=2?"もう一度タップで華の7を切る":"華の7はあと2回タップで切る（抜くのは上にスライド）"):"上がっている牌をタップで切る"):"切る牌を選んでください";
   } else if(H.state==="prompt"){
     const pr=H.prompt;
     hint="";
@@ -972,6 +973,7 @@ function swipePull(id){
 }
 document.addEventListener("dblclick",e=>{ if(e.target.closest("#hand")) e.preventDefault(); },{passive:false});
 document.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ") && e.target.matches && e.target.matches("#hand .t")){ e.preventDefault(); tapTile(+e.target.dataset.id); } });
+let pickTaps=0; // 選んである牌を何回タップしたか
 function tapTile(id){
   const P=H.p[0];
   if(!H||H.state==="result") return;
@@ -980,17 +982,18 @@ function tapTile(id){
     if(P.riichi) return;
     const tt=P.hand.find(x=>x.id===id); if(!tt||tt.k===30||tt.k>=34) return;
     if(!discardable(0).includes(id)) return;
-    H.pick=H.pick===id?null:id; render(); return;
+    H.pick=H.pick===id?null:id; pickTaps=1; render(); return;
   }
   if(P.riichi) return;
   if(P.hand.some(x=>x.k>=34)) return;
   const tt=P.hand.find(x=>x.id===id); if(tt&&tt.k===30) return;
   if(!discardable(0).includes(id)) return;
-  if(H.sel && (!riichiOptions(0,H.sel==="open").includes(id) || (tt&&tt.fk))) return; // 華の7はリーチ宣言で切らない
+  if(H.sel && !riichiOptions(0,H.sel==="open").includes(id)) return;
   // 選んでいない牌は選ぶだけ。選んである牌（先に選んでおいた牌も含む）をタップで切る
-  if(H.pick!==id){ H.pick=id; render(); return; }
-  H.pick=null;
-  if(tt&&tt.fk){ if(V&&V.acts&&(V.acts.stars||[]).includes(id)) act({t:"star",id}); render(); return; } // 華の7は切らずに抜く
+  if(H.pick!==id){ H.pick=id; pickTaps=1; render(); return; }
+  // 華の7は間違えて切らないよう3回目のタップで切る（抜くのは上にスライド）
+  if(tt&&tt.fk && ++pickTaps<3){ render(); return; }
+  H.pick=null; pickTaps=0;
   if(H.sel){ const op=H.sel==="open", sb=!!H.shubaSel; H.sel=null; H.shubaSel=false; discard(0,id,true,op,sb); return; }
   discard(0,id,false);
 }
