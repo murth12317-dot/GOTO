@@ -614,7 +614,7 @@ function tName(t){ return (t.red?"赤":t.gold?"金":t.pocchi?"ポッチ":t.rainb
 const CB="#2652a8", CG="#1d7a4a", CR="#c8372b", CK="#1b1a17", CO="#b8862f", IV="#fbf7ea";
 const FONT='font-family="Shippori Mincho B1, serif" font-weight="800" text-anchor="middle"';
 // セブンスターの7の色：華の7（春ピンク・夏緑・秋オレンジ・冬青）、虹の7は1つずつ色を変える
-const FKC={34:"#e2589a",35:"#1f9a50",36:"#ec7a12",37:"#16a3d9"}, RB=["#d8402c","#ec7a12","#e3b416","#1f9a50","#2f62c8","#7a4cc2","#c2456b"];
+const FKC={34:"#e2589a",35:"#72c21b",36:"#ec7a12",37:"#16a3d9"}, RB=["#d8402c","#ec7a12","#e3b416","#1f9a50","#2f62c8","#7a4cc2","#c2456b"];
 const colOf=(over,c,i)=>over==="RAINBOW"?RB[i%RB.length]:(over||c);
 function pip(x,y,r,c,inner=IV){ const g=c==="GOLD"; const f=g?"url(#pO)":c, st=g?` stroke="#5a3d0c" stroke-width=".7"`:"";
   return `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}"${st}/><circle cx="${x}" cy="${y}" r="${(r*.7).toFixed(2)}" fill="${g?"#fdf5dc":inner}"/><circle cx="${x}" cy="${y}" r="${(r*.45).toFixed(2)}" fill="${f}"/><circle cx="${x}" cy="${y}" r="${(r*.17).toFixed(2)}" fill="${g?"#fdf5dc":inner}"/>`; }
