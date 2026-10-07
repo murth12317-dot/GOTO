@@ -1251,11 +1251,12 @@ function showResult(page=0){
         const akN=(di.aka||0)+(di.gold||0)+(di.rainbow||0);
         if(di.dora+akN) item("ドラ",`${di.dora+akN}翻`);
         if(di.aki && akN) item("秋",`${akN}翻`);
-        if(di.kitaDora) item("抜き北",`${di.kitaDora}翻`);
+        const kitaAki=di.aki2?(di.kn||0):0; // 秋秋で北が増えた分は「秋秋」の行に出す
+        if(di.kitaDora-kitaAki) item("抜き北",`${di.kitaDora-kitaAki}翻`);
         if(di.ura) item("裏ドラ",`${di.ura}翻`);
         const natsu=fp.fl.all.filter(k=>k===35).length;
         if(natsu) item(natsu>1?`夏×${natsu}（${natsu}ランクアップ）`:"夏（ワンランクアップ）","↑".repeat(natsu));
-        if(di.plain5) item("秋秋（普通の5）",`${di.plain5}翻`);
+        if(di.plain5||kitaAki) item(`秋秋（${[di.plain5?"普通の5":"",kitaAki?"北":""].filter(Boolean).join("・")}）`,`${(di.plain5||0)+kitaAki}翻`);
       }
       const dealer=x.s===(R.handDealer??G.dealer);
       let payStr, ptCls="";
