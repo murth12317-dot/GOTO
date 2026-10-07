@@ -946,8 +946,20 @@ document.addEventListener("click",e=>{
     if(a==="next"){ if(b.dataset.waiting) return; socket.emit("next"); document.querySelectorAll("button[data-a=next]").forEach(x=>{ x.dataset.waiting="1"; x.textContent="待機中…"; }); return; }
     return;
   }
-  const t=e.target.closest("#hand .t"); if(t) tapTile(+t.dataset.id);
+  const t=e.target.closest("#hand .t"); if(t && Date.now()>swipeAt+500) tapTile(+t.dataset.id);
 });
+// 華の7は上にスライドでも抜ける（リーチ後も、引いたその牌なら）
+let swipe=null, swipeAt=0;
+const starTile=el=>{ if(!el||!H||!H.p) return null; const t=H.p[0].hand.find(x=>x.id===+el.dataset.id); return t&&t.fk?t:null; };
+document.addEventListener("touchstart",e=>{ const el=e.target.closest&&e.target.closest("#hand .t"); swipe=starTile(el)&&e.touches.length===1?{id:+el.dataset.id,x:e.touches[0].clientX,y:e.touches[0].clientY}:null; },{passive:true});
+document.addEventListener("touchmove",e=>{ if(swipe) e.preventDefault(); },{passive:false}); // 華の7を触っている間は画面を動かさない
+document.addEventListener("touchend",e=>{ if(!swipe) return; const s0=swipe; swipe=null; const c=e.changedTouches[0]; const dx=c.clientX-s0.x, dy=c.clientY-s0.y;
+  if(dy<-30 && Math.abs(dx)<-dy){ swipeAt=Date.now(); swipePull(s0.id); } });
+function swipePull(id){
+  if(!(H.state==="play"&&H.turn===0) || H.sel || H.p[0].hand.some(x=>x.k>=34)) return;
+  if(!(V&&V.acts&&(V.acts.stars||[]).includes(id))) return;
+  H.pick=null; act({t:"star",id}); render();
+}
 document.addEventListener("dblclick",e=>{ if(e.target.closest("#hand")) e.preventDefault(); },{passive:false});
 document.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ") && e.target.matches && e.target.matches("#hand .t")){ e.preventDefault(); tapTile(+e.target.dataset.id); } });
 function tapTile(id){
