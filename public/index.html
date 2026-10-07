@@ -218,6 +218,8 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .hanrow .hn{font-size:22px;font-weight:900;color:#fff}
 .hanrow .pt{font-size:30px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums}
 .hanrow .pt{white-space:nowrap;font-size:min(6.6vw,30px)}
+.hanrow .pt.ptw{white-space:normal;font-size:min(4.8vw,22px);line-height:1.35} /* 割れ目：払った額を人ごとに（はみ出さないよう折り返す） */
+.hanrow .pt.ptw .pp{display:inline-block;white-space:nowrap;margin-left:.5em}
 .hanrow .pt small{font-size:16px;color:var(--gold);margin-left:4px}
 .hanrow .ex{font-size:13px;color:var(--gold);font-weight:700;width:100%}
 .card.instant .seq,.card.instant .flip .in{animation-delay:0s !important;animation-duration:.01s !important}
@@ -1256,14 +1258,15 @@ function showResult(page=0){
         if(di.plain5) item("秋秋（普通の5）",`${di.plain5}翻`);
       }
       const dealer=x.s===(R.handDealer??G.dealer);
-      let payStr;
+      let payStr, ptCls="";
       if(x.tsumo){ const ko=ceil1000(fp.base)+1000, oya=ceil1000(fp.base*2)+1000; payStr=dealer?`${oya.toLocaleString()}オール`:`${ko.toLocaleString()}・${oya.toLocaleString()}`; }
       else payStr=ceil1000(fp.base*(dealer?6:4)).toLocaleString();
       // 割れ目が関わる和了は、実際に払った額（本場を除く）を人ごとに出す
       if(R.wareme!=null && (x.tsumo || x.s===R.wareme || x.from===R.wareme)){
         const hbT=1000*(R.handHonba||0), hbR=R.wins[0]===x?2000*(R.handHonba||0):0;
         const ps=R.pts.filter(q=>q.to===x.s && ["ツモ","ロン","包（全額）","包（折半）"].includes(q.why));
-        payStr=ps.map(q=>`${NAMES[q.from]} ${(q.n-(q.why==="ツモ"?hbT:q.why==="ロン"?hbR:q.why==="包（全額）"?2*hbT:0)).toLocaleString()}`).join("・");
+        payStr=ps.map(q=>`<span class="pp">${NAMES[q.from]} ${(q.n-(q.why==="ツモ"?hbT:q.why==="ロン"?hbR:q.why==="包（全額）"?2*hbT:0)).toLocaleString()}</span>`).join("");
+        ptCls=" ptw";
       }
       const honba=R.handHonba||0, kyo=R.pts.filter(p=>p.to===x.s && p.from<0).reduce((a,p)=>a+p.n,0);
       const extraTxt=[x.w&&x.w.robbed?`抜いた${HON[x.w.robbed.fk-27]}の7をロン`:"",R.wareme!=null?`割れ目：${NAMES[R.wareme]}`:"",R.shuba&&R.shuba[x.s]?"シュバ（祝儀2倍）":"",x.pao!=null?`包：${NAMES[x.pao]}`:"",honba&&(R.wins[0]===x||x.tsumo)?`${honba}本場 +${(honba*2000).toLocaleString()}`:"",kyo?`供託 +${kyo.toLocaleString()}`:""].filter(Boolean).join("　");
@@ -1272,7 +1275,7 @@ function showResult(page=0){
       const rank=fp.base>=2000||r.ymN>0?fp.label:"";
       p1+=`<div class="p1foot"><div class="fl">${ys?`<div class="yaku y2">${ys}</div>`:""}
         <div class="hanrow seq" style="--d:${dd}s"><div><span class="hn">${hanTxt}${rank?"":` ${r.fu}符`}</span>${rank?`<span class="bigrank">${rank}</span>`:""}</div>
-        <div class="pt">${x.tsumo?"ツモ":"ロン"} ${payStr}</div>${extraTxt?`<div class="ex">${extraTxt}</div>`:""}</div></div>
+        <div class="pt${ptCls}">${x.tsumo?"ツモ":"ロン"} ${payStr}</div>${extraTxt?`<div class="ex">${extraTxt}</div>`:""}</div></div>
         ${wi===0?"<!--TABLE-->":""}</div>`;
       later(()=>SE.win(),dd);
     });
