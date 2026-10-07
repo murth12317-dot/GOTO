@@ -2,7 +2,8 @@
 "use strict";
 function createGame(hooks){
   let G, H, R, handSeq=0, dead=false;
-  const AUTO_WIN=[false,false,false]; // 自動和了（席ごと。局をまたいでも続く）
+  // 和了できるのに和了もキャンセルも押さないときは、この時間で自動で和了する
+  const WIN_WAIT = hooks.winWait!=null ? hooks.winWait : 10000;
   const NAMES = hooks.names;
   // ルールの選択：shuba（シュバリーあり）、wareme（割れ目あり）
   const RULES = Object.assign({ hana:4, shuba:false, wareme:false }, hooks.rules||{});
@@ -271,8 +272,7 @@ function nukiHana(s, id){
       H.limbo=t; // ロンを確かめている間の華の7（ロンされたら和了した人の手に入る）
       H.prompt={s,t,cpuR,pend,rob:true}; H.state="prompt"; render();
       if(!Object.keys(pend).length){ setTimeout(()=>resolvePrompt(),300); return "prompt"; }
-      const autoRon=Object.keys(pend).map(Number).filter(o=>AUTO_WIN[o]);
-      if(autoRon.length) setTimeout(()=>{ for(const o of autoRon) if(H.prompt&&H.prompt.pend[o]&&!H.prompt.pend[o].answer) promptAnswer(o,"ron"); },300);
+      armAutoRon();
       H.promptTimer=setTimeout(()=>{ if(H.prompt) { for(const p of Object.values(H.prompt.pend)) if(!p.answer) p.answer="pass"; resolvePrompt(); } },30000);
       return "prompt";
     }
@@ -346,21 +346,37 @@ function riichiOptions(s,open){
   for(const t of P.hand){ if(t.k===30||t.k>=34||!ok.includes(t.id)) continue; const rest=P.hand.filter(x=>x!==t); if(shanten(rest,P.melds.length)===0 && waits(s,rest).length) ids.push(t.id); }
   return ids;
 }
-// 自動和了：ツモれるなら自動でツモ（手番の人が人間で、自動和了をオンにしているとき）
+// 自動和了：ツモれるのにツモもキャンセルも押さなければ、WIN_WAIT 後に自動でツモ（人間の手番のとき）
+const winKeyOf = s => `${H.id}:${s}:${H.p[s].river.length}:${H.p[s].melds.length}:${H.drawn?H.drawn.id:""}`;
 function autoTsumo(s){
-  if(!AUTO_WIN[s]||isCPU(s)||H.state!=="play"||H.turn!==s) return false;
-  const w=tryTsumo(s); if(!w) return false;
-  settleTsumo(s,w); return true;
+  if(isCPU(s)||H.state!=="play"||H.turn!==s) return false;
+  if(!tryTsumo(s)){ H.winAt=null; return false; }
+  const key=winKeyOf(s); if(H.winSkip===key) return false;
+  if(H.winKey===key) return true;
+  H.winKey=key; H.winAt=Date.now()+WIN_WAIT; const hid=H.id;
+  setTimeout(()=>{ if(dead||!H||H.id!==hid||H.state!=="play"||H.turn!==s||isCPU(s)||winKeyOf(s)!==key||H.winSkip===key) return;
+    const w=tryTsumo(s); if(w) settleTsumo(s,w); }, WIN_WAIT);
+  render(); return true;
 }
-function setAutoWin(s,on){
-  AUTO_WIN[s]=!!on; if(!on) return;
-  if(H&&H.state==="play"&&H.turn===s) autoTsumo(s);
-  else if(H&&H.state==="prompt"&&H.prompt&&H.prompt.pend[s]&&H.prompt.pend[s].ron&&!H.prompt.pend[s].answer) promptAnswer(s,"ron");
+// ツモのキャンセル（リーチ中ならそのままツモ切り。リーチ中の見逃しはフリテン）
+function cancelWin(s){
+  if(H.state!=="play"||H.turn!==s||!tryTsumo(s)) return false;
+  H.winSkip=winKeyOf(s); H.winAt=null;
+  const P=H.p[s]; if(P.riichi){ P.riichiF=true; riichiAuto(s); }
+  render(); return true;
+}
+// ロンできる人がロンもスキップも押さなければ、WIN_WAIT 後に自動でロン
+function armAutoRon(){
+  const pr=H.prompt; if(!pr) return;
+  const ronO=Object.keys(pr.pend).map(Number).filter(o=>pr.pend[o].ron);
+  if(!ronO.length) return;
+  pr.winAt=Date.now()+WIN_WAIT; const hid=H.id;
+  setTimeout(()=>{ if(dead||!H||H.id!==hid||H.prompt!==pr) return; for(const o of ronO) if(pr.pend[o]&&!pr.pend[o].answer&&H.prompt===pr) promptAnswer(o,"ron"); }, WIN_WAIT);
 }
 function riichiAuto(s){
   if(H.state!=="play"||H.turn!==s||!H.drawn) return; const P=H.p[s];
   if(!P.riichi) return;
-  if(tryTsumo(s)) return; // ボタンで選ぶ
+  if(tryTsumo(s) && H.winSkip!==winKeyOf(s)) return; // ボタンで選ぶ（キャンセルしたらツモ切り）
   if(P.hand.some(x=>x.k>=34)) return; // 華は抜いてから
   if(H.drawn.k===30) return; // 引いた北は抜くか持つか選ぶ（切れない）
   if(H.drawn.fk) return; // 引いた特別な7は、抜くか切るかを選ぶ
@@ -378,7 +394,7 @@ function discard(s, id, riichi, open, shuba){
   if(doShuba){ P.shuba=true; G.shubaUsed[s]=true; log(`${NAMES[s]}：シュバ棒を出した（このあともらう祝儀が2倍）`); }
   if(riichi){ SE.say(doShuba?(open?"シュバオープン":"シュバリー"):open?"オープンリーチ":"リーチ",s); P.riichi=true; P.open=!!open; P.dbl=P.river.length===0&&H.noCalls; P.ippatsu=true; G.scores[s]-=open?2000:1000; G.kyotaku+=open?2:1; log(`${NAMES[s]}：${open?"オープンリーチ":"リーチ"}`); }
   if(!P.riichi) P.tempF=false;
-  P.river.push({t,riichi,tg:t===H.drawn}); H.drawn=null; // tg：ツモ切り（引いた牌をそのまま切った） H.rinshan=false; H.last={s,t}; SE.clack();
+  P.river.push({t,riichi,tg:t===H.drawn}); H.drawn=null; H.winAt=null; // tg：ツモ切り（引いた牌をそのまま切った） H.rinshan=false; H.last={s,t}; SE.clack();
   log(`${NAMES[s]}：${tName(t)}を切った`);
   afterDiscard(s,t);
 }
@@ -412,9 +428,7 @@ function afterDiscard(s,t){
     if(hr||((pon||kan)&&!cpuR.length)) pend[o]={ron:hr,pon,kan,answer:null}; }
   if(Object.keys(pend).length){
     H.state="prompt"; H.prompt={s,t,cpuR,pend}; render();
-    // 自動和了：ロンできる人は自動でロン
-    const autoRon=Object.keys(pend).map(Number).filter(o=>pend[o].ron&&AUTO_WIN[o]);
-    if(autoRon.length){ setTimeout(()=>{ for(const o of autoRon) if(H.prompt&&H.prompt.pend[o]&&!H.prompt.pend[o].answer) promptAnswer(o,"ron"); },300); }
+    armAutoRon();
     H.promptTimer=setTimeout(()=>{ if(H.prompt) { for(const p of Object.values(H.prompt.pend)) if(!p.answer) p.answer="pass"; resolvePrompt(); } },30000);
     return;
   }
@@ -483,6 +497,7 @@ function kanOptions(s){
   return res;
 }
 function doKan(s,type,k,from,t){
+  H.winAt=null;
   const P=H.p[s];
   if(type==="ankan"){ const four=kanFour(P,k); P.hand=P.hand.filter(x=>!four.includes(x)); P.melds.push({t:"ankan",k,tiles:four}); }
   else if(type==="kakan"){ const x=P.hand.find(y=>y.k===k); P.hand.splice(P.hand.indexOf(x),1); const m=P.melds.find(m=>m.t==="pon"&&m.k===k); m.t="kakan"; m.tiles.push(x); }
@@ -762,7 +777,7 @@ function endGame(){
   startHand = function(){ _startHand(); };
   return {
     get G(){return G;}, get H(){return H;}, get R(){return R;},
-    newGame, startHand, endGame, decideYame, canShuba, rules: RULES, starOptions, autoTsumo, setAutoWin, autoWinOf: s=>AUTO_WIN[s], discard, tryTsumo, settleTsumo, riichiOptions, kanOptions, doKan,
+    newGame, startHand, endGame, decideYame, canShuba, rules: RULES, starOptions, autoTsumo, cancelWin, discard, tryTsumo, settleTsumo, riichiOptions, kanOptions, doKan,
     nukiKita, nukiHana, promptAnswer, riichiAuto, waits, shanten, seatWind, roundLabel, isClosed, openDanger, discardable,
     destroy(){ dead=true; }
   };

@@ -875,7 +875,7 @@ function render(){
   let acts="", hint="";
   if(play){
     const tw=tryTsumo(0);
-    if(tw) acts+=`<button data-a="tsumo" class="b-win">ツモ</button>`;
+    if(tw) acts+=`<button data-a="tsumo" class="b-win">ツモ<small class="wcd"></small></button>`+(winEnd?`<button data-a="wincancel" class="b-skip">キャンセル</button>`:"");
     const hasHana=P.hand.some(x=>x.k>=34);
     if(hasHana) acts+=`<button data-a="hana" class="b-kita">華</button>`;
     if(P.hand.some(x=>x.k===30)) acts+=`<button data-a="kita" class="b-kita">北</button>`;
@@ -890,7 +890,7 @@ function render(){
   } else if(H.state==="prompt"){
     const pr=H.prompt;
     hint="";
-    if(pr.human) acts+=`<button data-a="ron" class="b-win">ロン</button>`;
+    if(pr.human) acts+=`<button data-a="ron" class="b-win">ロン<small class="wcd"></small></button>`;
     if(pr.pon) acts+=`<button data-a="pon" class="b-pon">ポン</button>`;
     if(pr.kan) acts+=`<button data-a="kan" class="b-pon">カン</button>`;
     acts+=`<button data-a="pass" class="b-skip">スキップ</button>`;
@@ -912,7 +912,7 @@ function render(){
     <div class="bottom">
       ${play&&H.pick!=null&&TP.cand[H.pick]?waitBarHTML(TP.cand[H.pick]):(!play&&TP.cur?waitBarHTML(TP.cur):"")}
       <div class="acts">${acts}</div>
-      <div class="subrow"><button data-a="nonaki" class="tog${H.noNaki?" on":""}" aria-pressed="${H.noNaki}">${H.noNaki?"✓ ":""}鳴きなし</button><div class="hint"></div><button data-a="autowin" class="tog${H.autoWin?" on":""}" aria-pressed="${!!H.autoWin}">${H.autoWin?"✓ ":""}自動和了</button></div>
+      <div class="subrow"><button data-a="nonaki" class="tog${H.noNaki?" on":""}" aria-pressed="${H.noNaki}">${H.noNaki?"✓ ":""}鳴きなし</button><div class="hint"></div></div>
       <div class="hand" id="hand">${hand}</div>
     </div>`;
 }
@@ -936,7 +936,7 @@ document.addEventListener("click",e=>{
     if(a==="cancel"){ H.sel=null; H.shubaSel=false; render(); return; }
     if(a==="ron"||a==="pon"||a==="kan"||a==="pass"){ act({t:"answer",a}); H.state="wait"; H.prompt=null; render(); return; }
     if(a==="kan2"){ act({t:"kan",type:b.dataset.t,k:+b.dataset.k}); return; }
-    if(a==="autowin"){ act({t:"autowin"}); H.autoWin=!H.autoWin; render(); return; }
+    if(a==="wincancel"){ act({t:"wincancel"}); winEnd=null; render(); return; }
     if(a==="nonaki"){ act({t:"nonaki"}); H.noNaki=!H.noNaki;
       if(H.noNaki && H.state==="prompt" && H.prompt && !H.prompt.human){ H.state="wait"; H.prompt=null; }
       render(); return; }
@@ -1441,7 +1441,7 @@ function discard(s,id,riichi,open,shuba){ act({t:"discard",id,riichi:!!riichi,op
 let curGid=null, lastResultKey=null;
 function applyView(v){
   if(v.gid!==curGid){ curGid=v.gid; if(G) G.hist=[]; lastResultKey=null; }
-  V=v; NAMES=v.names;
+  V=v; NAMES=v.names; winEnd=v.winLeft!=null?Date.now()+v.winLeft:null;
   G={ scores:v.scores, chips:v.chips, stick:v.stick, dealer:v.dealer, phase:v.phase, honba:v.honba, kyotaku:v.kyotaku, log:v.log, hist:(G&&G.hist)||[], over:false };
   const keepPick=H&&H.pick, keepSel=H&&H.sel, keepShuba=H&&H.shubaSel;
   const p=v.players.map((P,i)=>({ hand: P.hand?P.hand:Array.from({length:P.handCount},()=>({k:-1})), melds:P.melds, river:P.river, kita:P.kita, hana:P.hana, riichi:P.riichi, shuba:!!P.shuba, shubaUsed:!!P.shubaUsed, open:P.open, waits:P.waits||[] }));
@@ -1452,7 +1452,7 @@ function applyView(v){
   else state="cpu";
   H={ p, turn:v.turn, state, live:{length:v.live}, dead:{dora:v.dora, ura:[]}, kanDora:[], kanUra:[],
       drawn: v.drawnId!=null ? p[0].hand.find(t=>t.id===v.drawnId)||null : null,
-      noNaki:v.noNaki, autoWin:v.autoWin, prompt:v.prompt, pick:keepPick, sel:state==="play"?keepSel:null,
+      noNaki:v.noNaki, prompt:v.prompt, pick:keepPick, sel:state==="play"?keepSel:null,
       shubaSel:state==="play"&&keepSel?keepShuba:false, wareme:v.wareme, rules:v.rules||{} };
   if(H.pick!=null && !p[0].hand.some(t=>t.id===H.pick)) H.pick=null;
   if(H.p[0].riichi) H.pick=null;
@@ -1489,7 +1489,10 @@ function afterRender(){
   tickCountdown();
 }
 // 残り時間は1本のタイマーで、案内欄を毎回まるごと書き換える（二重表示しない）
+let winEnd=null; // 自動和了までの時刻
 function tickCountdown(){
+  const wl=winEnd?Math.max(0,Math.ceil((winEnd-Date.now())/1000)):null;
+  document.querySelectorAll(".wcd").forEach(e=>{ e.textContent=wl!=null?`（${wl}）`:""; });
   const h=document.querySelector(".hint"); if(!h) return;
   const left=turnEnd?Math.ceil((turnEnd-Date.now())/1000):null;
   h.innerHTML=left!=null&&left<=30?`<b class="cd">残り ${Math.max(0,left)} 秒</b>`:"";

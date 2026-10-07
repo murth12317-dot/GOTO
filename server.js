@@ -97,6 +97,11 @@ function broadcastLobby(room) {
   for (const p of room.seats) if (p && p.socket) p.socket.emit("lobby", { ...roomPublic(room), mySeat: room.seats.indexOf(p), isHost: p.token === room.hostToken });
 }
 
+// 自動和了までの残り時間（ツモ・ロンできて、まだ和了もキャンセルもしていないとき）
+function winLeftOf(H, seat) {
+  const at = H.state === "play" && H.turn === seat ? H.winAt : H.state === "prompt" && H.prompt && H.prompt.pend[seat] && H.prompt.pend[seat].ron && !H.prompt.pend[seat].answer ? H.prompt.winAt : null;
+  return at && at > Date.now() ? at - Date.now() : null;
+}
 function viewFor(room, seat) {
   const g = room.game, G = g.G, H = g.H, r = rotOf(seat);
   const pl = H.p.map((P, s) => ({
@@ -128,7 +133,7 @@ function viewFor(room, seat) {
     rules: g.rules, wareme: H.wareme == null ? null : r(H.wareme),
     drawnId: H.turn === seat && H.drawn ? H.drawn.id : null,
     acts, prompt, othersDeciding, danger: g.openDanger(seat), allowed: g.discardable(seat),
-    tp: tenpaiFor(g, seat), noNaki: !!H.noNaki[seat], autoWin: g.autoWinOf(seat), log: G.log.slice(0, 40),
+    tp: tenpaiFor(g, seat), noNaki: !!H.noNaki[seat], winLeft: winLeftOf(H, seat), log: G.log.slice(0, 40),
   };
 }
 // 聴牌補助：切るとテンパイになる牌と待ち・フリテン
@@ -236,7 +241,7 @@ function startGame(room) {
   room.rules = room.rules || { hana: 4, shuba: false, wareme: false };
   room.gameRules = { ...room.rules }; // 対局中に変わらないよう、開始時のルールで打つ
   room.game = createGame({
-    names: room.names, rules: room.gameRules,
+    names: room.names, rules: room.gameRules, winWait: process.env.WIN_MS ? +process.env.WIN_MS : undefined,
     isCPU: s => { const p = room.seats[s]; return !p || p.cpu || !p.socket || p.away; },
     SE,
     update: () => schedulePush(room),
@@ -401,7 +406,7 @@ io.on("connection", socket => {
         case "kita": { if (H.state !== "play" || H.turn !== s) return; g.nukiKita(s); schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
         case "hana": { if (H.state !== "play" || H.turn !== s) return; g.nukiHana(s); schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
         case "star": { if (H.state !== "play" || H.turn !== s) return; if (!g.nukiHana(s, a.id)) return; schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
-        case "autowin": { g.setAutoWin(s, !g.autoWinOf(s)); schedulePush(room); break; }
+        case "wincancel": { if (g.cancelWin(s)) schedulePush(room); break; }
         case "kan": { if (H.state !== "play" || H.turn !== s) return; if (!g.kanOptions(s).some(o => o.type === a.type && o.k === a.k)) return; g.doKan(s, a.type, a.k); break; }
         case "answer": { if (!g.promptAnswer(s, a.a)) return; break; }
         case "nonaki": { H.noNaki[s] = !H.noNaki[s];
