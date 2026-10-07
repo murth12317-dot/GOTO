@@ -554,8 +554,8 @@ function flowersFor(s,conc){
   const P=H.p[s];
   const own=P.hana.map(fkOf);
   const hand=(conc||P.hand).concat(...P.melds.map(m=>m.tiles)).filter(t=>t.fk).map(t=>t.fk); // 手に持ったままの特別な7
-  const ind=H.dead.dora.filter(t=>fkOf(t)).map(fkOf); // ドラ表示の華牌・華の7（華の7は普通の7としてもドラを決める）
-  const ura=P.riichi?H.dead.ura.filter(t=>fkOf(t)).map(fkOf):[];
+  const ind=H.dead.dora.concat(H.kanDora).filter(t=>fkOf(t)).map(fkOf); // ドラ表示（カンドラも）の華牌・華の7（華の7は普通の7としてもドラを決める）
+  const ura=P.riichi?H.dead.ura.concat(H.kanUra).filter(t=>fkOf(t)).map(fkOf):[];
   return {own,ind,ura,hand,all:own.concat(ind,ura,hand)};
 }
 
@@ -647,6 +647,7 @@ function winChips(s,w,fp,tsumo,d){
   const tiles=w.conc.concat(...P.melds.map(m=>m.tiles));
   if(closed && tiles.some(t=>t.red&&t.k===13)&&tiles.some(t=>t.gold&&t.k===13)&&tiles.some(t=>t.red&&t.k===22)&&tiles.some(t=>t.gold&&t.k===22)) dice("赤金4枚");
   if(P.kita.length===4) dice("北4枚");
+  if(RULES.hana===7 && tiles.filter(t=>t.fk||t.rainbow).length>=4) dice("セブンスター"); // 華の7・虹の7（6枚）のうち4枚以上を手牌で使って和了
   const mine=P.hana.map(fkOf).concat(w.robbed&&w.robbed.fk?[w.robbed.fk]:[]); // 抜いた華（相手が抜いた華の7をロンしたら、その牌も）
   const sets=Math.min(...[34,35,36,37].map(k=>mine.filter(f=>f===k).length));
   for(let i=0;i<sets;i++) dice(RULES.hana===4?"華牌4枚":"春夏秋冬");

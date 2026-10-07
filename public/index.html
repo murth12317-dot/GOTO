@@ -561,6 +561,7 @@ html,body,.hand,.hand .t,button{touch-action:manipulation}
 .seg.on{background:linear-gradient(180deg,#f6d77e,#d9a845);color:#2a1d05;border-color:transparent}
 .seg[disabled]{opacity:1;filter:none;cursor:default}
 .seg[disabled]:not(.on){opacity:.5}
+.dmul{display:block;font-size:11px;color:var(--gold);font-weight:700;white-space:nowrap}
 .raterow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 2px;font-weight:700}
 .raterow b{color:var(--gold)}
 .raterow input{width:90px;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:var(--text);font:inherit;font-size:16px}
@@ -1107,19 +1108,27 @@ function breakdownCompact(list,hideDice){
   return h;
 }
 // 1ページ目用：1回分を1行で
+// サイコロの枚数がシュバ・割れ目で倍になっているときの書き足し（「×2」、払う人で違えば人ごとの枚数）
+function diceMultTxt(dv){
+  const same=R.dice.filter(d=>d.s===dv.s&&d.why===dv.why), idx=same.indexOf(dv);
+  const pays=R.chips.filter(c=>c.to===dv.s&&c.why===dv.why+" サイコロ").slice(idx*2,idx*2+2);
+  if(!pays.length||pays.every(c=>c.n===dv.total)) return "";
+  if(pays.every(c=>c.n===pays[0].n)) return `<small class="dmul">×${pays[0].n/dv.total}（${pays[0].n}枚ずつ）</small>`;
+  return `<small class="dmul">${pays.map(c=>`${NAMES[c.from]} ${c.n}枚（×${c.n/dv.total}）`).join("・")}</small>`;
+}
 function diceRowHTML(dv,tStart,pg){
   let t=tStart, dice="";
   dv.rolls.forEach((r,i)=>{ const t0=t; t+=1.0; const id1=DICE.add(r[0],t0,pg), id2=DICE.add(r[1],t0,pg);
     dice+=`<span class="dpair seq" style="--d:${t0}s">${DICE.html(id1)}${DICE.html(id2)}</span>${r[0]===r[1]?`<span class="zm seq" style="--d:${t0+.9}s">ゾロ目</span>`:""}`; });
   const td=t; t+=.3;
-  return {html:`<div class="drow seq" style="--d:${Math.max(0,tStart-.05)}s"><span class="dl">${dv.why}</span>${dice}<span class="dtot seq" style="--d:${td}s"><b>${dv.total}</b>枚</span></div>`, end:t};
+  return {html:`<div class="drow seq" style="--d:${Math.max(0,tStart-.05)}s"><span class="dl">${dv.why}</span>${dice}<span class="dtot seq" style="--d:${td}s"><b>${dv.total}</b>枚${diceMultTxt(dv)}</span></div>`, end:t};
 }
 function diceStageHTML(dv,tStart,pg){
   let rows="", t=tStart;
   dv.rolls.forEach(r=>{ const t0=t; t+=1.1; const id1=DICE.add(r[0],t0,pg), id2=DICE.add(r[1],t0,pg);
     rows+=`<div class="droll seq" style="--d:${t0}s">${DICE.html(id1)}${DICE.html(id2)}${r[0]===r[1]?`<span class="zm seq" style="--d:${t0+.95}s">ゾロ目！もう一回</span>`:""}</div>`; });
   const td=t; t+=.5;
-  return {html:`<div class="dstage seq" style="--d:${Math.max(0,tStart-.05)}s"><div class="dt">${NAMES[dv.s]}　${dv.why}のサイコロ</div>${rows}<div class="dtotal seq" style="--d:${td}s">合計 <b>${dv.total}</b> 枚 × 2人から</div></div>`, end:t};
+  return {html:`<div class="dstage seq" style="--d:${Math.max(0,tStart-.05)}s"><div class="dt">${NAMES[dv.s]}　${dv.why}のサイコロ</div>${rows}<div class="dtotal seq" style="--d:${td}s">合計 <b>${dv.total}</b> 枚 × 2人から${diceMultTxt(dv)}</div></div>`, end:t};
 }
 // 局全体の増減（春・リーチ棒も含む）と、精算表
 function handDelta(){

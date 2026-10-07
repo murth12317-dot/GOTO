@@ -69,6 +69,7 @@ const sg = v => v > 0 ? "+" + v.toLocaleString() : v < 0 ? "-" + (-v).toLocaleSt
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // withFee：場代を受け取る人の分も足す（週の通算だけ。内訳の表は打った分だけ）
+const ruleText = r => { r = r || {}; return [r.hana === 8 ? "華8" : r.hana === 7 ? "セブンスター" : "華4", r.shuba ? "シュバあり" : "", r.wareme ? "割れ目あり" : ""].filter(Boolean).join("・"); };
 function totals(games, withFee) {
   const by = {};
   for (const g of games) for (const p of g.players) {
@@ -93,8 +94,9 @@ function render() {
   const blocks = [], byKey = {};
   let prevKey = null;
   for (const g of w.games.slice().sort((a, b) => a.at.localeCompare(b.at))) {
-    const rate = g.rate || 1, key = g.room + "|" + rate;
-    if (!byKey[key]) blocks.push(byKey[key] = { room: g.room, rate, games: [], spans: [] });
+    // ルール（華・シュバ・割れ目）が違えば別のまとまり。記録にルールがない前の半荘は華4・なし・なし
+    const rate = g.rate || 1, rl = ruleText(g.rules), key = g.room + "|" + rate + "|" + rl;
+    if (!byKey[key]) blocks.push(byKey[key] = { room: g.room, rate, rl, games: [], spans: [] });
     const b = byKey[key];
     b.games.push(g);
     if (prevKey === key) b.spans[b.spans.length - 1].to = g.at; else b.spans.push({ from: g.at, to: g.at });
@@ -114,6 +116,7 @@ function render() {
     <h3 class="sec">内訳（ルーム・倍率ごと）</h3>
     ${blocks.map(b => { return `
     <div class="card"><h2>ルーム ${esc(b.room)}　倍率 ${b.rate}（${b.games.length}半荘）</h2>
+      <p class="when">${esc(b.rl)}</p>
       <p class="when">${spanText(b.spans)}</p>
       <div class="scroll"><table>
       <thead><tr><th>名前</th><th>半荘</th><th>1着</th><th>2着</th><th>3着</th><th>祝儀計</th><th>×倍率</th></tr></thead>
