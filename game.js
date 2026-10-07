@@ -39,6 +39,7 @@ function buildTiles(){
   for(const k of ALLK){
     if(k===13||k===22){ add(k,{red:true}); add(k,{gold:true}); add(k); add(k); }
     else if(k===31){ add(k,{pocchi:true}); add(k); add(k); add(k); }
+    else if(RULES.hana===7&&(k===15||k===24)){ add(k,{fk:k===15?34:35}); add(k,{fk:k===15?37:36}); add(k); add(k); } // セブンスター：7p＝春・冬、7s＝夏・秋
     else for(let j=0;j<4;j++) add(k);
   }
   for(let n=0;n<(RULES.hana===8?2:1);n++) for(let f=34;f<=37;f++) add(f);
@@ -217,7 +218,7 @@ function newGame(){
 function log(s){ G.log.unshift(s); if(G.log.length>60) G.log.pop(); }
 var startHand=function(){
   const all=shuffle(buildTiles());
-  const dead={kan:all.splice(-4),kita:all.splice(-4),hana:all.splice(-RULES.hana),dora:all.splice(-2),ura:all.splice(-2)};
+  const dead={kan:all.splice(-4),kita:all.splice(-4),hana:all.splice(-(RULES.hana===4?4:8)),dora:all.splice(-2),ura:all.splice(-2)};
   H={id:++handSeq,live:all,dead,p:[0,1,2].map(()=>({hand:[],melds:[],river:[],kita:[],hana:[],riichi:false,shuba:false,dbl:false,ippatsu:false,tempF:false,riichiF:false,calledFrom:false})),
      turn:G.dealer,noCalls:true,noNaki:[false,false,false],kanDora:[],kanUra:[],state:"idle",drawn:null,tobiPaid:[0,0,0],sel:null,prompt:null};
   H.startScores=G.scores.slice(); H.startChips=G.chips.slice(); H.label=roundLabel();
@@ -247,17 +248,26 @@ function chipMult(from,to,why){
   return m;
 }
 function payChips(from,to,n,why){ if(n<=0||from===to) return; n*=chipMult(from,to,why); G.chips[from]-=n; G.chips[to]+=n; if(R) R.chips.push({from,to,n,why}); else log(`${NAMES[from]} → ${NAMES[to]} 祝儀${n}枚（${why}）`); }
-function nukiHana(s){
-  const P=H.p[s]; const t=P.hand.find(x=>x.k>=34); if(!t) return false;
+// 華の効果の種類（34春・35夏・36秋・37冬）。華牌はそのまま、セブンスターの特別な7は fk
+const fkOf = t => t.k>=34 ? t.k : (t.fk||null);
+// 特別な7を抜けるか：自分の番。リーチ中はいま引いた牌だけ
+function starOptions(s){
+  const P=H.p[s]; if(H.state!=="play"&&H.state!=="cpu"||H.turn!==s) return [];
+  return P.hand.filter(t=>t.fk && (!P.riichi || t===H.drawn)).map(t=>t.id);
+}
+function nukiHana(s, id){
+  const P=H.p[s]; const t=id!=null ? P.hand.find(x=>x.id===id&&x.fk) : P.hand.find(x=>x.k>=34); if(!t) return false;
+  if(id!=null && !starOptions(s).includes(id)) return false;
   P.hand.splice(P.hand.indexOf(t),1); P.hana.push(t);
-  log(`${NAMES[s]}：${HON[t.k-27]}を抜いた`);
-  const KN=["","一","二","三","四"];
-  const hasSpring=P.hana.some(x=>x.k===34), secondSpring=t.k===34&&P.hana.filter(x=>x.k===34).length>=2;
+  const fk=fkOf(t), nm=HON[fk-27]+(t.fk?"の7":"");
+  log(`${NAMES[s]}：${nm}を抜いた`);
+  const KN=["","一","二","三","四","五","六","七","八"];
+  const hasSpring=P.hana.some(x=>fkOf(x)===34), secondSpring=fk===34&&P.hana.filter(x=>fkOf(x)===34).length>=2;
   if(secondSpring) SE.say("春、二枚目です",s);
-  else if(t.k===34){ const n=P.hana.length; SE.say(n===1?"春の、一枚です":`春で、${KN[n]}枚です`,s); }
-  else SE.say(hasSpring?`${HON[t.k-27]}で、追加一枚です`:HON[t.k-27],s);
+  else if(fk===34){ const n=P.hana.length; SE.say(n===1?"春の、一枚です":`春で、${KN[n]}枚です`,s); }
+  else SE.say(hasSpring?`${HON[fk-27]}で、追加一枚です`:HON[fk-27],s);
   // 春を持っていれば、華牌を抜くたびに1枚（2枚目の春も、1枚目の春の効果で1枚。2枚目の春そのものの効果は和了時）
-  if(hasSpring){ const n=t.k===34&&!secondSpring?P.hana.length:1; for(const o of [0,1,2]) if(o!==s) payChips(o,s,n,"春"); }
+  if(hasSpring){ const n=fk===34&&!secondSpring?P.hana.length:1; for(const o of [0,1,2]) if(o!==s) payChips(o,s,n,"春"); }
   const r=H.dead.hana.pop(); if(r){ P.hand.push(r); H.drawn=r; H.rinshan=false; }
   return true;
 }
@@ -329,6 +339,7 @@ function riichiAuto(s){
   if(tryTsumo(s)) return; // ボタンで選ぶ
   if(P.hand.some(x=>x.k>=34)) return; // 華は抜いてから
   if(H.drawn.k===30) return; // 引いた北は抜くか持つか選ぶ（切れない）
+  if(H.drawn.fk) return; // 引いた特別な7は、抜くか切るかを選ぶ
   if(kanOptions(s).length) return; // カンするか選べる
   discard(s,H.drawn.id,false);
 }
@@ -460,7 +471,7 @@ function cpuTurn(s){
   autoKita(s);
   const w=tryTsumo(s); if(w) return settleTsumo(s,w);
   const ko=kanOptions(s); if(ko.length) return doKan(s,ko[0].type,ko[0].k);
-  if(P.riichi) return discard(s,H.drawn?H.drawn.id:P.hand[P.hand.length-1].id,false);
+  if(P.riichi){ if(H.drawn&&H.drawn.fk&&nukiHana(s,H.drawn.id)){ autoHana(s); return setTimeout(()=>cpuTurn(s),300); } return discard(s,H.drawn?H.drawn.id:P.hand[P.hand.length-1].id,false); }
   cpuDiscard(s);
 }
 // 切れる牌：北・華は不可。リーチしていない人は、オープンリーチの当たり牌は不可（全部当たりなら全部可）
@@ -488,6 +499,7 @@ function cpuDiscard(s){
     const score=sh*100+v+(danger.includes(k)?100000:0);
     if(!best||score<best.score) best={t,score,sh};
   }
+  if(best.t.fk && nukiHana(s,best.t.id)){ autoHana(s); return setTimeout(()=>cpuTurn(s),300); } // 特別な7は切らずに抜く
   const canR=!P.riichi&&isClosed(P)&&G.scores[s]>=1000&&H.live.length>=3&&best.sh===0&&waits(s,P.hand.filter(x=>x!==best.t)).length>0;
   discard(s,best.t.id,canR);
 }
@@ -497,7 +509,7 @@ function doraInfo(s, conc){
   const P=H.p[s];
   const tiles=conc.concat(...P.melds.map(m=>m.tiles));
   const dk=doraKinds(H.dead.dora.concat(H.kanDora)), uk=P.riichi?doraKinds(H.dead.ura.concat(H.kanUra)):[];
-  const fl=flowersFor(s);
+  const fl=flowersFor(s,conc);
   const akiN=fl.all.filter(k=>k===36).length, aki=akiN>0;
   let dora=0; for(const t of tiles) for(const k of dk) if(t.k===k&&!t.virtualSkip) dora++;
   const aka=tiles.filter(t=>t.red).length, gold=tiles.filter(t=>t.gold).length;
@@ -510,12 +522,13 @@ function doraInfo(s, conc){
   if(kn<4) ura+=kn*uk.filter(k=>k===30).length;
   return {dora,aka,gold,akaDora,kitaDora,kn,ura,total:dora+akaDora+kitaDora+ura+plain5,aki,aki2,plain5};
 }
-function flowersFor(s){
+function flowersFor(s,conc){
   const P=H.p[s];
-  const own=P.hana.map(t=>t.k);
+  const own=P.hana.map(fkOf);
+  const hand=(conc||P.hand).concat(...P.melds.map(m=>m.tiles)).filter(t=>t.fk).map(t=>t.fk); // 手に持ったままの特別な7
   const ind=H.dead.dora.filter(t=>t.k>=34).map(t=>t.k);
   const ura=P.riichi?H.dead.ura.filter(t=>t.k>=34).map(t=>t.k):[];
-  return {own,ind,ura,all:own.concat(ind,ura)};
+  return {own,ind,ura,hand,all:own.concat(ind,ura,hand)};
 }
 
 // ===== 精算 =====
@@ -529,7 +542,7 @@ function payPts(from,to,n,why,noTobi,hb=0){
   if(!noTobi){ const due=tier(G.scores[from])-H.tobiPaid[from]; if(due>0){ H.tobiPaid[from]+=due; payChips(from,to,due,"トビ賞"); } }
 }
 function finalPoints(s, w){
-  const r=w.res; const di=doraInfo(s,w.conc); const fl=flowersFor(s);
+  const r=w.res; const di=doraInfo(s,w.conc); const fl=flowersFor(s,w.conc);
   let base, han=r.han+di.total, label;
   const summer=fl.all.filter(k=>k===35).length; // 夏1枚につきワンランクアップ
   let kazoe=false;
@@ -606,12 +619,12 @@ function winChips(s,w,fp,tsumo,d){
   const tiles=w.conc.concat(...P.melds.map(m=>m.tiles));
   if(closed && tiles.some(t=>t.red&&t.k===13)&&tiles.some(t=>t.gold&&t.k===13)&&tiles.some(t=>t.red&&t.k===22)&&tiles.some(t=>t.gold&&t.k===22)) dice("赤金4枚");
   if(P.kita.length===4) dice("北4枚");
-  const sets=Math.min(...[34,35,36,37].map(k=>P.hana.filter(t=>t.k===k).length));
-  for(let i=0;i<sets;i++) dice(RULES.hana===8?"春夏秋冬":"華牌4枚");
+  const sets=Math.min(...[34,35,36,37].map(k=>P.hana.filter(t=>fkOf(t)===k).length));
+  for(let i=0;i<sets;i++) dice(RULES.hana===4?"華牌4枚":"春夏秋冬");
   // 春（和了時）：1枚目の春は表示牌の華牌×1枚を追加、2枚目の春（自分の2枚目か表示牌の春）は全部の華牌×1枚（華4・華8共通）
   {
-    const indF=fp.fl.ind.length+fp.fl.ura.length, ownS=P.hana.filter(t=>t.k===34).length;
-    const springs=ownS+fp.fl.ind.filter(k=>k===34).length+fp.fl.ura.filter(k=>k===34).length, allF=P.hana.length+indF;
+    const atWin=fp.fl.ind.concat(fp.fl.ura,fp.fl.hand), indF=atWin.length, ownS=P.hana.filter(t=>fkOf(t)===34).length;
+    const springs=ownS+atWin.filter(k=>k===34).length, allF=P.hana.length+indF;
     if(ownS>=1 && indF) pay(indF,"春（表示牌の華牌）",true);
     if(ownS===0 && springs>=1) pay(allF,"表示牌の春",true); // 1枚目の春が表示牌のとき
     if(springs>=2) pay(allF,"2枚目の春",true);
@@ -715,7 +728,7 @@ function endGame(){
   startHand = function(){ _startHand(); };
   return {
     get G(){return G;}, get H(){return H;}, get R(){return R;},
-    newGame, startHand, endGame, decideYame, canShuba, rules: RULES, autoTsumo, setAutoWin, autoWinOf: s=>AUTO_WIN[s], discard, tryTsumo, settleTsumo, riichiOptions, kanOptions, doKan,
+    newGame, startHand, endGame, decideYame, canShuba, rules: RULES, starOptions, autoTsumo, setAutoWin, autoWinOf: s=>AUTO_WIN[s], discard, tryTsumo, settleTsumo, riichiOptions, kanOptions, doKan,
     nukiKita, nukiHana, promptAnswer, riichiAuto, waits, shanten, seatWind, roundLabel, isClosed, openDanger, discardable,
     destroy(){ dead=true; }
   };

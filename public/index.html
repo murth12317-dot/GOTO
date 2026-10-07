@@ -648,7 +648,7 @@ const SOU={
 };
 const faceCache={};
 function faceSVG(t){
-  const key=t.k+(t.red?"r":t.gold?"g":t.pocchi?"p":"");
+  const key=t.k+(t.red?"r":t.gold?"g":t.pocchi?"p":"")+(t.fk?"f"+t.fk:"");
   if(faceCache[key]) return faceCache[key];
   const k=t.k; let b="";
   const over=t.red?CR:t.gold?"GOLD":null;
@@ -695,11 +695,13 @@ function faceSVG(t){
     const col=k===32?CG:k===33?CR:k===30?"#b3342a":CK;
     b=`<text x="30" y="55" font-size="42" fill="${col}" ${FONT}>${HON[k-27]}</text>`;
   }
+  // セブンスターの特別な7：左上に華の印（春・夏・秋・冬）
+  if(t.fk){ const FC={34:"#d8402c",35:"#1f8a4c",36:"#c77a12",37:"#2f62c8"}[t.fk]; b+=`<circle cx="48" cy="12" r="11.5" fill="${FC}" stroke="#fff" stroke-width="1.5"/><text x="48" y="17" font-size="14" fill="#fff" font-weight="900" text-anchor="middle" font-family="sans-serif">${HON[t.fk-27]}</text>`; }
   return faceCache[key]=`<svg viewBox="0 0 60 80" aria-hidden="true">${b}</svg>`;
 }
 function tileHTML(t, cls=""){
   if(!t) return "";
-  return `<span class="t ${cls}${t.red?" red":""}${t.gold?" gold":""}" data-id="${t.id}" data-k="${t.k}" title="${tName(t)}">${faceSVG(t)}</span>`;
+  return `<span class="t ${cls}${t.red?" red":""}${t.gold?" gold":""}" data-id="${t.id}" data-k="${t.k}" title="${tName(t)}${t.fk?"（"+HON[t.fk-27]+"の効果）":""}">${faceSVG(t)}</span>`;
 }
 function buildTiles(){
   let id=0; const a=[]; const add=(k,o={})=>a.push(Object.assign({id:id++,k},o));
@@ -862,6 +864,7 @@ function render(){
     const hasHana=P.hand.some(x=>x.k>=34);
     if(hasHana) acts+=`<button data-a="hana" class="b-kita">華</button>`;
     if(P.hand.some(x=>x.k===30)) acts+=`<button data-a="kita" class="b-kita">北</button>`;
+    if(!hasHana && V&&V.acts&&V.acts.stars) for(const id of V.acts.stars){ const t=P.hand.find(x=>x.id===id); if(t) acts+=`<button data-a="star" data-id="${id}" class="b-kita">${HON[t.fk-27]}の7を抜く</button>`; }
     for(const o of kanOptions(0)) acts+=`<button data-a="kan2" data-k="${o.k}" data-t="${o.type}" class="b-pon">カン ${kName(o.k)}</button>`;
     if(H.sel){ const nm=H.shubaSel?(H.sel==="open"?"シュバオープン":"シュバリー"):H.sel==="open"?"オープンリーチ":"リーチ"; acts+=`<button data-a="cancel" class="b-skip">キャンセル</button>`;
       if(V&&V.acts&&V.acts.shuba) acts+=`<button data-a="shubatog" class="b-riichi b-shuba${H.shubaSel?" on":""}" aria-pressed="${!!H.shubaSel}">${H.shubaSel?"✓ ":""}シュバ棒も出す</button>`; hint=H.pick!=null?`もう一度タップで${nm}`:`${nm}で切る牌を選んでください`; }
@@ -886,7 +889,7 @@ function render(){
       <div class="box">
         <div class="rl">${wind}${V?V.kyoku:G.dealer+1}局</div>
         <div class="sub">${G.honba}本場　供託${G.kyotaku}${G.phase>=2?"　返り東":""}</div>
-        ${H.rules&&(H.rules.wareme||H.rules.hana===8)?`<div class="rtag">${[H.rules.hana===8?"華8":"",H.rules.wareme?"割れ目":""].filter(Boolean).join("・")}</div>`:""}
+        ${H.rules&&(H.rules.wareme||H.rules.hana!==4&&H.rules.hana)?`<div class="rtag">${[H.rules.hana===8?"華8":H.rules.hana===7?"セブンスター":"",H.rules.wareme?"割れ目":""].filter(Boolean).join("・")}</div>`:""}
         <div class="rest">残り ${H.live.length}</div>
       </div>
       ${seatLayer(2)}${seatLayer(1)}${seatLayer(0)}
@@ -911,6 +914,7 @@ document.addEventListener("click",e=>{
     if(a==="tsumo"){ act({t:"tsumo"}); return; }
     if(a==="hana"){ act({t:"hana"}); return; }
     if(a==="kita"){ act({t:"kita"}); return; }
+    if(a==="star"){ act({t:"star",id:+b.dataset.id}); return; }
     if(a==="riichi"){ H.sel="riichi"; H.shubaSel=false; render(); return; }
     if(a==="shubatog"){ H.shubaSel=!H.shubaSel; render(); return; }
     if(a==="open"){ H.sel="open"; render(); return; }
@@ -1494,7 +1498,7 @@ function rulesHTML(L){
   const r=L.rules||{hana:4,shuba:false,wareme:false};
   const seg=(key,opts)=>opts.map(([v,label,dis])=>`<button data-a="rule" data-k="${key}" data-v="${v}" class="seg${String(r[key])===String(v)?" on":""}" ${!L.isHost||dis?"disabled":""}>${label}</button>`).join("");
   return `<div class="rules">
-    <div class="rrow"><b>華</b>${seg("hana",[[4,"4枚"],[8,"8枚"]])}</div>
+    <div class="rrow"><b>華</b>${seg("hana",[[4,"4枚"],[8,"8枚"],[7,"セブンスター"]])}</div>
     <div class="rrow"><b>シュバ</b>${seg("shuba",[[false,"なし"],[true,"あり"]])}</div>
     <div class="rrow"><b>割れ目</b>${seg("wareme",[[false,"なし"],[true,"あり"]])}</div>
   </div>`;

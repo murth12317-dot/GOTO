@@ -108,7 +108,7 @@ function viewFor(room, seat) {
   let acts = null;
   if (H.state === "play" && H.turn === seat) {
     const tw = g.tryTsumo(seat);
-    acts = { tsumo: !!tw, pocchi: !!(tw && tw.pocchi), riichi: g.riichiOptions(seat), openRiichi: g.riichiOptions(seat, true), kan: g.kanOptions(seat), shuba: g.canShuba(seat),
+    acts = { tsumo: !!tw, pocchi: !!(tw && tw.pocchi), riichi: g.riichiOptions(seat), openRiichi: g.riichiOptions(seat, true), kan: g.kanOptions(seat), shuba: g.canShuba(seat), stars: g.starOptions(seat),
       kita: me.hand.some(t => t.k === 30), hana: me.hand.some(t => t.k >= 34) };
   }
   let prompt = null, othersDeciding = false;
@@ -368,7 +368,7 @@ io.on("connection", socket => {
     if (!room || room.phase !== "lobby" || !v) return;
     if (room.seats[seatNow()].token !== room.hostToken) return err("ルールを変えられるのはルームを作った人です");
     const cur = room.rules || { hana: 4, shuba: false, wareme: false };
-    room.rules = { hana: v.hana === 8 ? 8 : 4, shuba: !!v.shuba, wareme: !!v.wareme };
+    room.rules = { hana: [4, 7, 8].includes(v.hana) ? v.hana : 4, shuba: !!v.shuba, wareme: !!v.wareme };
     broadcastLobby(room);
   });
 
@@ -400,6 +400,7 @@ io.on("connection", socket => {
         case "tsumo": { if (H.state !== "play" || H.turn !== s) return; const w = g.tryTsumo(s); if (w) g.settleTsumo(s, w); break; }
         case "kita": { if (H.state !== "play" || H.turn !== s) return; g.nukiKita(s); schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
         case "hana": { if (H.state !== "play" || H.turn !== s) return; g.nukiHana(s); schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
+        case "star": { if (H.state !== "play" || H.turn !== s) return; if (!g.nukiHana(s, a.id)) return; schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
         case "autowin": { g.setAutoWin(s, !g.autoWinOf(s)); schedulePush(room); break; }
         case "kan": { if (H.state !== "play" || H.turn !== s) return; if (!g.kanOptions(s).some(o => o.type === a.type && o.k === a.k)) return; g.doKan(s, a.type, a.k); break; }
         case "answer": { if (!g.promptAnswer(s, a.a)) return; break; }
