@@ -554,8 +554,8 @@ function flowersFor(s,conc){
   const P=H.p[s];
   const own=P.hana.map(fkOf);
   const hand=(conc||P.hand).concat(...P.melds.map(m=>m.tiles)).filter(t=>t.fk).map(t=>t.fk); // 手に持ったままの特別な7
-  const ind=H.dead.dora.filter(t=>t.k>=34).map(t=>t.k);
-  const ura=P.riichi?H.dead.ura.filter(t=>t.k>=34).map(t=>t.k):[];
+  const ind=H.dead.dora.filter(t=>fkOf(t)).map(fkOf); // ドラ表示の華牌・華の7（華の7は普通の7としてもドラを決める）
+  const ura=P.riichi?H.dead.ura.filter(t=>fkOf(t)).map(fkOf):[];
   return {own,ind,ura,hand,all:own.concat(ind,ura,hand)};
 }
 
@@ -667,7 +667,7 @@ function winChips(s,w,fp,tsumo,d){
     const own=tulip?tiles.concat(P.kita):tiles;
     for(const t of src){
       if(t.k>=34){ const n=fp.fl.all.length*mult; R.alice.push({t,hit:true,n}); total+=n; continue; } // 抜いた華牌＋ドラ表示・裏ドラ表示の華牌
-      const kc=tulip?tulipKinds(t.k).reduce((a,k)=>a+own.filter(x=>x.k===k).length,0):tiles.filter(x=>x.k===t.k).length;
+      const kc=(tulip?tulipKinds(t.k).reduce((a,k)=>a+own.filter(x=>x.k===k).length,0):tiles.filter(x=>x.k===t.k).length)+(t.fk?fp.fl.all.length:0); // 華の7は華牌としても当たり
       if(kc>0){ R.alice.push({t,hit:true,n:kc*mult}); total+=kc*mult; } else { R.alice.push({t,hit:false}); R.aliceOut=false; break; }
     }
     pay(total,tulip?"チューリップ":"アリス");
