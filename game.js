@@ -467,22 +467,24 @@ function doPon(o,from,t){
 }
 
 // ===== カン =====
+// 暗槓に使う4枚（セブンスターの7は5枚以上持てるので、普通の7→虹→華の7の順に選び、華の7は手に残す）
+const kanFour=(P,k)=>P.hand.filter(x=>x.k===k).sort((a,b)=>(a.fk?2:a.rainbow?1:0)-(b.fk?2:b.rainbow?1:0)).slice(0,4);
 function riichiKanOK(s,k){
   const P=H.p[s]; if(!H.drawn||H.drawn.k!==k) return false;
   const w1=waits(s,P.hand.filter(t=>t!==H.drawn));
-  P.melds.push({t:"ankan",k,tiles:[]}); const w2=waits(s,P.hand.filter(t=>t.k!==k)); P.melds.pop();
+  const four=kanFour(P,k); P.melds.push({t:"ankan",k,tiles:four}); const w2=waits(s,P.hand.filter(t=>!four.includes(t))); P.melds.pop();
   return w1.length>0 && w1.join()===w2.join();
 }
 function kanOptions(s){
   const P=H.p[s]; if(!H.dead.kan.length||H.live.length===0) return [];
   const c=counts(P.hand), res=[];
-  for(let k=0;k<34;k++) if(k!==30 && c[k]===4 && (!P.riichi||riichiKanOK(s,k))) res.push({type:"ankan",k});
+  for(let k=0;k<34;k++) if(k!==30 && c[k]>=4 && (!P.riichi||riichiKanOK(s,k))) res.push({type:"ankan",k});
   if(!P.riichi) for(const m of P.melds) if(m.t==="pon" && c[m.k]>=1) res.push({type:"kakan",k:m.k});
   return res;
 }
 function doKan(s,type,k,from,t){
   const P=H.p[s];
-  if(type==="ankan"){ const four=P.hand.filter(x=>x.k===k); P.hand=P.hand.filter(x=>x.k!==k); P.melds.push({t:"ankan",k,tiles:four}); }
+  if(type==="ankan"){ const four=kanFour(P,k); P.hand=P.hand.filter(x=>!four.includes(x)); P.melds.push({t:"ankan",k,tiles:four}); }
   else if(type==="kakan"){ const x=P.hand.find(y=>y.k===k); P.hand.splice(P.hand.indexOf(x),1); const m=P.melds.find(m=>m.t==="pon"&&m.k===k); m.t="kakan"; m.tiles.push(x); }
   else { const three=P.hand.filter(x=>x.k===k).slice(0,3); P.hand=P.hand.filter(x=>!three.includes(x)); P.melds.push({t:"minkan",k,tiles:[...three,t],from}); checkPao(s,from,k); const rv=H.p[from].river; rv[rv.length-1].called=true; H.p[from].calledFrom=true; }
   H.noCalls=false; for(const p of H.p) p.ippatsu=false;
