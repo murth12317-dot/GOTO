@@ -88,7 +88,7 @@ if (SHEET_URL) callSheet(null); else console.log("sheet off (SHEET_URL not set)"
 
 function roomPublic(room) {
   return {
-    code: room.code, phase: room.phase, rate: room.rate || 1, rules: room.rules || { hana: 4, shuba: false, wareme: false }, totals: totalsInfo(room),
+    code: room.code, phase: room.phase, rate: room.rate || 100, rules: room.rules || { hana: 4, shuba: false, wareme: false }, totals: totalsInfo(room),
     seats: room.seats.map((p, i) => p ? { name: p.name, cpu: !!p.cpu, online: p.cpu || !!p.socket, host: p.token === room.hostToken, ready: !!p.ready } : null),
     allReady: room.seats.filter(p => p && !p.cpu).every(p => p.ready),
   };
@@ -218,7 +218,7 @@ function pushViews(room) {
 function startGame(room) {
   room.gameId = (room.gameId || 0) + 1;
   room.gameKey = room.code + "-" + Date.now();
-  room.gameRate = room.rate || 1; // 対局中に変わらないよう、開始時の倍率で記録する
+  room.gameRate = room.rate || 100; // 対局中に変わらないよう、開始時の倍率で記録する
   // 席をシャッフル（起家はランダム）
   const people = room.seats.map((p, i) => p || { name: CPU_NAMES[i], cpu: true, token: null, socket: null });
   shuffleArr(people);
