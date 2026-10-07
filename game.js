@@ -549,7 +549,7 @@ function doraInfo(s, conc){
   const kn=P.kita.length;
   const aki2=akiN>=2; // 秋秋
   const kitaDora=kn+(aki2?kn:0)+(kn===4?4:0)+kn*dk.filter(k=>k===30).length; // 北1枚1つ（秋秋で2つ）、4枚そろえば＋4
-  const plain5=aki2?tiles.filter(t=>(t.k===13||t.k===22)&&!t.red&&!t.gold).length*2:0; // 秋秋：普通の5は1枚でドラ2つ
+  const plain5=aki2?tiles.filter(t=>(t.k===13||t.k===22)&&!t.red&&!t.gold).length:0; // 秋秋：普通の5は1枚でドラ1つ
   let ura=0; for(const t of tiles) for(const k of uk) if(t.k===k) ura++;
   if(kn<4) ura+=kn*uk.filter(k=>k===30).length;
   return {dora,aka,gold,rainbow,akaDora,kitaDora,kn,ura,total:dora+akaDora+kitaDora+ura+plain5,aki,aki2,plain5};
