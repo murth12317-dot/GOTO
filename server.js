@@ -147,7 +147,7 @@ function viewFor(room, seat) {
 function tenpaiFor(g, seat) {
   const H = g.H, P = H.p[seat], out = { cand: {}, cur: null };
   if (P.hand.some(t => t.k >= 34)) return out;
-  const riverK = P.river.map(r => r.t.k).concat(P.hana.filter(t => t.fk).map(t => t.k)); // 抜いた華の7もフリテンの判定に入れる
+  const riverK = P.river.map(r => r.t.k).concat(P.hana.filter(t => t.fk).map(t => t.k), P.kita.length ? [30] : []); // 抜いた華の7・北もフリテンの判定に入れる
   if (H.state === "play" && H.turn === seat) {
     const ok = g.discardable(seat), done = {};
     for (const t of P.hand) {
