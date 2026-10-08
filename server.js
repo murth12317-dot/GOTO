@@ -102,6 +102,13 @@ function winLeftOf(H, seat) {
   const at = H.state === "play" && H.turn === seat ? H.winAt : H.state === "prompt" && H.prompt && H.prompt.pend[seat] && H.prompt.pend[seat].ron && !H.prompt.pend[seat].answer ? H.prompt.winAt : null;
   return at && at > Date.now() ? at - Date.now() : null;
 }
+// 白ポッチの使い方の選択（選ぶ本人には選択肢、ほかの人には「選んでいます」）
+function pchoiceFor(H, seat) {
+  const pc = H.pchoice; if (!pc) return null;
+  const left = Math.max(0, pc.until - Date.now());
+  if (pc.s !== seat) return { other: rotOf(seat)(pc.s), left };
+  return { left, timeout: pc.timeout, opts: pc.opts.map(o => ({ k: o.k, label: o.fp.label, han: o.fp.han, pts: o.pts, chips: o.chips, pay: rotArr(o.pay, seat) })) };
+}
 function viewFor(room, seat) {
   const g = room.game, G = g.G, H = g.H, r = rotOf(seat);
   const pl = H.p.map((P, s) => ({
@@ -133,7 +140,7 @@ function viewFor(room, seat) {
     rules: g.rules, wareme: H.wareme == null ? null : r(H.wareme),
     drawnId: H.turn === seat && H.drawn ? H.drawn.id : null,
     acts, prompt, othersDeciding, danger: g.openDanger(seat), allowed: g.discardable(seat),
-    tp: tenpaiFor(g, seat), noNaki: !!H.noNaki[seat], winLeft: winLeftOf(H, seat), canAbort: room.seats.some(p => p && p.cpu), log: G.log.slice(0, 40),
+    tp: tenpaiFor(g, seat), noNaki: !!H.noNaki[seat], winLeft: winLeftOf(H, seat), canAbort: room.seats.some(p => p && p.cpu), pchoice: pchoiceFor(H, seat), log: G.log.slice(0, 40),
   };
 }
 // 聴牌補助：切るとテンパイになる牌と待ち・フリテン
@@ -309,7 +316,8 @@ function kickAway(room, seat) {
     const P = H.p[seat];
     while (P.hand.some(t => t.k >= 34)) g.nukiHana(seat);
     while (P.hand.some(t => t.k === 30)) g.nukiKita(seat);
-    const tw = g.tryTsumo(seat); if (tw) return g.settleTsumo(seat, tw);
+    if (H.pchoice && H.pchoice.s === seat) return g.choosePocchi(seat, H.pchoice.timeout, true);
+    if (g.doTsumo(seat)) return;
     const ok = g.discardable(seat);
     const t = H.drawn && ok.includes(H.drawn.id) ? H.drawn : P.hand.find(x => ok.includes(x.id));
     if (t) g.discard(seat, t.id, false);
@@ -393,6 +401,7 @@ io.on("connection", socket => {
     const g = room.game, H = g.H, s = seatNow(); if (s < 0) return;
     if (a && a.t === "back") { backFromAway(room, s); return; }
     if (backFromAway(room, s)) return; // 代打中だった：まず本人に戻すだけ
+    if (H.pchoice && !(a && a.t === "pchoice")) return; // 白ポッチの使い方を選んでいる間は、ほかの操作はしない
     try {
       switch (a && a.t) {
         case "discard": {
@@ -402,7 +411,8 @@ io.on("connection", socket => {
           if (P.riichi && H.drawn && a.id !== H.drawn.id) return;
           g.discard(s, a.id, !!a.riichi, !!(a.riichi && a.open), !!(a.riichi && a.shuba)); break;
         }
-        case "tsumo": { if (H.state !== "play" || H.turn !== s) return; const w = g.tryTsumo(s); if (w) g.settleTsumo(s, w); break; }
+        case "tsumo": { if (H.state !== "play" || H.turn !== s) return; g.doTsumo(s); break; }
+        case "pchoice": { if (!H.pchoice || H.pchoice.s !== s) return; g.choosePocchi(s, +a.i); break; }
         case "kita": { if (H.state !== "play" || H.turn !== s) return; g.nukiKita(s); schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
         case "hana": { if (H.state !== "play" || H.turn !== s) return; g.nukiHana(s); schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
         case "star": { if (H.state !== "play" || H.turn !== s) return; if (!g.nukiHana(s, a.id)) return; schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }

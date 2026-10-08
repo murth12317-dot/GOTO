@@ -346,6 +346,67 @@ function riichiOptions(s,open){
   for(const t of P.hand){ if(t.k===30||t.k>=34||!ok.includes(t.id)) continue; const rest=P.hand.filter(x=>x!==t); if(shanten(rest,P.melds.length)===0 && waits(s,rest).length) ids.push(t.id); }
   return ids;
 }
+// ===== 白ポッチ（リーチ中は万能）：どの牌として使うか =====
+// 当てはめられる牌ごとに、見えている情報（裏ドラは入れる。アリス・チューリップ・サイコロは入れない）で打点と祝儀を出す
+function pocchiCands(s){
+  const P=H.p[s]; if(!(P.riichi && H.drawn && H.drawn.pocchi)) return [];
+  const rest=P.hand.filter(x=>x!==H.drawn), out=[], dealerWin=s===G.dealer;
+  for(const k of ALLK){
+    const v={k,id:-2,virtual:true}; const conc=rest.concat([v]); const ctx=winCtx(s,true); ctx.dora=doraInfo(s,conc).total;
+    const r=evaluate(s,conc,k,ctx); if(!r) continue;
+    const w={res:r,conc,winK:k,pocchi:true}, fp=finalPoints(s,w);
+    const pay=[0,1,2].map(o=>{ if(o===s) return 0; let n=ceil1000(fp.base*((dealerWin||o===G.dealer)?2:1))+1000;
+      if(RULES.wareme && H.wareme!=null && (o===H.wareme||s===H.wareme)) n*=2; return n+1000*G.honba; });
+    const pts=pay.reduce((a,b)=>a+b,0);
+    let chips=winChips(s,w,fp,true,null,true).got;
+    const after=G.scores.map((v,o)=>o===s?v+pts+1000*G.kyotaku:v-pay[o]);
+    for(const o of [0,1,2]) if(o!==s){ const due=tier(after[o])-H.tobiPaid[o]; if(due>0) chips+=due*chipMult(o,s,"トビ賞"); } // トビ賞
+    out.push({k,w,fp,pts,chips,after,pay});
+  }
+  return out;
+}
+// 終局したときに、その人がもらうウマ・8万点超えの祝儀（子のオーラスの時間切れで使う）
+function umaIf(s,after,childWon){
+  const max=Math.max(...after);
+  const ends=after.some(x=>x<=0) || (max>40000 && (G.phase>=1 || (childWon && G.dealer===2)));
+  if(!ends) return 0;
+  const order=[0,1,2].sort((a,b)=>after[b]-after[a] || a-b), [a,b,c]=order; let n=0;
+  if(s===a) n+=15; if(after[b]>40000){ if(s===b) n+=5; if(s===c) n-=20; } else if(s===c) n-=15;
+  for(const o of [0,1,2]) if(after[o]>80000){ const m=3+Math.floor((after[o]-80001)/10000); n+= o===s ? 2*m : -m; }
+  return n;
+}
+// 選び方：打点も祝儀もいちばんの牌が1つなら自動。分かれたら選択肢（打点優先・祝儀優先）を返す
+function pocchiPlan(s){
+  const cs=pocchiCands(s); if(!cs.length) return null;
+  const by=(a,b,...f)=>{ for(const g of f){ const d=g(b)-g(a); if(d) return d; } return 0; };
+  const bestP=cs.slice().sort((a,b)=>by(a,b,x=>x.pts,x=>x.chips))[0];
+  const bestC=cs.slice().sort((a,b)=>by(a,b,x=>x.chips,x=>x.pts))[0];
+  // 時間切れ・CPU：祝儀優先。子は終局するならウマも含めた祝儀で比べる
+  const childWon=s!==G.dealer;
+  const timeout=childWon ? cs.slice().sort((a,b)=>by(a,b,x=>x.chips+umaIf(s,x.after,true),x=>x.pts))[0] : bestC;
+  return {cs,bestP,bestC,timeout,choice:bestP!==bestC};
+}
+// ツモ（白ポッチは使い方を決めてから）。人間で打点と祝儀が分かれるときは60秒の選択
+const PCHOICE_MS = hooks.pchoiceWait!=null ? hooks.pchoiceWait : 60000;
+function doTsumo(s){
+  if((H.state!=="play"&&H.state!=="cpu")||H.turn!==s||H.pchoice) return false;
+  const w=tryTsumo(s); if(!w) return false;
+  if(!w.pocchi){ settleTsumo(s,w); return true; }
+  const plan=pocchiPlan(s); if(!plan){ settleTsumo(s,w); return true; }
+  if(!plan.choice||isCPU(s)){ settleTsumo(s,(plan.choice?plan.timeout:plan.bestP).w); return true; }
+  const opts=[plan.bestP,plan.bestC];
+  H.winAt=null;
+  H.pchoice={s,opts,timeout:opts.indexOf(plan.timeout)>=0?opts.indexOf(plan.timeout):1,until:Date.now()+PCHOICE_MS};
+  const pc=H.pchoice, hid=H.id;
+  setTimeout(()=>{ if(dead||!H||H.id!==hid||H.pchoice!==pc) return; choosePocchi(s,pc.timeout,true); }, PCHOICE_MS);
+  render(); return true;
+}
+function choosePocchi(s,i,byTimeout){
+  const pc=H.pchoice; if(!pc||pc.s!==s||!pc.opts[i]) return false;
+  let o=pc.opts[i];
+  if(byTimeout && pc.opts.indexOf(o)!==pc.timeout) o=pc.opts[pc.timeout];
+  H.pchoice=null; settleTsumo(s,o.w); return true;
+}
 // 自動和了：ツモれるのにツモもキャンセルも押さなければ、WIN_WAIT 後に自動でツモ（人間の手番のとき）
 const winKeyOf = s => `${H.id}:${s}:${H.p[s].river.length}:${H.p[s].melds.length}:${H.drawn?H.drawn.id:""}`;
 function autoTsumo(s){
@@ -355,7 +416,7 @@ function autoTsumo(s){
   if(H.winKey===key) return true;
   H.winKey=key; H.winAt=Date.now()+WIN_WAIT; const hid=H.id;
   setTimeout(()=>{ if(dead||!H||H.id!==hid||H.state!=="play"||H.turn!==s||isCPU(s)||winKeyOf(s)!==key||H.winSkip===key) return;
-    const w=tryTsumo(s); if(w) settleTsumo(s,w); }, WIN_WAIT);
+    doTsumo(s); }, WIN_WAIT);
   render(); return true;
 }
 // ツモのキャンセル（リーチ中ならそのままツモ切り。リーチ中の見逃しはフリテン）
@@ -516,7 +577,7 @@ function doKan(s,type,k,from,t){
 function cpuTurn(s){
   const P=H.p[s];
   autoKita(s);
-  const w=tryTsumo(s); if(w) return settleTsumo(s,w);
+  if(doTsumo(s)) return;
   const ko=kanOptions(s); if(ko.length) return doKan(s,ko[0].type,ko[0].k);
   if(P.riichi){ if(H.drawn&&H.drawn.fk){ const r=nukiHana(s,H.drawn.id); if(r==="prompt") return; if(r){ autoHana(s); return setTimeout(()=>cpuTurn(s),300); } } return discard(s,H.drawn?H.drawn.id:P.hand[P.hand.length-1].id,false); }
   cpuDiscard(s);
@@ -649,16 +710,18 @@ function settleRon(d,t,list){
   });
   finishHand(list.map(x=>x.o));
 }
-function winChips(s,w,fp,tsumo,d){
+// dry：精算せずに、見えている分（サイコロ・アリス・チューリップを除く）の祝儀だけを数えて返す（白ポッチの選択用）
+function winChips(s,w,fp,tsumo,d,dry){
   const P=H.p[s], r=w.res, di=fp.di, closed=isClosed(P); const others=[0,1,2].filter(o=>o!==s);
-  const lines=[];
-  const pay=(n,why,both)=>{ if(n<=0) return; lines.push([why,n,both||tsumo?"2人から":"放銃者から"]); if(both||tsumo) others.forEach(o=>payChips(o,s,n,why)); else payChips(d,s,n,why); };
-  const dice=(why)=>{ const x=rollDice(); R.dice.push({s,why,...x}); lines.push([why+"（サイコロ）",x.total,"2人から"]); others.forEach(o=>payChips(o,s,x.total,why+" サイコロ")); };
+  const lines=[]; let got=0;
+  const give=(o,n,why)=>{ if(dry){ if(n>0&&o!==s) got+=n*chipMult(o,s,why); } else payChips(o,s,n,why); };
+  const pay=(n,why,both)=>{ if(n<=0) return; lines.push([why,n,both||tsumo?"2人から":"放銃者から"]); if(both||tsumo) others.forEach(o=>give(o,n,why)); else give(d,n,why); };
+  const dice=(why)=>{ if(dry){ lines.push([why+"（サイコロ）",0,"2人から"]); return; } const x=rollDice(); R.dice.push({s,why,...x}); lines.push([why+"（サイコロ）",x.total,"2人から"]); others.forEach(o=>payChips(o,s,x.total,why+" サイコロ")); };
   const pocchiIppatsu=w.pocchi&&tsumo&&P.ippatsu;
   pay(di.aka,"赤5"); pay(di.gold*2,"金5"); pay((di.rainbow||0)*3,"虹7"); pay(di.kn,"抜き北"); pay(di.ura,"裏ドラ");
   if(P.ippatsu&&P.riichi&&!pocchiIppatsu) pay(1,"一発");
   if(r.ymN>0){ const pao=paoOf(s,w);
-    if(pao!=null){ lines.push(["役満（包）",10,"包から"]); payChips(pao,s,10,"役満（包）"); if(r.ymN>1) pay(tsumo?5*(r.ymN-1):10*(r.ymN-1),"役満"); }
+    if(pao!=null){ lines.push(["役満（包）",10,"包から"]); give(pao,10,"役満（包）"); if(r.ymN>1) pay(tsumo?5*(r.ymN-1):10*(r.ymN-1),"役満"); }
     else pay(tsumo?5*r.ymN:10*r.ymN,"役満");
     for(let i=0;i<r.ymN;i++) dice("役満"); }
   else if(fp.kazoe){ pay(tsumo?5:10,"数え役満"); }
@@ -679,6 +742,7 @@ function winChips(s,w,fp,tsumo,d){
     if(springs>=2) pay(allF,"2枚目の春",true);
   }
   if(w.pocchi){ if(pocchiIppatsu){ pay(4,"白ポッチ一発",true); dice("白ポッチ一発"); } else pay(1,"白ポッチ",true); }
+  if(dry) return {lines,got};
   if(fp.fl.all.includes(37)){ // 冬：アリス（冬2枚ならチューリップ）
     // ドラ表示牌の隣（残りの山の最後）から順にめくる。嶺上牌はさわらない
     const tulip=fp.fl.all.filter(k=>k===37).length>=2; R.tulip=tulip;
@@ -777,7 +841,7 @@ function endGame(){
   startHand = function(){ _startHand(); };
   return {
     get G(){return G;}, get H(){return H;}, get R(){return R;},
-    newGame, startHand, endGame, decideYame, canShuba, rules: RULES, starOptions, autoTsumo, cancelWin, discard, tryTsumo, settleTsumo, riichiOptions, kanOptions, doKan,
+    newGame, startHand, endGame, decideYame, canShuba, rules: RULES, starOptions, autoTsumo, cancelWin, doTsumo, choosePocchi, pocchiPlan, discard, tryTsumo, settleTsumo, riichiOptions, kanOptions, doKan,
     nukiKita, nukiHana, promptAnswer, riichiAuto, waits, shanten, seatWind, roundLabel, isClosed, openDanger, discardable,
     destroy(){ dead=true; }
   };

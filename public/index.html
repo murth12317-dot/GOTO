@@ -408,6 +408,17 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 @property --ang{syntax:"<angle>";inherits:false;initial-value:0deg}
 @keyframes rbspin{to{--ang:360deg}}
 .awaybn{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);transform:translateX(-50%);z-index:50;background:#14322f;border:1px solid var(--gold);border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.6);font-size:13px;font-weight:700;max-width:94vw}
+/* 白ポッチの使い方の選択 */
+.pcov{position:fixed;inset:0;background:rgba(2,10,12,.72);display:flex;align-items:center;justify-content:center;padding:14px;z-index:40}
+.pcbox{background:linear-gradient(180deg,#14322f,#0b1f1d);border:1px solid rgba(240,198,94,.6);border-radius:18px;max-width:440px;width:100%;padding:16px;box-shadow:0 16px 40px rgba(0,0,0,.6)}
+.pcbox h3{margin:0 0 4px;color:var(--gold);font-size:17px}
+.pcbox .pcsub{font-size:12px;color:var(--muted);margin-bottom:10px}
+.pcopt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin:8px 0;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(240,198,94,.35);color:var(--text);box-shadow:none;min-height:0}
+.pcopt.to{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+.pcopt .t{flex:none}
+.pcopt b{color:var(--gold)} .pcopt small{display:block;font-size:11px;color:var(--muted);font-weight:700}
+.pcsc{width:100%;font-size:13px;margin-top:8px;border-collapse:collapse} .pcsc td{padding:3px 4px;border-top:1px solid rgba(255,255,255,.08)} .pcsc td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.pcleft{font-weight:900;color:#ff8a7a}
 .awaybn button{min-height:38px;padding:6px 16px;font-size:14px;flex:none}
 .cd{color:#ff8a7a}
 .hand .t.danger{box-shadow:0 0 0 2px #ff5a4a,0 calc(var(--w) * .09) 0 var(--edge),0 0 10px rgba(255,90,74,.6)}
@@ -951,6 +962,7 @@ document.addEventListener("click",e=>{
     if(a==="cancel"){ H.sel=null; H.shubaSel=false; render(); return; }
     if(a==="ron"||a==="pon"||a==="kan"||a==="pass"){ act({t:"answer",a}); H.state="wait"; H.prompt=null; render(); return; }
     if(a==="kan2"){ act({t:"kan",type:b.dataset.t,k:+b.dataset.k}); return; }
+    if(a==="pchoice"){ act({t:"pchoice",i:+b.dataset.i}); const pc=document.getElementById("pcov"); if(pc) pc.remove(); return; }
     if(a==="wincancel"){ act({t:"wincancel"}); winEnd=null; render(); return; }
     if(a==="nonaki"){ act({t:"nonaki"}); H.noNaki=!H.noNaki;
       if(H.noNaki && H.state==="prompt" && H.prompt && !H.prompt.human){ H.state="wait"; H.prompt=null; }
@@ -1528,11 +1540,29 @@ function afterRender(){
   if(V&&V.away){ if(!bn){ bn=document.createElement("div"); bn.id="awaybn"; bn.className="awaybn"; bn.innerHTML=`<span>席を離れていたので、CPUが代わりに打っています</span><button data-a="back" class="b-gold">復帰する</button>`; document.body.appendChild(bn); } }
   else if(bn) bn.remove();
   turnEnd=V&&V.turnLeft!=null?Date.now()+V.turnLeft:null;
+  pcEnd=V&&V.pchoice?Date.now()+V.pchoice.left:null;
+  let pc=document.getElementById("pcov");
+  if(V&&V.pchoice&&V.pchoice.opts){
+    const P=V.pchoice;
+    if(!pc){ pc=document.createElement("div"); pc.id="pcov"; pc.className="pcov"; document.body.appendChild(pc); }
+    const optHTML=(o,i)=>{ const kind=i===0?"打点が高い":"祝儀が多い";
+      return `<button class="pcopt${i===P.timeout?" to":""}" data-a="pchoice" data-i="${i}">${tileHTML({k:o.k,id:-700-i},"rv")}<span><b>${kName(o.k)}として使う</b>（${kind}）<br>${o.label}${o.han!=null&&!/翻/.test(o.label)?`・${o.han}翻`:""}　${o.pts.toLocaleString()}点・祝儀 計${o.chips}枚
+        <small>${[1,2].map(x=>`${NAMES[x]}から${o.pay[x].toLocaleString()}点`).join("・")}${i===P.timeout?"　※時間切れならこちら":""}</small></span></button>`; };
+    pc.innerHTML=`<div class="pcbox"><h3>白ポッチをどの牌として使いますか？</h3>
+      <div class="pcsub">祝儀は見えている分だけ（裏ドラは入れる。アリス・チューリップ・サイコロは入れない）　残り <span class="pcleft"></span> 秒</div>
+      ${P.opts.map(optHTML).join("")}
+      <table class="pcsc">${[0,1,2].map(x=>`<tr><td>${NAMES[x]}</td><td>${dispSc(x).toLocaleString()}点</td></tr>`).join("")}</table></div>`;
+  } else if(V&&V.pchoice&&V.pchoice.other!=null){
+    if(!pc){ pc=document.createElement("div"); pc.id="pcov"; document.body.appendChild(pc); }
+    pc.className="awaybn"; pc.innerHTML=`<span>${NAMES[V.pchoice.other]}が白ポッチの使い方を選んでいます（残り <span class="pcleft"></span> 秒）</span>`;
+  } else if(pc) pc.remove();
   tickCountdown();
 }
 // 残り時間は1本のタイマーで、案内欄を毎回まるごと書き換える（二重表示しない）
 let winEnd=null; // 自動和了までの時刻
+let pcEnd=null; // 白ポッチの選択の締め切り
 function tickCountdown(){
+  if(pcEnd){ const l=Math.max(0,Math.ceil((pcEnd-Date.now())/1000)); document.querySelectorAll(".pcleft").forEach(e=>e.textContent=l); }
   const wl=winEnd?Math.max(0,Math.ceil((winEnd-Date.now())/1000)):null;
   document.querySelectorAll(".wcd").forEach(e=>{ e.textContent=wl!=null?`（${wl}）`:""; });
   const h=document.querySelector(".hint"); if(!h) return;
