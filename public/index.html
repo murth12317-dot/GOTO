@@ -106,6 +106,7 @@ html,body{overflow:hidden}
 .hand .t:hover{transform:translateY(-7px)}
 .hand .t.drawn{margin-left:calc(var(--hw) * .35)}
 .hand .t{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.hand .t.fk7,.hand .t.fk7 *{touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .hand .t.lp{filter:brightness(1.15);box-shadow:0 0 0 3px #ffe14d,0 0 14px rgba(255,225,77,.8);transition:box-shadow .5s} /* 華の7を長押し中 */
 .hand .t.sel.sel2,.hand .t.sel.sel2:hover{box-shadow:0 0 0 3px #e2402c,0 0 12px rgba(226,64,44,.8) !important} /* 華の7：あと1回で切る（位置は変えず赤く光らせる） */
 .hand .t.sel,.hand .t.sel:hover{transform:translateY(-14px) !important;box-shadow:0 0 0 2px var(--gold), 0 calc(var(--w) * .09) 0 var(--edge), 0 6px 14px rgba(0,0,0,.5)}
@@ -874,6 +875,7 @@ function render(){
     if(okIds && t.k!==30 && t.k<34 && !okIds.includes(t.id)) cls+=" dim";
     else if(forced && danger.includes(t.k)) cls+=" danger";
     if(H.pick===t.id && !P.riichi) cls+=" sel"+(t.fk&&pickTaps>=2?" sel2":"");
+    if(t.fk) cls+=" fk7";
     if(rOpts && !rOpts.includes(t.id)) cls+=" dim";
     if(play && P.riichi && t!==drawn) cls+=" dim";
     if(play && (t.k===30||t.k>=34) && !cls.includes("dim")) cls+=" dim";
@@ -964,19 +966,31 @@ document.addEventListener("click",e=>{
     if(a==="next"){ if(b.dataset.waiting) return; socket.emit("next"); document.querySelectorAll("button[data-a=next]").forEach(x=>{ x.dataset.waiting="1"; x.textContent="待機中…"; }); return; }
     return;
   }
-  const t=e.target.closest("#hand .t"); if(t && Date.now()>swipeAt+500) tapTile(+t.dataset.id);
+  const t=e.target.closest("#hand .t"); if(t){ if(swallowClick){ swallowClick=false; return; } tapTile(+t.dataset.id); }
 });
 // 華の7は長押し（0.5秒）で抜ける。スマホ・PC共通（リーチ後も、引いたその牌なら）
-let lp=null, swipeAt=0;
-const LP_MS=500;
+// iPhone は指の操作を pointer で受けると途中で取り消されることがあるので、指は touch、マウスは mouse で受ける
+let lp=null, swallowClick=false;
+const LP_MS=450;
 const starTile=el=>{ if(!el||!H||!H.p) return null; const t=H.p[0].hand.find(x=>x.id===+el.dataset.id); return t&&t.fk?t:null; };
-const lpCancel=()=>{ if(!lp) return; clearTimeout(lp.timer); const el=document.querySelector(`#hand .t[data-id="${lp.id}"]`); if(el) el.classList.remove("lp"); lp=null; };
-document.addEventListener("pointerdown",e=>{ lpCancel(); if(e.button>0) return; const el=e.target.closest&&e.target.closest("#hand .t"); if(!starTile(el)) return;
+const lpCancel=()=>{ if(!lp) return; clearTimeout(lp.timer); document.querySelectorAll("#hand .t.lp").forEach(x=>x.classList.remove("lp")); lp=null; };
+function lpStart(target,x,y){
+  lpCancel(); const el=target&&target.closest&&target.closest("#hand .t"); if(!starTile(el)) return false;
   const id=+el.dataset.id; el.classList.add("lp");
-  lp={id,x:e.clientX,y:e.clientY,timer:setTimeout(()=>{ lp=null; swipeAt=Date.now()+60000; const t=document.querySelector(`#hand .t[data-id="${id}"]`); if(t) t.classList.remove("lp"); swipePull(id); },LP_MS)}; });
-document.addEventListener("pointermove",e=>{ if(lp && Math.hypot(e.clientX-lp.x,e.clientY-lp.y)>12) lpCancel(); });
-document.addEventListener("pointerup",()=>{ lpCancel(); if(swipeAt>Date.now()) swipeAt=Date.now(); }); // 長押しで抜いたあとの指離しは、タップとして数えない
-document.addEventListener("pointercancel",lpCancel);
+  lp={id,x,y,timer:setTimeout(()=>{ lp=null; swallowClick=true; setTimeout(()=>{ swallowClick=false; },1500); // 長押しのあとの指離しはタップとして数えない
+    document.querySelectorAll("#hand .t.lp").forEach(x=>x.classList.remove("lp")); swipePull(id); },LP_MS)};
+  return true;
+}
+const lpMove=(x,y)=>{ if(lp && Math.hypot(x-lp.x,y-lp.y)>15) lpCancel(); };
+const lpEnd=()=>lpCancel();
+let lastTouch=0;
+document.addEventListener("touchstart",e=>{ lastTouch=Date.now(); if(e.touches.length!==1){ lpCancel(); return; } const t=e.touches[0]; lpStart(e.target,t.clientX,t.clientY); },{passive:true});
+document.addEventListener("touchmove",e=>{ if(!lp) return; const t=e.touches[0]; lpMove(t.clientX,t.clientY); if(lp) e.preventDefault(); },{passive:false}); // 長押し中は画面を動かさない
+document.addEventListener("touchend",()=>{ lastTouch=Date.now(); lpEnd(); });
+// touchcancel では止めない（iPhone は長押しの途中で touchcancel を出すことがある）
+document.addEventListener("mousedown",e=>{ if(e.button!==0 || Date.now()-lastTouch<800) return; lpStart(e.target,e.clientX,e.clientY); });
+document.addEventListener("mousemove",e=>{ if(Date.now()-lastTouch<800) return; lpMove(e.clientX,e.clientY); });
+document.addEventListener("mouseup",()=>{ if(Date.now()-lastTouch<800) return; lpEnd(); });
 document.addEventListener("contextmenu",e=>{ if(e.target.closest&&e.target.closest("#hand")) e.preventDefault(); });
 function swipePull(id){
   if(!(H.state==="play"&&H.turn===0) || H.sel || H.p[0].hand.some(x=>x.k>=34)) return;
