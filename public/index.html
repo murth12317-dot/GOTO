@@ -280,6 +280,9 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .droll .zm{font-size:13px;font-weight:900;color:#ff8a7a}
 .dtotal{font-size:20px;font-weight:900;color:#fff;margin-top:4px}
 .dtotal b{color:var(--gold);font-size:28px}
+/* ゾロ目のサイコロは光らせる */
+.die3.zoro,.die3.rolling.zoro{animation:zoro 1s ease-in-out infinite}
+@keyframes zoro{0%,100%{box-shadow:0 0 0 2px #ffe58a,0 0 10px 3px rgba(255,220,100,.75)}50%{box-shadow:0 0 0 3px #fff3b0,0 0 22px 9px rgba(255,220,100,1)}}
 .die3{width:46px;height:46px;border-radius:9px;background:linear-gradient(145deg,#ffffff,#e9e4d6);box-shadow:inset 0 -3px 0 rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.45);
   display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:6px;gap:1px}
 .die3 i{display:block;border-radius:50%;margin:auto;width:8px;height:8px}
@@ -1094,20 +1097,20 @@ const DICE=(()=>{
   const el=id=>document.getElementById("die"+id);
   return {
     reset(){ timers.forEach(clearTimeout); timers=[]; list=[]; },
-    add(v,t0,pg=2){ const id=n++; list.push({id,v,t0,pg}); return id; },
+    add(v,t0,pg=2,zoro=false){ const id=n++; list.push({id,v,t0,pg,zoro}); return id; },
     html(id){ return `<span class="die3" id="die${id}">${face(1+Math.floor(Math.random()*6))}</span>`; },
     start(pg){
       const groups={};
       for(const d of list){ if(pg&&d.pg!==pg) continue;
         let iv=null;
-        timers.push(setTimeout(()=>{ const e=el(d.id); if(!e) return; e.classList.add("rolling"); if(!groups[d.t0]){ groups[d.t0]=1; SE.dice(); }
+        timers.push(setTimeout(()=>{ const e=el(d.id); if(!e) return; e.classList.remove("zoro"); e.classList.add("rolling"); if(!groups[d.t0]){ groups[d.t0]=1; SE.dice(); }
           iv=setInterval(()=>{ const x=el(d.id); if(x) x.innerHTML=face(1+Math.floor(Math.random()*6)); },70); timers.push(iv); }, d.t0*1000));
-        timers.push(setTimeout(()=>{ clearInterval(iv); const e=el(d.id); if(e) e.innerHTML=face(d.v); }, d.t0*1000+900));
+        timers.push(setTimeout(()=>{ clearInterval(iv); const e=el(d.id); if(e){ e.innerHTML=face(d.v); if(d.zoro) e.classList.add("zoro"); } }, d.t0*1000+900));
       }
     },
     restart(pg){ this.start(pg); },
     stop(){ timers.forEach(t=>{clearTimeout(t);clearInterval(t);}); timers=[]; },
-    finish(){ timers.forEach(t=>{clearTimeout(t);clearInterval(t);}); timers=[]; for(const d of list){ const e=el(d.id); if(e){ e.classList.remove("rolling"); e.innerHTML=face(d.v); } } }
+    finish(){ timers.forEach(t=>{clearTimeout(t);clearInterval(t);}); timers=[]; for(const d of list){ const e=el(d.id); if(e){ e.classList.remove("rolling"); e.innerHTML=face(d.v); if(d.zoro) e.classList.add("zoro"); } } }
   };
 })();
 function netCards(){
@@ -1177,14 +1180,14 @@ function diceMultTxt(dv){
 }
 function diceRowHTML(dv,tStart,pg){
   let t=tStart, dice="";
-  dv.rolls.forEach((r,i)=>{ const t0=t; t+=1.0; const id1=DICE.add(r[0],t0,pg), id2=DICE.add(r[1],t0,pg);
+  dv.rolls.forEach((r,i)=>{ const t0=t; t+=1.0; const z=r[0]===r[1], id1=DICE.add(r[0],t0,pg,z), id2=DICE.add(r[1],t0,pg,z);
     dice+=`<span class="dpair seq" style="--d:${t0}s">${DICE.html(id1)}${DICE.html(id2)}</span>${r[0]===r[1]?`<span class="zm seq" style="--d:${t0+.9}s">ゾロ目</span>`:""}`; });
   const td=t; t+=.3;
   return {html:`<div class="drow seq" style="--d:${Math.max(0,tStart-.05)}s"><span class="dl">${dv.why}</span>${dice}<span class="dtot seq" style="--d:${td}s"><b>${dv.total}</b>枚${diceMultTxt(dv)}</span></div>`, end:t};
 }
 function diceStageHTML(dv,tStart,pg){
   let rows="", t=tStart;
-  dv.rolls.forEach(r=>{ const t0=t; t+=1.1; const id1=DICE.add(r[0],t0,pg), id2=DICE.add(r[1],t0,pg);
+  dv.rolls.forEach(r=>{ const t0=t; t+=1.1; const z=r[0]===r[1], id1=DICE.add(r[0],t0,pg,z), id2=DICE.add(r[1],t0,pg,z);
     rows+=`<div class="droll seq" style="--d:${t0}s">${DICE.html(id1)}${DICE.html(id2)}${r[0]===r[1]?`<span class="zm seq" style="--d:${t0+.95}s">ゾロ目！もう一回</span>`:""}</div>`; });
   const td=t; t+=.5;
   return {html:`<div class="dstage seq" style="--d:${Math.max(0,tStart-.05)}s"><div class="dt">${NAMES[dv.s]}　${dv.why}のサイコロ</div>${rows}<div class="dtotal seq" style="--d:${td}s">合計 <b>${dv.total}</b> 枚 × 2人から${diceMultTxt(dv)}</div></div>`, end:t};
