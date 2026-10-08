@@ -1030,9 +1030,16 @@ const diceHTML=d=>`<div>${d.why}　${d.rolls.map(r=>`<span class="dice"><span cl
 function nowTable(){ return `<table class="now">${[0,1,2].map(s=>`<tr><td>${NAMES[s]}</td><td>${dispSc(s).toLocaleString()}点　${fmtChip(G.chips[s])}</td></tr>`).join("")}</table>`; }
 function winTileOf(w){ for(let i=w.conc.length-1;i>=0;i--) if(w.conc[i].k===w.winK) return w.conc[i]; return null; }
 // 手牌の同じ牌を2回キラリと光らせる（華牌なら抜き華）
+// チューリップの当たり：めくった牌と前後1つ（9→1・白發中・東南西北はつながる）
+function tulipKinds(k){
+  if(k<27){ const b=k-k%9, n=k%9; return [b+(n+8)%9, k, b+(n+1)%9]; }
+  if(k<31){ const n=k-27; return [27+(n+3)%4, k, 27+(n+1)%4]; }
+  const n=k-31; return [31+(n+2)%3, k, 31+(n+1)%3];
+}
 function sparkle(k){
   const box=document.querySelector(".pg1 .p1hand"); if(!box) return;
-  const els=[...box.querySelectorAll(".t")].filter(e=>{ const kk=+e.dataset.k; return k>=34 ? kk>=34 : kk===k; });
+  const ks=[].concat(k);
+  const els=[...box.querySelectorAll(".t")].filter(e=>{ const kk=+e.dataset.k; return ks.some(k=>k>=34 ? kk>=34 : kk===k); });
   els.forEach(e=>{ e.classList.remove("kira"); void e.offsetWidth; e.classList.add("kira"); });
   SE.kiran();
 }
@@ -1264,7 +1271,7 @@ function showResult(page=0){
         let tl="";
         for(let i=0;i<slots;i++){
           if(i<flips.length){ const a=flips[i]; const dd=step(.6); later(()=>SE.draw(),dd+.3);
-            if(a.hit){ later(()=>sparkle(a.t.k),dd+.55); d+=.75; }
+            if(a.hit){ const ks=a.t.k>=34?[34]:(R.tulip?tulipKinds(a.t.k):[a.t.k]).concat(a.t.fk?[34]:[]); later(()=>sparkle(ks),dd+.55); d+=.75; }
             const f=flipHTML(a.t,dd,false,!a.hit);
             tl+= i>=3 ? `<span class="slot" style="--d:${dd-.2}s">${f}</span>` : f; }
           else if(i===flips.length && R.aliceOut){ const dd=step(.5);
