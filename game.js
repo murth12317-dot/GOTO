@@ -667,7 +667,7 @@ function winChips(s,w,fp,tsumo,d){
   if(closed && tiles.some(t=>t.red&&t.k===13)&&tiles.some(t=>t.gold&&t.k===13)&&tiles.some(t=>t.red&&t.k===22)&&tiles.some(t=>t.gold&&t.k===22)) dice("赤金4枚");
   if(P.kita.length===4) dice("北4枚");
   if(RULES.hana===7 && tiles.filter(t=>t.fk||t.rainbow).length>=4) dice("セブンスター"); // 華の7・虹の7（6枚）のうち4枚以上を手牌で使って和了
-  const mine=P.hana.map(fkOf).concat(w.robbed&&w.robbed.fk?[w.robbed.fk]:[]); // 抜いた華（相手が抜いた華の7をロンしたら、その牌も）
+  const mine=P.hana.map(fkOf).concat(tiles.filter(t=>t.fk).map(t=>t.fk)); // 抜いた華＋和了形（手牌・鳴き）で使った華の7（相手が抜いた華の7をロンしたら、その牌も和了形に入る）
   const sets=Math.min(...[34,35,36,37].map(k=>mine.filter(f=>f===k).length));
   for(let i=0;i<sets;i++) dice(RULES.hana===4?"華牌4枚":"春夏秋冬");
   // 春（和了時）：1枚目の春は表示牌の華牌×1枚を追加、2枚目の春（自分の2枚目か表示牌の春）は全部の華牌×1枚（華4・華8共通）
