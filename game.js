@@ -50,7 +50,7 @@ function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.rand
 const sortHand = h => h.sort((a,b)=>a.k-b.k || (b.red?2:b.gold?1:0)-(a.red?2:a.gold?1:0));
 const counts = tiles => { const c=new Array(38).fill(0); for(const t of tiles) c[t.k]++; return c; };
 const ceil1000 = x => Math.ceil(x/1000)*1000;
-const rollDice = () => { const rolls=[]; let total=0; while(true){ const a=1+Math.floor(Math.random()*6), b=1+Math.floor(Math.random()*6); rolls.push([a,b]); total+=a+b; if(a!==b) break; } return {rolls,total}; };
+const rollDice = () => { const rolls=[]; let total=0; while(true){ const a=1+Math.floor(Math.random()*6), b=1+Math.floor(Math.random()*6); rolls.push([a,b]); total+=a===1&&b===1?20:a+b; if(a!==b) break; /* ピンゾロ（1・1）は20として数えて、振り直し */ } return {rolls,total}; };
 
 // ===== 向聴数 =====
 function shantenNormal(c0, m){
