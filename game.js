@@ -461,7 +461,7 @@ function discard(s, id, riichi, open, shuba){
 }
 function furiten(o){
   const P=H.p[o]; if(P.tempF||P.riichiF) return true;
-  const w=waits(o,P.hand); return P.river.some(r=>w.includes(r.t.k));
+  const w=waits(o,P.hand); return P.river.some(r=>w.includes(r.t.k)) || P.hana.some(t=>t.fk&&w.includes(t.k)); // 自分で抜いた華の7も、7待ちなら切ったのと同じくフリテン
 }
 function ronResult(o,t,d){
   const P=H.p[o]; if(furiten(o)) return null;
