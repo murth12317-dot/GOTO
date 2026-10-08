@@ -310,6 +310,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .ttl{font-family:"Shippori Mincho B1",serif;font-weight:800;font-size:40px;color:var(--gold);margin:0;letter-spacing:.08em;line-height:1.15}
 .start p{margin:8px 0;color:#cfdcd7;font-size:14px}
 .start .deco{display:flex;gap:4px;margin:16px 0 6px;--rt:min(9vw,40px)}
+.tb.tbw{width:auto;padding:0 12px;font-size:13px;font-weight:700;color:#ffb3a8;border-color:rgba(226,64,44,.6)}
 .tb{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:20;width:42px;height:42px;min-height:0;padding:0;font-size:18px;background:rgba(8,20,22,.85);border:1px solid rgba(240,198,94,.4);box-shadow:none}
 @media (prefers-reduced-motion: reduce){ .seq,.flip .in{animation-delay:0s !important;animation-duration:.01s !important}  .hand .t{transition:none} .hand .t:hover{transform:none} }
 @media (orientation: landscape) and (max-height: 560px){
@@ -591,6 +592,7 @@ html,body,.hand,.hand .t,button{touch-action:manipulation}
 <div id="ov"></div>
 <button id="snd" class="tb" style="right:8px" aria-label="音の切り替え">🔊</button>
 <button id="fs" class="tb" style="right:56px" aria-label="全画面">⛶</button>
+<button id="abort" class="tb tbw" style="left:8px;display:none">対局終了</button>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
 <linearGradient id="sG" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#0d5530"/><stop offset=".45" stop-color="#3cb46a"/><stop offset=".6" stop-color="#2a9a55"/><stop offset="1" stop-color="#0d5530"/></linearGradient>
 <linearGradient id="sR" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#8a1a12"/><stop offset=".45" stop-color="#ee6a54"/><stop offset=".6" stop-color="#d4412e"/><stop offset="1" stop-color="#8a1a12"/></linearGradient>
@@ -935,6 +937,7 @@ document.addEventListener("click",e=>{
   if(e.target.closest("#lg")){ if(!G) return; document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card"><h2 style="font-size:24px">ログ</h2><div class="logbox">${G.log.map(x=>`<div>${x}</div>`).join("")}</div><button data-a="close" class="b-gold">閉じる</button></div></div>`; return; }
   if(e.target.closest("button[data-a=close]")){ document.getElementById("ov").innerHTML=""; return; }
   if(e.target.closest(".card.anim") && !e.target.closest("button")){ e.target.closest(".card").classList.add("instant"); DICE.finish(); clearRT(); return; }
+  if(e.target.closest("#abort")){ if(confirm("対局を終了しますか？\nこの半荘は成績に記録されません。")) socket.emit("abort"); return; }
   if(e.target.closest("#snd")){ const b=document.getElementById("snd"); b.textContent=SE.toggle()?"🔊":"🔇"; return; }
   const b=e.target.closest("button[data-a]");
   if(b){ const a=b.dataset.a;
@@ -1508,12 +1511,15 @@ socket.on("connect_error",()=>showConn("サーバーに接続中…（最初は1
 // アプリに戻ってきたら、すぐにつなぎ直す
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && !socket.connected){ showConn("再接続中…"); try{ socket.connect(); }catch(_){} } });
 socket.on("joined",j=>{ ME.code=j.code; ME.token=j.token; save(); history.replaceState(null,"","?room="+j.code); });
+// 対局終了ボタン：CPU入りの対局中だけ出す
+function showAbort(on){ const b=document.getElementById("abort"); if(b) b.style.display=on?"":"none"; }
+socket.on("aborted",d=>{ showAbort(false); document.getElementById("ov").innerHTML=""; DICE.stop&&DICE.stop(); toast(`${d.by}さんが対局を終了しました（成績には記録しません）`); });
 socket.on("err",msg=>{ toast(msg); if(/見つかりません|なくなりました|始まって|満員/.test(msg)){ ME.code=null; ME.token=null; save(); showLobbyStart(); } });
-socket.on("lobby",L=>{ if(L.phase==="lobby") showRoom(L); });
+socket.on("lobby",L=>{ if(L.phase==="lobby"){ showAbort(false); showRoom(L); } });
 socket.on("view",v=>{
   const ov=document.getElementById("ov");
   if(ov.querySelector(".card.res,.card.fin,.card.lob")) ov.innerHTML="";
-  applyView(v); render(); afterRender();
+  applyView(v); render(); afterRender(); showAbort(!!v.canAbort);
 });
 // 代打中の表示と、手番の残り時間
 let turnEnd=null;
@@ -1548,7 +1554,7 @@ socket.on("result",d=>{
 });
 socket.on("yame",y=>{ if(R&&R.yame) R.yame.choice=y.stop; toast(y.msg); const m=document.querySelector(".card.res .msg"); if(m) m.textContent=y.msg; });
 socket.on("ready",r=>{ document.querySelectorAll("button[data-a=next]").forEach(b=>{ if(b.dataset.waiting) b.textContent=`待機中 ${r.ready}/${r.total}`; }); });
-socket.on("final",d=>{ R=d.R; NAMES=d.names; G=Object.assign({},G||{},d.G); TOTALS=d.totals||null; showFinal(d.order); });
+socket.on("final",d=>{ showAbort(false); R=d.R; NAMES=d.names; G=Object.assign({},G||{},d.G); TOTALS=d.totals||null; showFinal(d.order); });
 socket.on("se",e=>{ if(e.say) SE.say(e.say,e.seat); else if(e.t&&SE[e.t]) SE[e.t](); });
 
 function toast(msg){
@@ -1558,7 +1564,7 @@ function toast(msg){
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 // ===== ロビー =====
-function showLobbyStart(){
+function showLobbyStart(){ showAbort(false);
   const q=new URLSearchParams(location.search).get("room")||"";
   const deco=[{k:34},{k:13,red:true},{k:22,gold:true},{k:31,pocchi:true},{k:30},{k:33}].map((t,i)=>tileHTML({...t,id:-10-i},"rv")).join("");
   document.getElementById("app").innerHTML="";

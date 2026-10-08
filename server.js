@@ -133,7 +133,7 @@ function viewFor(room, seat) {
     rules: g.rules, wareme: H.wareme == null ? null : r(H.wareme),
     drawnId: H.turn === seat && H.drawn ? H.drawn.id : null,
     acts, prompt, othersDeciding, danger: g.openDanger(seat), allowed: g.discardable(seat),
-    tp: tenpaiFor(g, seat), noNaki: !!H.noNaki[seat], winLeft: winLeftOf(H, seat), log: G.log.slice(0, 40),
+    tp: tenpaiFor(g, seat), noNaki: !!H.noNaki[seat], winLeft: winLeftOf(H, seat), canAbort: room.seats.some(p => p && p.cpu), log: G.log.slice(0, 40),
   };
 }
 // 聴牌補助：切るとテンパイになる牌と待ち・フリテン
@@ -429,6 +429,16 @@ io.on("connection", socket => {
     room.game.decideYame(!!stop);
     for (const s of humanSeats(room)) emitTo(room, s, "yame", { stop: !!stop, msg: room.game.R.msg });
     room.ready.add(seat); checkReady(room);
+  });
+
+  // CPU入りの対局は途中で終われる（成績には記録しない）
+  socket.on("abort", () => {
+    if (!room || !room.game || !["play", "result"].includes(room.phase)) return;
+    const seat = seatNow(), p = room.seats[seat];
+    if (!p || p.cpu || !room.seats.some(q => q && q.cpu)) return;
+    console.log(`abort room ${room.code} by ${p.name}`);
+    for (const s of humanSeats(room)) emitTo(room, s, "aborted", { by: p.name });
+    backToRoom(room);
   });
 
   socket.on("leaveRoom", () => {
