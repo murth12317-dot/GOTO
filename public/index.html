@@ -47,12 +47,12 @@ html,body{overflow:hidden}
 .box{position:absolute;left:50%;top:50%;width:var(--box);height:var(--box);transform:translate(-50%,-50%);background:var(--panel);border-radius:14px;
   border:1px solid rgba(240,198,94,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 6px 18px rgba(0,0,0,.4)}
 .box .rl{font-family:"Shippori Mincho B1",serif;font-weight:800;font-size:calc(var(--box) * .133);letter-spacing:.06em;line-height:1.1}
-.box .sub{font-size:calc(var(--box) * .067);color:var(--muted)}
-.box .rest{font-size:calc(var(--box) * .072);color:var(--gold);font-weight:700}
+.box .sub{font-size:max(8.5px, calc(var(--box) * .067));color:var(--muted)}
+.box .rest{font-size:max(9.5px, calc(var(--box) * .072));color:var(--gold);font-weight:700}
 .sc{position:absolute;left:calc(50% - var(--box) / 2);width:var(--box);top:calc(50% + var(--box) * .31);display:flex;align-items:baseline;justify-content:center;gap:5px;
-  font-size:calc(var(--box) * .089);font-weight:900;font-variant-numeric:tabular-nums;color:#dfe8e4}
+  font-size:max(10px, calc(var(--box) * .089));font-weight:900;font-variant-numeric:tabular-nums;color:#dfe8e4}
 .sc .wd{font-family:"Shippori Mincho B1",serif;color:var(--gold);font-size:1.05em}
-.sc .cp{font-size:.72em;font-weight:700;color:var(--muted)}
+.sc .cp{font-size:max(8px, .72em);font-weight:700;color:var(--muted)}
 .sc.on{color:#fff}
 .turnbar{position:absolute;left:calc(50% - var(--box) * .39);width:calc(var(--box) * .78);top:calc(50% + var(--box) * .467);height:calc(var(--box) * .02);border-radius:4px;background:var(--gold);box-shadow:0 0 10px var(--gold)}
 .stick{position:absolute;left:calc(50% - var(--box) * .19);width:calc(var(--box) * .39);top:calc(50% + var(--box) * .517);height:calc(var(--box) * .036);border-radius:4px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.4)}
@@ -82,10 +82,10 @@ html,body{overflow:hidden}
 .sd{position:relative;display:inline-block;flex:none;width:calc(var(--rt) * 1.34 + 2px);height:calc(var(--rt) + 1px);margin-bottom:calc(var(--rt) * .07)}
 .sd.st{height:calc(var(--rt) * 2 + 3px)}
 .sd .t{position:absolute;left:calc((var(--rt) * .34 + 2px) / 2);transform:rotate(-90deg);margin:0}
-.nm{position:absolute;bottom:calc(2.4% + var(--rt) * 1.5);left:50%;transform:translateX(-50%);font-size:calc(var(--box) * .061);color:rgba(255,255,255,.65);font-weight:700;white-space:nowrap}
+.nm{position:absolute;bottom:calc(2.4% + var(--rt) * 1.5);left:50%;transform:translateX(-50%);font-size:max(10px, calc(var(--box) * .061));color:rgba(255,255,255,.7);font-weight:700;white-space:nowrap}
 .dora{position:absolute;top:3.2%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:4px;
   background:var(--panel);padding:5px 9px;border-radius:10px;border:1px solid rgba(240,198,94,.3);z-index:2}
-.dora .lb{font-size:calc(var(--box) * .067);color:var(--gold);font-weight:900;margin-right:3px}
+.dora .lb{font-size:max(9px, calc(var(--box) * .067));color:var(--gold);font-weight:900;margin-right:3px}
 
 /* ===== 牌 ===== */
 .t{--w:var(--hw);position:relative;display:inline-block;width:var(--w);height:calc(var(--w) * 1.34);flex:none;
@@ -123,7 +123,7 @@ html,body{overflow:hidden}
 .hint{font-size:12px;color:var(--muted);min-height:18px;text-align:center;flex:1}
 .subrow{display:flex;align-items:center;width:100%;gap:8px;padding:0 4px}
 .subrow .sp{width:86px}
-.tog{width:86px;font-size:12px;padding:3px 8px;min-height:30px;letter-spacing:0;background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,.25);box-shadow:none}
+.tog{width:86px;font-size:12px;padding:3px 8px;min-height:36px;letter-spacing:0;background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,.25);box-shadow:none}
 .tog.on{background:linear-gradient(180deg,#3cc3a2,#1f8b72);color:#fff;border-color:transparent}
 button{font:inherit;font-weight:900;border:0;border-radius:999px;padding:9px 22px;min-height:44px;cursor:pointer;color:#fff;letter-spacing:.06em;
   box-shadow:0 4px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.35);font-size:16px}
@@ -207,6 +207,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
   .subrow .sp{display:none}
   .hint{text-align:left}
   .tb{top:8px}
+  .bottom .waitbar{left:max(10px, env(safe-area-inset-left,0px));transform:none;bottom:calc(var(--handH) + 62px);flex-wrap:wrap;row-gap:2px;max-width:calc((100vw - var(--bw)) / 2 - 20px)} /* 卓の手前（自分の河・鳴き）に重ならないように */
 }
 .logbox{font-size:12px;color:#cfdcd7;max-height:60vh;overflow:auto}
 .logbox div{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.06)}
@@ -215,7 +216,8 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .rname{font-family:"Shippori Mincho B1",serif;font-weight:800;font-size:26px;color:#fff;letter-spacing:.08em}
 .dbox{background:rgba(0,0,0,.35);border:1px solid rgba(240,198,94,.3);border-radius:10px;padding:6px 10px;display:flex;flex-direction:column;gap:4px;--rt:min(7vw,30px)}
 .dbox .row{display:flex;align-items:center;gap:3px;font-size:12px;color:var(--muted)}
-.dbox .row b{width:40px;color:var(--gold)}
+.dbox .row b{width:auto;min-width:40px;white-space:nowrap;margin-right:4px;color:var(--gold)} /* 「裏ドラ表」「チューリップ」を折り返さない */
+@media (min-width: 900px) and (min-height: 561px){ .card.res{max-width:min(94vw,780px)} }
 .whand{display:flex;align-items:flex-end;flex-wrap:wrap;gap:1px;margin:8px 0;--rt:min(calc((100vw - 80px) / 15.5), 34px)}
 .nukirow{display:flex;flex-wrap:wrap;gap:14px;margin:2px 0 6px;--rt:min(calc((100vw - 80px) / 15.5), 30px)}
 .nukirow .ng{display:flex;align-items:center;gap:2px}
@@ -541,6 +543,8 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 /* ロビー・待合室（横向きでもスクロールなし） */
 .card.lob .rl2{display:flex;flex-direction:column;gap:6px}
 .card.lob .lbtns{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.card.lob .lbtns button{margin-top:0} /* 縦画面で「ルームを出る」まで1画面に収まるように */
+.card.lob .lbtns{gap:12px;margin-top:18px}
 .card.lob .lbtns .wait{margin:6px 0}
 .rdy{color:#5fe0a0} .nrd{color:var(--muted)}
 button[disabled]{opacity:.45;cursor:not-allowed;filter:grayscale(.4)}
@@ -579,7 +583,7 @@ button[disabled]{opacity:.45;cursor:not-allowed;filter:grayscale(.4)}
 .hhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .hhead b{color:var(--gold);font-size:15px}
 .pgr{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700}
-.pgr button{min-height:30px;width:auto !important;padding:2px 12px;margin:0 !important;font-size:16px}
+.pgr button{min-height:38px;min-width:42px;width:auto !important;padding:2px 12px;margin:0 !important;font-size:16px}
 .card .ht td,.card .ht th{padding:3px 4px}
 .card .ht td.hl{white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis}
 .card .ht td.hl .hd{display:inline;font-size:11px}
@@ -612,11 +616,12 @@ html,body,.hand,.hand .t,button{touch-action:manipulation}
 .card.lob button{width:100%}
 .or{text-align:center;color:var(--muted);font-size:12px;margin:12px 0 6px}
 .joinrow{display:flex;gap:8px}
-.joinrow button{width:auto !important;margin:0 !important}
+.joinrow button{width:auto !important;margin:0 !important;white-space:nowrap;min-width:88px;letter-spacing:.1em} /* 「参加」が縦に折り返さないように */
 .code{font-family:"Shippori Mincho B1",serif;font-size:56px;font-weight:800;color:var(--gold);letter-spacing:.2em;line-height:1.1;margin:2px 0 8px}
-.statlink{display:block;text-align:center;margin:12px 0 0;color:var(--gold);font-weight:700;font-size:14px}
+.statlink{display:block;text-align:center;margin:4px 0 0;padding:8px 0;color:var(--gold);font-weight:700;font-size:14px}
 .card.lob.start .statlink{grid-column:2}
-.rules{margin:10px 0 2px;display:flex;flex-direction:column;gap:6px}
+.rules{margin:14px 0 2px;display:flex;flex-direction:column;gap:12px}
+.rrow .seg{margin-top:0} /* .card button の上余白で見出しとボタンの高さがずれないように */
 .rrow{display:flex;align-items:center;gap:6px}
 .rrow b{color:var(--gold);width:4em;flex:none;white-space:nowrap;font-size:14px}
 .seg{flex:1 1 auto;white-space:nowrap;min-height:34px;padding:4px 6px;font-size:13px;border-radius:8px;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.2);box-shadow:none;letter-spacing:0}
