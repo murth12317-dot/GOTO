@@ -165,7 +165,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .card.res .skip{position:absolute;top:10px;right:12px;float:none;margin:0}
 .card.res .pg.on{display:flex;flex-direction:column;flex:1;min-height:0}
 .card.res .pg .pgnav{margin-top:auto}
-.pgin{overflow:hidden;min-height:0;flex:1}
+.pgin{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;min-height:0;flex:1} /* 縮めても入りきらないときはスクロールできる */
 .fitw{width:100%}
 .bc{background:rgba(255,255,255,.05);border-radius:10px;padding:8px 10px}
 .bch{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:700;margin-bottom:4px}
@@ -1282,14 +1282,20 @@ function settleTableHTML(){
 // 入りきらないときは中身を縮めて、スクロールなしで収める
 function fitResult(){
   const box=document.querySelector(".card.res .pgin"), w=box&&box.querySelector(".fitw"); if(!w) return;
-  const apply=s=>{ w.style.transformOrigin="top left"; w.style.transform=s<1?`scale(${s})`:""; w.style.width=s<1?`${100/s}%`:""; };
+  const apply=s=>{ w.style.transformOrigin="top left"; w.style.transform=s<1?`scale(${s})`:""; w.style.width=s<1?`${100/s}%`:""; w.style.marginBottom=""; };
   apply(1); if(w.scrollHeight<=box.clientHeight) return;
   // 縮めると横幅が広がって行が減るので、何回か測り直してちょうどいい倍率にする
   let lo=.4, hi=1;
   for(let i=0;i<8;i++){ const m=(lo+hi)/2; apply(m); if(w.scrollHeight*m<=box.clientHeight) lo=m; else hi=m; }
   apply(lo);
+  w.style.marginBottom=`${-Math.ceil(w.scrollHeight*(1-lo))}px`; // 縮めた分の空きでスクロールが出ないように
 }
 addEventListener("resize",()=>{ if(document.querySelector(".card.res")) fitResult(); });
+// 文字の読み込みや折り返しで高さが変わるので、少しあとにも測り直す（iPhoneのLINEなどで下が切れないように）
+function refitResultSoon(){
+  [120,500,1200,2500].forEach(ms=>setTimeout(()=>{ if(document.querySelector(".card.res")) fitResult(); },ms));
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ if(document.querySelector(".card.res")) fitResult(); });
+}
 // ダブロンは和了者ごとにページを分ける（精算表は最後のページ）
 function showResult(page=0){
   if(!page) render(); clearRT(); DICE.reset();
@@ -1410,7 +1416,7 @@ function showResult(page=0){
     :last?`<div class="pgnav">${pgNo}<span></span><button data-a="next" class="b-gold">次へ ▶</button></div>`
     :`<div class="pgnav">${pgNo}<span></span><button data-a="wpg" data-p="${page+1}" class="b-gold">次へ ▶</button></div>`;
   document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card res anim" data-t0="${Date.now()}" data-dur="${d}" data-f="${fcls}"><div class="pg pg1 on"><div class="pgin"><div class="fitw">${p1}</div></div>${nav}</div>${pop}</div></div>`;
-  fitResult();
+  fitResult(); refitResultSoon();
   if(fcls) later(()=>{ const c=document.querySelector(".card.res"); if(c) c.classList.add(fcls); },tblD);
   DICE.start(1);
 }
