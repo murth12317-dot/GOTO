@@ -3,7 +3,7 @@
 function createGame(hooks){
   let G, H, R, handSeq=0, dead=false;
   // 和了できるのに和了もキャンセルも押さないときは、この時間で自動で和了する
-  const WIN_WAIT = hooks.winWait!=null ? hooks.winWait : 15000;
+  const WIN_WAIT = hooks.winWait!=null ? hooks.winWait : 20000;
   const NAMES = hooks.names;
   // ルールの選択：shuba（シュバリーあり）、wareme（割れ目あり）
   const RULES = Object.assign({ hana:4, shuba:false, wareme:false }, hooks.rules||{});
