@@ -70,7 +70,14 @@ html,body{overflow:hidden}
 .layer.r .edge .t.back,.layer.l .edge .t.back{--w:calc(var(--rt) * .72);margin-right:-1px}
 .edge{position:absolute;bottom:2%;left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:1px;white-space:nowrap}
 .layer.me .edge{left:auto;right:3%;transform:none}
-.edge .ex{display:flex;gap:1px;margin-left:calc(var(--rt) * .5)}
+@media (orientation: portrait){
+  /* 縦画面：卓を縦長にして上下の空きを使う（横幅で決まる牌の大きさは少しだけ大きく） */
+  :root{ --hw:min(calc((100vw - 14px) / 15.2), 56px, calc(100dvh * .12));
+         --bh:max(var(--bw), min(calc(100dvh - var(--handH) - 160px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)), calc(var(--bw) * 1.45)));
+         --rt:calc(var(--bw) * 0.047); }
+  .layer.me .edge{right:calc((var(--S) - var(--bw)) / 2 + 3%)}
+}
+.edge .ex{display:flex;align-items:flex-end;gap:1px;margin-left:calc(var(--rt) * .5)} /* 加槓で高くなっても抜き牌は卓の端にそろえる（名前と重ならないように） */
 .edge .meld{display:flex;align-items:flex-end;gap:0;margin-left:calc(var(--rt) * .25)}
 .sd{position:relative;display:inline-block;flex:none;width:calc(var(--rt) * 1.34 + 2px);height:calc(var(--rt) + 1px);margin-bottom:calc(var(--rt) * .07)}
 .sd.st{height:calc(var(--rt) * 2 + 3px)}
@@ -436,6 +443,20 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .pcsc{width:100%;font-size:13px;margin-top:8px;border-collapse:collapse} .pcsc td{padding:3px 4px;border-top:1px solid rgba(255,255,255,.08)} .pcsc td:last-child{text-align:right;font-variant-numeric:tabular-nums}
 .pcleft{font-weight:900;color:#ff8a7a}
 .awaybn button{min-height:38px;padding:6px 16px;font-size:14px;flex:none}
+/* 代打ち中の帯：手牌やボタンを隠さないよう上に出す。結果・終局の画面（.overlay）より下に置く */
+#awaybn{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 62px);z-index:25;white-space:nowrap;padding:8px 10px}
+@media (orientation: portrait){
+  /* 縦画面：上の「対局終了」と全画面・音ボタンのあいだに小さく出す */
+  #awaybn{top:calc(env(safe-area-inset-top,0px) + 10px);font-size:12px;padding:4px 6px 4px 10px;gap:6px;border-radius:12px}
+  #awaybn button{min-height:30px;padding:2px 10px;font-size:12.5px}
+}
+@media (orientation: landscape){
+  #awaybn{left:max(10px, env(safe-area-inset-left,0px));transform:none;top:calc(env(safe-area-inset-top,0px) + 96px);flex-direction:column;align-items:stretch;white-space:normal;width:min(200px, calc((100vw - var(--bw)) / 2 - 20px));text-align:center}
+}
+@media (orientation: landscape) and (max-height: 560px){
+  #awaybn{top:140px;font-size:12px;padding:8px}
+  #awaybn button{min-height:34px;padding:4px 10px}
+}
 .cd{color:#ff8a7a}
 .hand .t.danger{box-shadow:0 0 0 2px #ff5a4a,0 calc(var(--w) * .09) 0 var(--edge),0 0 10px rgba(255,90,74,.6)}
 .opn{display:inline-block;margin-left:4px;font-size:.9em;color:#ffb43d}
@@ -571,11 +592,11 @@ button[disabled]{opacity:.45;cursor:not-allowed;filter:grayscale(.4)}
   .card .ht{font-size:11px} .card .ht td{padding:2px 4px} .card .ht .hd{font-size:10px}
 }
 .nkF{display:none}
-.nkE{display:inline-flex;gap:1px}
+.nkE{display:inline-flex;align-items:flex-end;gap:1px}
 @media (orientation: landscape) and (max-height: 560px){
   .layer.r .nkF,.layer.l .nkF{display:flex;gap:1px;position:absolute;left:50%;transform:translateX(-50%);bottom:calc(2% + var(--rt) * 1.3)}
   .layer.r .nkE,.layer.l .nkE{display:none}
-  .layer.r .nm,.layer.l .nm{bottom:calc(2% + var(--rt) * 2.75)}
+  .layer.r .nm,.layer.l .nm{bottom:calc(2% + var(--rt) * 2.75);font-size:max(11px, calc(var(--box) * .061));color:rgba(255,255,255,.8)}
 }
 /* iPhoneのダブルタップ拡大を止めて、2回目のタップを必ず届ける */
 html,body,.hand,.hand .t,button{touch-action:manipulation}
@@ -1428,17 +1449,17 @@ function histHTML(){
     <tr class="tot"><td class="hl">現在の合計</td>${[0,1,2].map(s=>`<td>${sg(G.chips[s],"枚")}<br><small class="zero">${dispSc(s).toLocaleString()}点</small></td>`).join("")}</tr>
   </tbody></table></div>`;
 }
-const HPG=5; let histPage=0;
+const HPG=5; let histPage=0, histOrder=[0,1,2]; // 終局画面では順位表と同じ並びにする
 function histPagedHTML(){
   const list=(G&&G.hist)||[]; const pages=Math.max(1,Math.ceil(list.length/HPG));
   histPage=Math.min(Math.max(0,histPage),pages-1);
   const SN=NAMES.map(n=>n.length>5?n.slice(0,5):n);
   const sg=(v,u)=>`<span class="${v>0?"pos":v<0?"neg":"zero"}">${v>0?"+":v<0?"-":"±"}${Math.abs(v).toLocaleString()}${u}</span>`;
-  const rows=list.slice(histPage*HPG,(histPage+1)*HPG).map(r=>`<tr class="${r.final?"fin":""}"><td class="hl"><b>${r.label.replace(/ 0本場/,"")}</b> <span class="hd">${r.desc}</span></td>${[0,1,2].map(s=>`<td><b>${sg(r.dc[s],"枚")}</b><small>${sg(r.dp[s],"")}</small></td>`).join("")}</tr>`).join("");
+  const rows=list.slice(histPage*HPG,(histPage+1)*HPG).map(r=>`<tr class="${r.final?"fin":""}"><td class="hl"><b>${r.label.replace(/ 0本場/,"")}</b> <span class="hd">${r.desc}</span></td>${histOrder.map(s=>`<td><b>${sg(r.dc[s],"枚")}</b><small>${sg(r.dp[s],"")}</small></td>`).join("")}</tr>`).join("");
   const tot=[0,1,2].map(s=>list.reduce((a,r)=>a+r.dc[s],0));
   return `<div class="hhead"><b>全局の精算</b>${pages>1?`<span class="pgr"><button data-a="hpg" data-d="-1" class="b-skip" ${histPage===0?"disabled":""}>‹</button>${histPage+1}/${pages}<button data-a="hpg" data-d="1" class="b-skip" ${histPage===pages-1?"disabled":""}>›</button></span>`:""}</div>
-    <table class="ht"><thead><tr><th>局・結果</th>${[0,1,2].map(s=>`<th>${SN[s]}</th>`).join("")}</tr></thead><tbody>${rows}
-    <tr class="tot"><td class="hl"><b>合計</b></td>${[0,1,2].map(s=>`<td><b>${sg(tot[s],"枚")}</b><small class="zero">${dispSc(s).toLocaleString()}</small></td>`).join("")}</tr></tbody></table>`;
+    <table class="ht"><thead><tr><th>局・結果</th>${histOrder.map(s=>`<th>${SN[s]}</th>`).join("")}</tr></thead><tbody>${rows}
+    <tr class="tot"><td class="hl"><b>合計</b></td>${histOrder.map(s=>`<td><b>${sg(tot[s],"枚")}</b><small class="zero">${dispSc(s).toLocaleString()}</small></td>`).join("")}</tr></tbody></table>`;
 }
 // 名前ごとの通算（このルームで終わった半荘の合計）
 let TOTALS=null;
@@ -1449,7 +1470,7 @@ function totalsHTML(t){
   return `<div class="tots"><h3>通算（このルーム）</h3><table class="stbl"><thead><tr><th></th><th>半荘</th><th>着順</th><th>祝儀計</th><th>×倍率</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function showFinal(order){
-  render(); histPage=0;
+  render(); histPage=0; histOrder=order.slice();
   const add=[0,0,0]; for(const c of R.chips){ add[c.from]-=c.n; add[c.to]+=c.n; }
   const cl=v=>v>0?"pos":v<0?"neg":"zero", sg=v=>v>0?"+"+v:v<0?"-"+(-v):"±0";
   const why=[...new Set(R.chips.map(c=>c.why))].join("・")||"ウマ";
@@ -1616,7 +1637,7 @@ socket.on("view",v=>{
 let turnEnd=null;
 function afterRender(){
   let bn=document.getElementById("awaybn");
-  if(V&&V.away){ if(!bn){ bn=document.createElement("div"); bn.id="awaybn"; bn.className="awaybn"; bn.innerHTML=`<span>席を離れていたので、CPUが代わりに打っています</span><button data-a="back" class="b-gold">復帰する</button>`; document.body.appendChild(bn); } }
+  if(V&&V.away){ if(!bn){ bn=document.createElement("div"); bn.id="awaybn"; bn.className="awaybn"; bn.innerHTML=`<span>CPUが代打ち中</span><button data-a="back" class="b-gold">復帰する</button>`; document.body.appendChild(bn); } }
   else if(bn) bn.remove();
   turnEnd=V&&V.turnLeft!=null?Date.now()+V.turnLeft:null;
   pcEnd=V&&V.pchoice?Date.now()+V.pchoice.left:null;
