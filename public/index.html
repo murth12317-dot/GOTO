@@ -188,6 +188,8 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
   .board .layer,.board .box{top:calc(50% - var(--bh) * .045)}
   #lg,#hs,#fs,#snd{width:38px;height:38px;font-size:16px;right:auto !important;left:max(10px, env(safe-area-inset-left,0px))}
   #snd{top:8px} #fs{top:52px}
+  #abort{left:auto !important;right:max(10px, env(safe-area-inset-right,0px));top:8px} /* 横画面：左上は音・全画面ボタンなので右上へ */
+  #chatbtn{right:auto !important;left:max(10px, env(safe-area-inset-left,0px));top:96px;width:38px;height:38px;font-size:16px}
   .subrow{max-width:140px !important}
   .hint{font-size:11.5px}
   .layer.r .edge .t.back,.layer.l .edge .t.back{--w:calc(var(--rt) * .72);margin-right:-1px}
@@ -320,7 +322,8 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .stamps button{min-height:32px;padding:4px 10px;font-size:13px;box-shadow:none;background:rgba(255,255,255,.08);color:var(--text);border:1px solid rgba(240,198,94,.35)}
 .chatlog{margin-top:8px;max-height:120px;overflow:auto;font-size:12.5px;color:var(--muted)} .chatlog b{color:var(--gold);font-weight:700;margin-right:4px}
 .chatmsg{font-size:11.5px;color:#ffb3a8;margin-top:4px;min-height:1em}
-.bubble{position:fixed;z-index:44;max-width:min(60vw,260px);background:#fffbe9;color:#1b1a17;border-radius:12px;padding:6px 10px;font-size:14px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.45);pointer-events:none;animation:bubin .2s ease-out}
+.bubbles{position:fixed;z-index:44;display:flex;gap:4px;align-items:center;justify-content:flex-start;overflow:hidden;pointer-events:none}
+.bubble{max-width:100%;background:#fffbe9;color:#1b1a17;border-radius:12px;padding:6px 10px;font-size:14px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.45);pointer-events:none;animation:bubin .2s ease-out}
 .bubble small{display:block;font-size:10.5px;color:#8a6a1a}
 @keyframes bubin{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
 .tb.tbw{width:auto;padding:0 12px;font-size:13px;font-weight:700;color:#ffb3a8;border-color:rgba(226,64,44,.6)}
@@ -1577,15 +1580,20 @@ function toggleMic(){
   r.onend=()=>{ const m=document.getElementById("chatmic"); if(m) m.classList.remove("on"); rec=null; if(text.trim()&&!sent){ sent=true; sendChat(text); } };
   try{ r.start(); document.getElementById("chatmic").classList.add("on"); msg("聞いています…話し終わると送ります"); }catch(e){ rec=null; msg("音声入力が使えません。キーボードのマイクを使ってください"); }
 }
-// 届いたコメント：その人の席のあたりに吹き出しで4秒
+// 届いたコメント：河にかぶらないよう、卓の外の空いている所（縦画面は卓の上、横画面は卓の左）に4秒出す。続けて届いたら下に積む
+const SEAT_MARK={0:"↓",1:"→",2:"←"};
 function showBubble(d){
   const bd=document.querySelector(".board"); if(!bd) return toast(`${d.name}：${d.text}`);
-  const r=bd.getBoundingClientRect(), b=document.createElement("div"); b.className="bubble";
-  b.innerHTML=`<small>${esc(d.name)}</small>${esc(d.text)}`; document.body.appendChild(b);
-  const w=b.offsetWidth, h=b.offsetHeight;
-  const pos=d.seat===0?[r.left+r.width/2-w/2, r.bottom-h-r.height*.2]:d.seat===1?[r.right-w-r.width*.06, r.top+r.height*.3]:[r.left+r.width*.06, r.top+r.height*.3];
-  b.style.left=Math.max(4,Math.min(innerWidth-w-4,pos[0]))+"px"; b.style.top=Math.max(4,pos[1])+"px";
-  setTimeout(()=>b.remove(),4000);
+  let box=document.getElementById("bubbles");
+  if(!box){ box=document.createElement("div"); box.id="bubbles"; box.className="bubbles"; document.body.appendChild(box); }
+  const r=bd.getBoundingClientRect(), top0=56;
+  if(r.top-top0>=64){ Object.assign(box.style,{left:Math.max(8,r.left)+"px",width:Math.min(r.width,innerWidth-16)+"px",top:top0+"px",bottom:"",maxHeight:(r.top-top0-4)+"px",flexDirection:"column-reverse"}); }
+  else if(r.left>=150){ const t=Math.max(r.top,142); Object.assign(box.style,{left:"8px",width:(r.left-16)+"px",top:t+"px",bottom:"",maxHeight:Math.max(80,r.bottom-t-90)+"px",flexDirection:"column"}); } // 横画面：左上のボタンと左下の「鳴きなし」の間
+  else { Object.assign(box.style,{left:Math.max(8,r.left+8)+"px",width:Math.min(r.width-16,innerWidth-16)+"px",top:(r.top+6)+"px",bottom:"",maxHeight:"30vh",flexDirection:"column",opacity:".92"}); }
+  const b=document.createElement("div"); b.className="bubble";
+  b.innerHTML=`<small>${SEAT_MARK[d.seat]||""} ${esc(d.name)}</small>${esc(d.text)}`;
+  box.appendChild(b); while(box.children.length>1 && (box.children.length>3 || box.scrollHeight>box.clientHeight+1)) box.firstChild.remove(); // 入りきらない古いものは消す
+  setTimeout(()=>{ b.remove(); if(box&&!box.children.length) box.remove(); },4000);
 }
 socket.on("chat",d=>{ chatLog.push(d); if(chatLog.length>50) chatLog.shift(); const lg=document.getElementById("chatlog"); if(lg){ lg.innerHTML=chatLogHTML(); lg.scrollTop=lg.scrollHeight; } showBubble(d); });
 socket.on("aborted",d=>{ showAbort(false); document.getElementById("ov").innerHTML=""; DICE.stop&&DICE.stop(); toast(`${d.by}さんが対局を終了しました（成績には記録しません）`); });
