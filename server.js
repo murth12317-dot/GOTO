@@ -13,6 +13,7 @@ app.get("/game.js", (req, res) => res.sendFile(path.join(__dirname, "game.js")))
 app.get("/healthz", (req, res) => res.send("ok"));
 // 成績ページ（みんなで見られる管理表）と、その生データ
 app.get("/stats", (req, res) => res.sendFile(path.join(__dirname, "public", "stats.html")));
+app.get("/rules", (req, res) => res.sendFile(path.join(__dirname, "public", "rules.html")));
 app.get("/api/records", async (req, res) => { res.set("Cache-Control", "no-store"); res.json({ enabled: records.enabled, records: await records.list() }); });
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });

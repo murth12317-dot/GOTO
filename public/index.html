@@ -1686,6 +1686,7 @@ function showLobbyStart(){ showAbort(false); showChatBtn(false);
     <div class="or">または</div>
     <div class="joinrow"><input id="rc" inputmode="numeric" maxlength="4" value="${esc(q)}" placeholder="ルーム番号（4桁）"><button data-a="join" class="b-pon">参加</button></div>
     <a class="statlink" href="/stats" target="_blank" rel="noopener">成績表を見る</a>
+    <a class="statlink" href="/rules" target="_blank" rel="noopener">説明書（ルール・遊び方）</a>
   </div></div>`;
 }
 // ルールの選択（ルームを作った人だけが押せる）
@@ -1722,6 +1723,7 @@ function showRoom(L){
       <button data-a="leave" class="b-skip">ルームを出る</button>
     </div>
     <a class="statlink" href="/stats" target="_blank" rel="noopener">成績表を見る</a>
+    <a class="statlink" href="/rules" target="_blank" rel="noopener">説明書（ルール・遊び方）</a>
   </div></div>`;
   if(typing!=null){ const r2=document.getElementById("rate"); if(r2){ r2.value=typing; r2.focus(); } }
 }
