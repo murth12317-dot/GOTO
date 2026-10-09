@@ -289,7 +289,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
   display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:6px;gap:1px}
 .die3 i{display:block;border-radius:50%;margin:auto;width:8px;height:8px}
 .die3 i.p{background:#1b1a17} .die3 i.p.one{background:#d22;width:14px;height:14px}
-.die3.rolling{animation:tumble .9s cubic-bezier(.2,.7,.3,1)}
+.die3.rolling{animation:tumble 1.5s cubic-bezier(.2,.7,.3,1)}
 @keyframes tumble{0%{transform:translate(-40px,-26px) rotate(-180deg)}35%{transform:translate(0,0) rotate(40deg)}55%{transform:translate(6px,-10px) rotate(-20deg)}75%{transform:translate(0,0) rotate(8deg)}100%{transform:none}}
 .net{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0 6px}
 .nc{background:rgba(255,255,255,.05);border-radius:10px;padding:8px 6px;text-align:center}
@@ -1127,6 +1127,7 @@ function breakdown(list,unit){
   return h;
 }
 let RT=[]; const later=(fn,sec)=>RT.push(setTimeout(fn,sec*1000)); const clearRT=()=>{ RT.forEach(clearTimeout); RT=[]; };
+const DICE_ROLL_MS=1500; // サイコロが転がって止まるまで
 const DICE=(()=>{
   const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
   let list=[], timers=[], n=0;
@@ -1141,8 +1142,8 @@ const DICE=(()=>{
       for(const d of list){ if(pg&&d.pg!==pg) continue;
         let iv=null;
         timers.push(setTimeout(()=>{ const e=el(d.id); if(!e) return; e.classList.remove("zoro"); e.classList.add("rolling"); if(!groups[d.t0]){ groups[d.t0]=1; SE.dice(); }
-          iv=setInterval(()=>{ const x=el(d.id); if(x) x.innerHTML=face(1+Math.floor(Math.random()*6)); },70); timers.push(iv); }, d.t0*1000));
-        timers.push(setTimeout(()=>{ clearInterval(iv); const e=el(d.id); if(e){ e.innerHTML=face(d.v); if(d.zoro) e.classList.add("zoro"); } }, d.t0*1000+900));
+          iv=setInterval(()=>{ const x=el(d.id); if(x) x.innerHTML=face(1+Math.floor(Math.random()*6)); },110); timers.push(iv); }, d.t0*1000));
+        timers.push(setTimeout(()=>{ clearInterval(iv); const e=el(d.id); if(e){ e.innerHTML=face(d.v); if(d.zoro) e.classList.add("zoro"); } }, d.t0*1000+DICE_ROLL_MS));
       }
     },
     restart(pg){ this.start(pg); },
@@ -1217,15 +1218,15 @@ function diceMultTxt(dv){
 }
 function diceRowHTML(dv,tStart,pg){
   let t=tStart, dice="";
-  dv.rolls.forEach((r,i)=>{ const t0=t; t+=1.0; const z=r[0]===r[1], id1=DICE.add(r[0],t0,pg,z), id2=DICE.add(r[1],t0,pg,z);
-    dice+=`<span class="dpair seq" style="--d:${t0}s">${DICE.html(id1)}${DICE.html(id2)}</span>${r[0]===r[1]?`<span class="zm seq" style="--d:${t0+.9}s">${r[0]===1?"ピンゾロ（20）":"ゾロ目"}</span>`:""}`; });
+  dv.rolls.forEach((r,i)=>{ const t0=t; t+=1.8; const z=r[0]===r[1], id1=DICE.add(r[0],t0,pg,z), id2=DICE.add(r[1],t0,pg,z);
+    dice+=`<span class="dpair seq" style="--d:${t0}s">${DICE.html(id1)}${DICE.html(id2)}</span>${r[0]===r[1]?`<span class="zm seq" style="--d:${t0+1.5}s">${r[0]===1?"ピンゾロ（20）":"ゾロ目"}</span>`:""}`; });
   const td=t; t+=.3;
   return {html:`<div class="drow seq" style="--d:${Math.max(0,tStart-.05)}s"><span class="dl">${dv.why}</span>${dice}<span class="dtot seq" style="--d:${td}s"><b>${dv.total}</b>枚${diceMultTxt(dv)}</span></div>`, end:t};
 }
 function diceStageHTML(dv,tStart,pg){
   let rows="", t=tStart;
-  dv.rolls.forEach(r=>{ const t0=t; t+=1.1; const z=r[0]===r[1], id1=DICE.add(r[0],t0,pg,z), id2=DICE.add(r[1],t0,pg,z);
-    rows+=`<div class="droll seq" style="--d:${t0}s">${DICE.html(id1)}${DICE.html(id2)}${r[0]===r[1]?`<span class="zm seq" style="--d:${t0+.95}s">${r[0]===1?"ピンゾロ！20で数えてもう一回":"ゾロ目！もう一回"}</span>`:""}</div>`; });
+  dv.rolls.forEach(r=>{ const t0=t; t+=1.9; const z=r[0]===r[1], id1=DICE.add(r[0],t0,pg,z), id2=DICE.add(r[1],t0,pg,z);
+    rows+=`<div class="droll seq" style="--d:${t0}s">${DICE.html(id1)}${DICE.html(id2)}${r[0]===r[1]?`<span class="zm seq" style="--d:${t0+1.55}s">${r[0]===1?"ピンゾロ！20で数えてもう一回":"ゾロ目！もう一回"}</span>`:""}</div>`; });
   const td=t; t+=.5;
   return {html:`<div class="dstage seq" style="--d:${Math.max(0,tStart-.05)}s"><div class="dt">${NAMES[dv.s]}　${dv.why}のサイコロ</div>${rows}<div class="dtotal seq" style="--d:${td}s">合計 <b>${dv.total}</b> 枚 × 2人から${diceMultTxt(dv)}</div></div>`, end:t};
 }
