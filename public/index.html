@@ -748,7 +748,7 @@ function faceSVG(t){
 }
 function tileHTML(t, cls=""){
   if(!t) return "";
-  return `<span class="t ${cls}${t.red?" red":""}${t.gold?" gold":""}" data-id="${t.id}" data-k="${t.k}" title="${tName(t)}${t.fk?"（"+HON[t.fk-27]+"の効果）":""}">${faceSVG(t)}</span>`;
+  return `<span class="t ${cls}${t.red?" red":""}${t.gold?" gold":""}" data-id="${t.id}" data-k="${t.k}"${t.fk?` data-fk="${t.fk}"`:""} title="${tName(t)}${t.fk?"（"+HON[t.fk-27]+"の効果）":""}">${faceSVG(t)}</span>`;
 }
 function buildTiles(){
   let id=0; const a=[]; const add=(k,o={})=>a.push(Object.assign({id:id++,k},o));
@@ -1081,7 +1081,7 @@ function tulipKinds(k){
 function sparkle(k){
   const box=document.querySelector(".pg1 .p1hand"); if(!box) return;
   const ks=[].concat(k);
-  const els=[...box.querySelectorAll(".t")].filter(e=>{ const kk=+e.dataset.k; return ks.some(k=>k>=34 ? kk>=34 : kk===k); });
+  const els=[...box.querySelectorAll(".t")].filter(e=>{ const kk=+e.dataset.k; return ks.some(k=>k>=34 ? (kk>=34||!!e.dataset.fk) : kk===k); }); // 華牌の当たりは手牌の華の7も光らせる
   els.forEach(e=>{ e.classList.remove("kira"); void e.offsetWidth; e.classList.add("kira"); });
   SE.kiran();
 }
