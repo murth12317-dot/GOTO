@@ -1603,7 +1603,7 @@ socket.on("lobby",L=>{ if(L.phase==="lobby"){ showAbort(false); showChatBtn(fals
 socket.on("view",v=>{
   const ov=document.getElementById("ov");
   if(ov.querySelector(".card.res,.card.fin,.card.lob")) ov.innerHTML="";
-  applyView(v); render(); afterRender(); showAbort(!!v.canAbort); showChatBtn(true);
+  applyView(v); render(); afterRender(); showAbort(!!v.canAbort); showChatBtn(!!v.chat);
 });
 // 代打中の表示と、手番の残り時間
 let turnEnd=null;

@@ -140,7 +140,7 @@ function viewFor(room, seat) {
     rules: g.rules, wareme: H.wareme == null ? null : r(H.wareme),
     drawnId: H.turn === seat && H.drawn ? H.drawn.id : null,
     acts, prompt, othersDeciding, danger: g.openDanger(seat), allowed: g.discardable(seat),
-    tp: tenpaiFor(g, seat), noNaki: !!H.noNaki[seat], winLeft: winLeftOf(H, seat), canAbort: room.seats.some(p => p && p.cpu), afterCall: H.afterCall === seat, pchoice: pchoiceFor(H, seat), log: G.log.slice(0, 40),
+    tp: tenpaiFor(g, seat), noNaki: !!H.noNaki[seat], winLeft: winLeftOf(H, seat), canAbort: room.seats.some(p => p && p.cpu), afterCall: H.afterCall === seat, chat: CHAT_ON, pchoice: pchoiceFor(H, seat), log: G.log.slice(0, 40),
   };
 }
 // 聴牌補助：切るとテンパイになる牌と待ち・フリテン
@@ -200,6 +200,8 @@ function resultFor(room, seat) {
 function humanSeats(room) { return [0, 1, 2].filter(s => room.seats[s] && !room.seats[s].cpu); }
 function emitTo(room, seat, ev, data) { const p = room.seats[seat]; if (p && p.socket) p.socket.emit(ev, data); }
 
+// コメント機能はテスト用（test ブランチのサービス）だけで使う。本番でも使うときは環境変数 ENABLE_CHAT=1
+const CHAT_ON = process.env.ENABLE_CHAT === "1" || process.env.RENDER_GIT_BRANCH === "test";
 const TURN_MS = +(process.env.TURN_MS || 2 * 60 * 1000);
 function armTurnTimer(room) {
   const g = room.game; if (!g || room.phase !== "play") return;
@@ -443,7 +445,7 @@ io.on("connection", socket => {
 
   // 対局中のコメント（40文字まで。連投は1秒に1回まで）
   socket.on("chat", text => {
-    if (!room || !["play", "result", "final"].includes(room.phase)) return;
+    if (!CHAT_ON || !room || !["play", "result", "final"].includes(room.phase)) return;
     const seat = seatNow(), p = room.seats[seat]; if (!p || p.cpu) return;
     const t = String(text || "").replace(/\s+/g, " ").trim().slice(0, 40); if (!t) return;
     const now = Date.now(); if (p._chatAt && now - p._chatAt < 1000) return; p._chatAt = now;
