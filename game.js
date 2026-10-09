@@ -318,7 +318,7 @@ function drawFor(s){
   H.haitei=H.live.length===0;
   autoHana(s);
   if(isCPU(s)){ H.state="cpu"; render(); setTimeout(()=>cpuTurn(s),420); }
-  else { H.state="play"; render(); setTimeout(()=>{ if(!autoTsumo(s)&&P.riichi) riichiAuto(s); },380); }
+  else { H.state="play"; autoTsumo(s); render(); setTimeout(()=>{ if(!autoTsumo(s)&&P.riichi) riichiAuto(s); },380); } // ツモれるなら最初から「ツモ（15）」と「キャンセル」を出す
 }
 function winCtx(s, tsumo){
   const P=H.p[s];
@@ -527,7 +527,7 @@ function resolvePrompt(){
   if(pr.rob){ // 華の7を抜いたのをだれもロンしなかった：抜くのを続けて、その人の番を続ける
     const s=pr.s; H.limbo=null; finishNuki(s,pr.t);
     if(isCPU(s)){ autoHana(s); H.state="cpu"; render(); setTimeout(()=>cpuTurn(s),300); }
-    else { H.state="play"; H.turn=s; render(); setTimeout(()=>{ if(!autoTsumo(s)&&H.p[s].riichi) riichiAuto(s); },380); }
+    else { H.state="play"; H.turn=s; autoTsumo(s); render(); setTimeout(()=>{ if(!autoTsumo(s)&&H.p[s].riichi) riichiAuto(s); },380); }
     return;
   }
   for(const o of order){ const p=pr.pend[o]; if(p&&p.answer==="kan") return doKan(o,"minkan",pr.t.k,pr.s,pr.t); if(p&&p.answer==="pon") return doPon(o,pr.s,pr.t); }
@@ -576,7 +576,7 @@ function doKan(s,type,k,from,t){
   const r=H.dead.kan.pop(); P.hand.push(r); H.drawn=r; H.rinshan=true; H.turn=s;
   autoHana(s);
   if(isCPU(s)){ autoKita(s); H.state="cpu"; render(); setTimeout(()=>cpuTurn(s),420); }
-  else { H.state="play"; render(); setTimeout(()=>{ if(!autoTsumo(s)&&P.riichi) riichiAuto(s); },380); }
+  else { H.state="play"; autoTsumo(s); render(); setTimeout(()=>{ if(!autoTsumo(s)&&P.riichi) riichiAuto(s); },380); } // ツモれるなら最初から「ツモ（15）」と「キャンセル」を出す
 }
 
 // ===== CPU =====

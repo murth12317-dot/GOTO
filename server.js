@@ -415,9 +415,9 @@ io.on("connection", socket => {
         }
         case "tsumo": { if (H.state !== "play" || H.turn !== s) return; g.doTsumo(s); break; }
         case "pchoice": { if (!H.pchoice || H.pchoice.s !== s) return; g.choosePocchi(s, +a.i); break; }
-        case "kita": { if (H.state !== "play" || H.turn !== s) return; g.nukiKita(s); schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
-        case "hana": { if (H.state !== "play" || H.turn !== s) return; g.nukiHana(s); schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
-        case "star": { if (H.state !== "play" || H.turn !== s) return; if (!g.nukiHana(s, a.id)) return; schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
+        case "kita": { if (H.state !== "play" || H.turn !== s) return; g.nukiKita(s); g.autoTsumo(s); schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
+        case "hana": { if (H.state !== "play" || H.turn !== s) return; g.nukiHana(s); g.autoTsumo(s); schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
+        case "star": { if (H.state !== "play" || H.turn !== s) return; if (!g.nukiHana(s, a.id)) return; g.autoTsumo(s); schedulePush(room); setTimeout(() => { if (!g.autoTsumo(s) && H.p[s].riichi) g.riichiAuto(s); }, 380); break; }
         case "wincancel": { if (g.cancelWin(s)) schedulePush(room); break; }
         case "kan": { if (H.state !== "play" || H.turn !== s) return; if (!g.kanOptions(s).some(o => o.type === a.type && o.k === a.k)) return; g.doKan(s, a.type, a.k); break; }
         case "answer": { if (!g.promptAnswer(s, a.a)) return; break; }
