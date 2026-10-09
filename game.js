@@ -748,10 +748,10 @@ function winChips(s,w,fp,tsumo,d,dry){
     const tulip=fp.fl.all.filter(k=>k===37).length>=2; R.tulip=tulip;
     const src=H.live.slice().reverse(); const mult=closed?2:1; let total=0; R.aliceOut=true;
     // チューリップ：めくった牌と前後1つ（9→1・白發中・東南西北はつながる）が当たり。抜き北も持っている北として数える
-    const own=tulip?tiles.concat(P.kita):tiles;
+    const own=tiles.concat(P.kita); // 抜き北も持っている北として数える（アリス・チューリップとも）
     for(const t of src){
       if(t.k>=34){ const n=fp.fl.all.length*mult; R.alice.push({t,hit:true,n}); total+=n; continue; } // 抜いた華牌＋ドラ表示・裏ドラ表示の華牌
-      const kc=(tulip?tulipKinds(t.k).reduce((a,k)=>a+own.filter(x=>x.k===k).length,0):tiles.filter(x=>x.k===t.k).length)+(t.fk?fp.fl.all.length:0); // 華の7は華牌としても当たり
+      const kc=(tulip?tulipKinds(t.k).reduce((a,k)=>a+own.filter(x=>x.k===k).length,0):own.filter(x=>x.k===t.k).length)+(t.fk?fp.fl.all.length:0); // 華の7は華牌としても当たり
       if(kc>0){ R.alice.push({t,hit:true,n:kc*mult}); total+=kc*mult; } else { R.alice.push({t,hit:false}); R.aliceOut=false; break; }
     }
     pay(total,tulip?"チューリップ":"アリス");
