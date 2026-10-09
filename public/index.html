@@ -920,7 +920,7 @@ function render(){
     if(tw) acts+=`<button data-a="tsumo" class="b-win">ツモ<small class="wcd"></small></button>`+(winEnd?`<button data-a="wincancel" class="b-skip">キャンセル</button>`:"");
     const hasHana=P.hand.some(x=>x.k>=34);
     if(hasHana) acts+=`<button data-a="hana" class="b-kita">華</button>`;
-    if(P.hand.some(x=>x.k===30)) acts+=`<button data-a="kita" class="b-kita">北</button>`;
+    if(P.hand.some(x=>x.k===30) && !(V&&V.afterCall)) acts+=`<button data-a="kita" class="b-kita">北</button>`; // ポンのあとは抜けない
     if(!hasHana && P.riichi && V&&V.acts&&V.acts.stars) for(const id of V.acts.stars){ const t=P.hand.find(x=>x.id===id); if(t) acts+=`<button data-a="star" data-id="${id}" class="b-kita">${HON[t.fk-27]}の7を抜く</button>`; }
     for(const o of kanOptions(0)) acts+=`<button data-a="kan2" data-k="${o.k}" data-t="${o.type}" class="b-pon">カン ${kName(o.k)}</button>`;
     if(H.sel){ const nm=H.shubaSel?(H.sel==="open"?"シュバオープン":"シュバリー"):H.sel==="open"?"オープンリーチ":"リーチ"; acts+=`<button data-a="cancel" class="b-skip">キャンセル</button>`;

@@ -255,7 +255,7 @@ function payChips(from,to,n,why){ if(n<=0||from===to) return; n*=chipMult(from,t
 const fkOf = t => t.k>=34 ? t.k : (t.fk||null);
 // 特別な7を抜けるか：自分の番。リーチ中はいま引いた牌だけ
 function starOptions(s){
-  const P=H.p[s]; if(H.state!=="play"&&H.state!=="cpu"||H.turn!==s) return [];
+  const P=H.p[s]; if(H.state!=="play"&&H.state!=="cpu"||H.turn!==s||H.afterCall===s) return [];
   return P.hand.filter(t=>t.fk && (!P.riichi || t===H.drawn)).map(t=>t.id);
 }
 function nukiHana(s, id){
@@ -297,7 +297,7 @@ function finishNuki(s,t){
 }
 function autoHana(s){ if(!isCPU(s)) return; while(nukiHana(s)); }
 function nukiKita(s){
-  const P=H.p[s]; const t=P.hand.find(x=>x.k===30); if(!t) return false;
+  const P=H.p[s]; const t=P.hand.find(x=>x.k===30); if(!t||H.afterCall===s) return false;
   P.hand.splice(P.hand.indexOf(t),1); P.kita.push(t); log(`${NAMES[s]}：北を抜いた`); SE.say("ぺー",s);
   const r=H.dead.kita.pop(); if(r){ P.hand.push(r); H.drawn=r; H.rinshan=false; autoHana(s); }
   return true;
@@ -455,7 +455,7 @@ function discard(s, id, riichi, open, shuba){
   if(doShuba){ P.shuba=true; G.shubaUsed[s]=true; log(`${NAMES[s]}：シュバ棒を出した（このあともらう祝儀が2倍）`); }
   if(riichi){ SE.say(doShuba?(open?"シュバオープン":"シュバリー"):open?"オープンリーチ":"リーチ",s); P.riichi=true; P.open=!!open; P.dbl=P.river.length===0&&H.noCalls; P.ippatsu=true; G.scores[s]-=open?2000:1000; G.kyotaku+=open?2:1; log(`${NAMES[s]}：${open?"オープンリーチ":"リーチ"}`); }
   if(!P.riichi) P.tempF=false;
-  P.river.push({t,riichi,tg:t===H.drawn}); H.drawn=null; H.winAt=null; // tg：ツモ切り（引いた牌をそのまま切った） H.rinshan=false; H.last={s,t}; SE.clack();
+  P.river.push({t,riichi,tg:t===H.drawn}); H.drawn=null; H.winAt=null; H.afterCall=null; // tg：ツモ切り（引いた牌をそのまま切った） H.rinshan=false; H.last={s,t}; SE.clack();
   log(`${NAMES[s]}：${tName(t)}を切った`);
   afterDiscard(s,t);
 }
@@ -536,7 +536,7 @@ function doPon(o,from,t){
   const rv=H.p[from].river; rv[rv.length-1].called=true; H.p[from].calledFrom=true;
   H.noCalls=false; for(const p of H.p) p.ippatsu=false;
   log(`${NAMES[o]}：ポン（${kName(t.k)}）`); SE.say("ポン",o);
-  H.turn=o; H.drawn=null;
+  H.turn=o; H.drawn=null; H.afterCall=o; // ポンのあとは1枚切るだけ（北・華の7は抜けない）
   if(isCPU(o)){ H.state="cpu"; render(); setTimeout(()=>cpuDiscard(o),420); }
   else { H.state="play"; render(); }
 }

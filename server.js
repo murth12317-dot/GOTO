@@ -140,7 +140,7 @@ function viewFor(room, seat) {
     rules: g.rules, wareme: H.wareme == null ? null : r(H.wareme),
     drawnId: H.turn === seat && H.drawn ? H.drawn.id : null,
     acts, prompt, othersDeciding, danger: g.openDanger(seat), allowed: g.discardable(seat),
-    tp: tenpaiFor(g, seat), noNaki: !!H.noNaki[seat], winLeft: winLeftOf(H, seat), canAbort: room.seats.some(p => p && p.cpu), pchoice: pchoiceFor(H, seat), log: G.log.slice(0, 40),
+    tp: tenpaiFor(g, seat), noNaki: !!H.noNaki[seat], winLeft: winLeftOf(H, seat), canAbort: room.seats.some(p => p && p.cpu), afterCall: H.afterCall === seat, pchoice: pchoiceFor(H, seat), log: G.log.slice(0, 40),
   };
 }
 // 聴牌補助：切るとテンパイになる牌と待ち・フリテン
@@ -315,7 +315,7 @@ function kickAway(room, seat) {
   if (H.state === "play" && H.turn === seat) {
     const P = H.p[seat];
     while (P.hand.some(t => t.k >= 34)) g.nukiHana(seat);
-    while (P.hand.some(t => t.k === 30)) g.nukiKita(seat);
+    while (P.hand.some(t => t.k === 30)) { if (!g.nukiKita(seat)) break; } // ポンのあとは抜けない
     if (H.pchoice && H.pchoice.s === seat) return g.choosePocchi(seat, H.pchoice.timeout, true);
     if (g.doTsumo(seat)) return;
     const ok = g.discardable(seat);
