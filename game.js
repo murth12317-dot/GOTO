@@ -128,10 +128,12 @@ function evaluate(seat, conc, winK, ctx, shapeOnly){
     const chin=suits.size===1&&!hasH, hon=suits.size===1&&hasH, honro=ks.every(isYao);
     const yk=[], ym=[];
     if(chin) ym.push(["大車輪",1]);
+    const manHon=hon&&[...suits][0]===0; // 萬子の混一色は役満
+    if(manHon) ym.push(["萬子混一色",1]);
     if(quads>=3) ym.push(["4枚使い七対子（3組）",1]);
     if(allH) ym.push(["字一色",1]);
     if(ks.every(k=>!isYao(k))) yk.push(["断么九",1]);
-    if(hon) yk.push(["小車輪",6]); else if(honro) yk.push(["混老頭七対子",6]); else if(!chin) yk.push(["七対子",2]);
+    if(manHon){} else if(hon) yk.push(["小車輪",6]); else if(honro) yk.push(["混老頭七対子",6]); else if(!chin) yk.push(["七対子",2]);
     if(hon&&honro) yk.push(["混老頭",2]);
     if(quads>0 && quads<3) yk.push([`4枚使い×${quads}`,4*quads]);
     add(yk,ym,ctx.tsumo?25:30,"chiitoi"); // 七対子：ロンは30符、ツモは25符
@@ -188,7 +190,8 @@ function evaluate(seat, conc, winK, ctx, shapeOnly){
       if(ks.every(isYao) && chis.length===0 && !allH && !chinro) yk.push(["混老頭",2]);
       const chantaOK=chis.length>0 && isYao(d.pair) && all.every(s=>s.t==="pon"?isYao(s.k):(s.k%9===0||s.k%9===6));
       if(chantaOK) yk.push(hasH?["チャンタ",closed?4:2]:["純チャン",closed?6:4]);
-      if(suits.size===1){ if(hasH) yk.push(["混一色",closed?3:2]); else yk.push(["清一色",closed?6:5]); }
+      if(suits.size===1){ if(hasH && [...suits][0]===0) ym.push(["萬子混一色",1]); // 萬子（1萬・9萬）と字牌だけの混一色は役満（鳴いても）
+        else if(hasH) yk.push(["混一色",closed?3:2]); else yk.push(["清一色",closed?6:5]); }
       let fu;
       if(pinfu) fu=ctx.tsumo?20:30;
       else {
