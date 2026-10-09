@@ -633,11 +633,11 @@ function doraInfo(s, conc){
   const akaDora=(aka+gold+rainbow)*(aki?2:1); // 虹の7も赤5と同じくドラ1つ（秋で2倍）
   const kn=P.kita.length;
   const aki2=akiN>=2; // 秋秋
-  const kitaDora=kn+(aki2?kn:0)+(kn===4?4:0)+kn*dk.filter(k=>k===30).length; // 北1枚1つ（秋秋で2つ）、4枚そろえば＋4
-  const plain5=aki2?tiles.filter(t=>(t.k===13||t.k===22)&&!t.red&&!t.gold).length:0; // 秋秋：普通の5は1枚でドラ1つ
+  const kitaDora=kn+(kn===4?4:0)+kn*dk.filter(k=>k===30).length; // 北1枚1つ、4枚そろえば＋4
+  const akiF=aki2?fl.all.length:0; // 秋秋：華牌の数（抜いた華牌・華の7、手牌の華の7、ドラ表示・裏ドラ表示の華牌）がドラ
   let ura=0; for(const t of tiles) for(const k of uk) if(t.k===k) ura++;
   if(kn<4) ura+=kn*uk.filter(k=>k===30).length;
-  return {dora,aka,gold,rainbow,akaDora,kitaDora,kn,ura,total:dora+akaDora+kitaDora+ura+plain5,aki,aki2,plain5};
+  return {dora,aka,gold,rainbow,akaDora,kitaDora,kn,ura,total:dora+akaDora+kitaDora+ura+akiF,aki,aki2,akiF};
 }
 function flowersFor(s,conc){
   const P=H.p[s];
