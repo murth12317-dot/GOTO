@@ -858,10 +858,12 @@ function sideTile(t,stack){
 function meldHTML(m,s){
   const T=x=>tileHTML(x,"rv");
   if(m.t==="ankan"){
-    // 両端の2枚は伏せる。セブンスターの虹・華の7は何を使ったか分かるよう、真ん中に寄せて表向きのまま（3枚以上なら端も表）
+    // 普通の暗槓は両端の2枚を伏せる。セブンスターの7の暗槓は、色付き（虹・華の7）だけ表にして、普通の7は全部伏せる（全部普通の7なら4枚とも伏せる）
     const sp=x=>x.rainbow||x.fk, plain=m.tiles.filter(x=>!sp(x)), spec=m.tiles.filter(sp);
-    const ts=[plain[0],...spec,...plain.slice(1)].filter(Boolean); if(plain.length>=2) ts.push(ts.splice(ts.indexOf(plain[1]),1)[0]);
-    return ts.map((t,i)=>(i===0||i===3)&&!sp(t)?`<span class="t rv back"></span>`:T(t)).join("");
+    const seven=H&&H.rules&&H.rules.hana===7&&(m.k===15||m.k===24);
+    if(!seven&&!spec.length) return m.tiles.map((t,i)=>i===0||i===3?`<span class="t rv back"></span>`:T(t)).join("");
+    const ts=[plain[0],...spec,...plain.slice(1)].filter(Boolean);
+    return ts.map(t=>sp(t)?T(t):`<span class="t rv back"></span>`).join("");
   }
   const rel=(m.from-s+3)%3; // 1=下家 2=上家
   if(m.t==="pon"){ const [a,b,c]=m.tiles; return rel===2?sideTile(c)+T(a)+T(b):T(a)+T(b)+sideTile(c); }
