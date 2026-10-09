@@ -134,7 +134,7 @@ function evaluate(seat, conc, winK, ctx, shapeOnly){
     if(hon) yk.push(["小車輪",6]); else if(honro) yk.push(["混老頭七対子",6]); else if(!chin) yk.push(["七対子",2]);
     if(hon&&honro) yk.push(["混老頭",2]);
     if(quads>0 && quads<3) yk.push([`4枚使い×${quads}`,4*quads]);
-    add(yk,ym,25,"chiitoi");
+    add(yk,ym,ctx.tsumo?25:30,"chiitoi"); // 七対子：ロンは30符、ツモは25符
   }
   // 通常形
   const need=4-called.length;
@@ -169,6 +169,12 @@ function evaluate(seat, conc, winK, ctx, shapeOnly){
       for(const b of [9,18]) if([b,b+3,b+6].every(x=>chis.some(s=>s.k===x))) yk.push(["一気通貫",closed?2:1]);
       for(const n of [0,8]) if([n,9+n,18+n].every(x=>pons.some(s=>s.k===x))) yk.push(["三色同刻",2]);
       if(pons.length===4) yk.push(["対々和",2]);
+      // 三連刻（同じ色の数牌で3つ続いた刻子）2翻、四連刻（4つ続く）役満。鳴いても食い下がりなし
+      { const pk=new Set(pons.filter(s=>s.k<27).map(s=>s.k)); let run=0;
+        for(const k of pk){ if(pk.has(k-1)&&suitOf(k-1)===suitOf(k)) continue; let n=1; while(pk.has(k+n)&&suitOf(k+n)===suitOf(k)) n++; run=Math.max(run,n); }
+        if(run>=4) ym.push(["四連刻",1]); else if(run===3) yk.push(["三連刻",2]); }
+      // 三風刻（風牌の刻子3つ）2翻。鳴いても食い下がりなし（小四喜・大四喜のときは付けない）
+      if(windPons>=3 && !(dai4||sho4)) yk.push(["三風刻",2]);
       const ank=sets.filter(s=>s.t==="pon"&&!s.ronOpen).length+called.filter(m=>m.t==="ankan").length;
       const kans=called.filter(m=>m.t!=="pon").length; if(kans===4) ym.push(["四槓子",1]); else if(kans===3) yk.push(["三槓子",2]);
       if(ank===4) ym.push(["四暗刻",1]); else if(ank===3) yk.push(["三暗刻",2]);
