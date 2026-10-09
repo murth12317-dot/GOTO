@@ -310,6 +310,19 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .ttl{font-family:"Shippori Mincho B1",serif;font-weight:800;font-size:40px;color:var(--gold);margin:0;letter-spacing:.08em;line-height:1.15}
 .start p{margin:8px 0;color:#cfdcd7;font-size:14px}
 .start .deco{display:flex;gap:4px;margin:16px 0 6px;--rt:min(9vw,40px)}
+/* コメント */
+.chatpanel{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 58px);z-index:45;width:min(94vw,420px);background:linear-gradient(180deg,#14322f,#0b1f1d);border:1px solid rgba(240,198,94,.55);border-radius:14px;padding:10px;box-shadow:0 12px 30px rgba(0,0,0,.6)}
+.chatrow{display:flex;gap:6px}
+.chatrow input{flex:1;min-width:0;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:var(--text);font:inherit;font-size:16px}
+.chatrow button{min-height:40px;padding:0 12px;font-size:15px;flex:none;box-shadow:none}
+.chatrow .mic.on{background:#e2402c;color:#fff;animation:zoro 1s infinite}
+.stamps{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.stamps button{min-height:32px;padding:4px 10px;font-size:13px;box-shadow:none;background:rgba(255,255,255,.08);color:var(--text);border:1px solid rgba(240,198,94,.35)}
+.chatlog{margin-top:8px;max-height:120px;overflow:auto;font-size:12.5px;color:var(--muted)} .chatlog b{color:var(--gold);font-weight:700;margin-right:4px}
+.chatmsg{font-size:11.5px;color:#ffb3a8;margin-top:4px;min-height:1em}
+.bubble{position:fixed;z-index:44;max-width:min(60vw,260px);background:#fffbe9;color:#1b1a17;border-radius:12px;padding:6px 10px;font-size:14px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.45);pointer-events:none;animation:bubin .2s ease-out}
+.bubble small{display:block;font-size:10.5px;color:#8a6a1a}
+@keyframes bubin{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
 .tb.tbw{width:auto;padding:0 12px;font-size:13px;font-weight:700;color:#ffb3a8;border-color:rgba(226,64,44,.6)}
 .tb{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:20;width:42px;height:42px;min-height:0;padding:0;font-size:18px;background:rgba(8,20,22,.85);border:1px solid rgba(240,198,94,.4);box-shadow:none}
 @media (prefers-reduced-motion: reduce){ .seq,.flip .in{animation-delay:0s !important;animation-duration:.01s !important}  .hand .t{transition:none} .hand .t:hover{transform:none} }
@@ -604,6 +617,7 @@ html,body,.hand,.hand .t,button{touch-action:manipulation}
 <button id="snd" class="tb" style="right:8px" aria-label="音の切り替え">🔊</button>
 <button id="fs" class="tb" style="right:56px" aria-label="全画面">⛶</button>
 <button id="abort" class="tb tbw" style="left:8px;display:none">対局終了</button>
+<button id="chatbtn" class="tb" style="right:104px;display:none" aria-label="コメント">💬</button>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
 <linearGradient id="sG" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#0d5530"/><stop offset=".45" stop-color="#3cb46a"/><stop offset=".6" stop-color="#2a9a55"/><stop offset="1" stop-color="#0d5530"/></linearGradient>
 <linearGradient id="sR" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#8a1a12"/><stop offset=".45" stop-color="#ee6a54"/><stop offset=".6" stop-color="#d4412e"/><stop offset="1" stop-color="#8a1a12"/></linearGradient>
@@ -948,6 +962,11 @@ document.addEventListener("click",e=>{
   if(e.target.closest("#lg")){ if(!G) return; document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card"><h2 style="font-size:24px">ログ</h2><div class="logbox">${G.log.map(x=>`<div>${x}</div>`).join("")}</div><button data-a="close" class="b-gold">閉じる</button></div></div>`; return; }
   if(e.target.closest("button[data-a=close]")){ document.getElementById("ov").innerHTML=""; return; }
   if(e.target.closest(".card.anim") && !e.target.closest("button")){ e.target.closest(".card").classList.add("instant"); DICE.finish(); clearRT(); return; }
+  if(e.target.closest("#chatbtn")){ toggleChat(); return; }
+  if(e.target.closest("#chatsend")){ sendChat(document.getElementById("chatin").value); return; }
+  if(e.target.closest("#chatmic")){ toggleMic(); return; }
+  { const st=e.target.closest(".stamps button"); if(st){ sendChat(st.textContent); return; } }
+  if(!e.target.closest("#chatpanel") && document.getElementById("chatpanel") && !e.target.closest("#chatbtn")) closeChat();
   if(e.target.closest("#abort")){ if(confirm("対局を終了しますか？\nこの半荘は成績に記録されません。")) socket.emit("abort"); return; }
   if(e.target.closest("#snd")){ const b=document.getElementById("snd"); b.textContent=SE.toggle()?"🔊":"🔇"; return; }
   const b=e.target.closest("button[data-a]");
@@ -1525,13 +1544,57 @@ document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==
 socket.on("joined",j=>{ ME.code=j.code; ME.token=j.token; save(); history.replaceState(null,"","?room="+j.code); });
 // 対局終了ボタン：CPU入りの対局中だけ出す
 function showAbort(on){ const b=document.getElementById("abort"); if(b) b.style.display=on?"":"none"; }
+// ===== 対局中のコメント（定型文・音声入力つき）=====
+const STAMPS=["よろしく","ナイス！","うそやろ","ありがとう","ちょっと待って","ごめん","さすが","おつかれ"];
+let chatLog=[];
+function showChatBtn(on){ const b=document.getElementById("chatbtn"); if(b) b.style.display=on?"":"none"; if(!on) closeChat(); }
+function chatLogHTML(){ return chatLog.slice(-20).map(m=>`<div><b>${esc(m.name)}</b>${esc(m.text)}</div>`).join(""); }
+function toggleChat(){
+  if(document.getElementById("chatpanel")) return closeChat();
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const p=document.createElement("div"); p.id="chatpanel"; p.className="chatpanel";
+  p.innerHTML=`<div class="chatrow"><input id="chatin" maxlength="40" placeholder="コメント（40文字まで）" enterkeyhint="send">${SR?`<button id="chatmic" class="mic b-skip" aria-label="音声入力">🎤</button>`:""}<button id="chatsend" class="b-gold">送る</button></div>
+    <div class="chatmsg" id="chatmsg">${SR?"🎤を押して話すと、そのまま送ります":"キーボードのマイクでも入力できます"}</div>
+    <div class="stamps">${STAMPS.map(t=>`<button>${t}</button>`).join("")}</div>
+    <div class="chatlog" id="chatlog">${chatLogHTML()}</div>`;
+  document.body.appendChild(p);
+  const inp=p.querySelector("#chatin"); inp.addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.isComposing){ e.preventDefault(); sendChat(inp.value); } });
+  const lg=p.querySelector("#chatlog"); lg.scrollTop=lg.scrollHeight;
+}
+function closeChat(){ stopMic(); const p=document.getElementById("chatpanel"); if(p) p.remove(); }
+function sendChat(t){ t=String(t||"").trim(); if(!t) return; socket.emit("chat",t.slice(0,40)); const i=document.getElementById("chatin"); if(i) i.value=""; closeChat(); }
+let rec=null;
+function stopMic(){ if(rec){ try{ rec.abort(); }catch(e){} rec=null; } const m=document.getElementById("chatmic"); if(m) m.classList.remove("on"); }
+function toggleMic(){
+  if(rec){ try{ rec.stop(); }catch(e){} return; }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR) return;
+  const msg=t=>{ const e=document.getElementById("chatmsg"); if(e) e.textContent=t; };
+  let r; try{ r=new SR(); }catch(e){ msg("音声入力が使えません。キーボードのマイクを使ってください"); return; }
+  rec=r; r.lang="ja-JP"; r.interimResults=true; r.continuous=false;
+  let text="", sent=false;
+  r.onresult=e=>{ text=[...e.results].map(x=>x[0].transcript).join(""); const i=document.getElementById("chatin"); if(i) i.value=text.slice(0,40); };
+  r.onerror=e=>{ msg(e.error==="not-allowed"||e.error==="service-not-allowed"?"マイクが許可されていません。キーボードのマイクを使ってください":"うまく聞き取れませんでした"); };
+  r.onend=()=>{ const m=document.getElementById("chatmic"); if(m) m.classList.remove("on"); rec=null; if(text.trim()&&!sent){ sent=true; sendChat(text); } };
+  try{ r.start(); document.getElementById("chatmic").classList.add("on"); msg("聞いています…話し終わると送ります"); }catch(e){ rec=null; msg("音声入力が使えません。キーボードのマイクを使ってください"); }
+}
+// 届いたコメント：その人の席のあたりに吹き出しで4秒
+function showBubble(d){
+  const bd=document.querySelector(".board"); if(!bd) return toast(`${d.name}：${d.text}`);
+  const r=bd.getBoundingClientRect(), b=document.createElement("div"); b.className="bubble";
+  b.innerHTML=`<small>${esc(d.name)}</small>${esc(d.text)}`; document.body.appendChild(b);
+  const w=b.offsetWidth, h=b.offsetHeight;
+  const pos=d.seat===0?[r.left+r.width/2-w/2, r.bottom-h-r.height*.2]:d.seat===1?[r.right-w-r.width*.06, r.top+r.height*.3]:[r.left+r.width*.06, r.top+r.height*.3];
+  b.style.left=Math.max(4,Math.min(innerWidth-w-4,pos[0]))+"px"; b.style.top=Math.max(4,pos[1])+"px";
+  setTimeout(()=>b.remove(),4000);
+}
+socket.on("chat",d=>{ chatLog.push(d); if(chatLog.length>50) chatLog.shift(); const lg=document.getElementById("chatlog"); if(lg){ lg.innerHTML=chatLogHTML(); lg.scrollTop=lg.scrollHeight; } showBubble(d); });
 socket.on("aborted",d=>{ showAbort(false); document.getElementById("ov").innerHTML=""; DICE.stop&&DICE.stop(); toast(`${d.by}さんが対局を終了しました（成績には記録しません）`); });
 socket.on("err",msg=>{ toast(msg); if(/見つかりません|なくなりました|始まって|満員/.test(msg)){ ME.code=null; ME.token=null; save(); showLobbyStart(); } });
-socket.on("lobby",L=>{ if(L.phase==="lobby"){ showAbort(false); showRoom(L); } });
+socket.on("lobby",L=>{ if(L.phase==="lobby"){ showAbort(false); showChatBtn(false); showRoom(L); } });
 socket.on("view",v=>{
   const ov=document.getElementById("ov");
   if(ov.querySelector(".card.res,.card.fin,.card.lob")) ov.innerHTML="";
-  applyView(v); render(); afterRender(); showAbort(!!v.canAbort);
+  applyView(v); render(); afterRender(); showAbort(!!v.canAbort); showChatBtn(true);
 });
 // 代打中の表示と、手番の残り時間
 let turnEnd=null;
@@ -1594,7 +1657,7 @@ function toast(msg){
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 // ===== ロビー =====
-function showLobbyStart(){ showAbort(false);
+function showLobbyStart(){ showAbort(false); showChatBtn(false);
   const q=new URLSearchParams(location.search).get("room")||"";
   const deco=[{k:34},{k:13,red:true},{k:22,gold:true},{k:31,pocchi:true},{k:30},{k:33}].map((t,i)=>tileHTML({...t,id:-10-i},"rv")).join("");
   document.getElementById("app").innerHTML="";

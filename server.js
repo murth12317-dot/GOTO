@@ -441,6 +441,15 @@ io.on("connection", socket => {
     room.ready.add(seat); checkReady(room);
   });
 
+  // 対局中のコメント（40文字まで。連投は1秒に1回まで）
+  socket.on("chat", text => {
+    if (!room || !["play", "result", "final"].includes(room.phase)) return;
+    const seat = seatNow(), p = room.seats[seat]; if (!p || p.cpu) return;
+    const t = String(text || "").replace(/\s+/g, " ").trim().slice(0, 40); if (!t) return;
+    const now = Date.now(); if (p._chatAt && now - p._chatAt < 1000) return; p._chatAt = now;
+    for (const s of humanSeats(room)) emitTo(room, s, "chat", { seat: rotOf(s)(seat), name: p.name, text: t });
+  });
+
   // CPU入りの対局は途中で終われる（成績には記録しない）
   socket.on("abort", () => {
     if (!room || !room.game || !["play", "result"].includes(room.phase)) return;
