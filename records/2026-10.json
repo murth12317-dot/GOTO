@@ -8784,5 +8784,41 @@
     "cpu": true
    }
   ]
+ },
+ {
+  "id": "8987-1791660011319",
+  "at": "2026-10-10T19:24:43.765Z",
+  "room": "8987",
+  "rate": 1000,
+  "rules": {
+   "hana": 7,
+   "shuba": true,
+   "wareme": true
+  },
+  "fee": 1,
+  "feeTo": "あつや",
+  "players": [
+   {
+    "name": "まさき",
+    "rank": 1,
+    "score": 62000,
+    "chips": 58,
+    "cpu": false
+   },
+   {
+    "name": "CPU 三号",
+    "rank": 2,
+    "score": 23000,
+    "chips": -8,
+    "cpu": true
+   },
+   {
+    "name": "CPU 一号",
+    "rank": 3,
+    "score": 20000,
+    "chips": -50,
+    "cpu": true
+   }
+  ]
  }
 ]
