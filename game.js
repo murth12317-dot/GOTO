@@ -695,7 +695,7 @@ function settleTsumo(s,w){
   }
   if(G.kyotaku){ G.scores[s]+=1000*G.kyotaku; R.pts.push({from:-1,to:s,n:1000*G.kyotaku,why:"供託"}); G.kyotaku=0; }
   const chips=winChips(s,w,fp,true,null);
-  R.wins.push({s,w,fp,tsumo:true,chips,pao});
+  R.wins.push({s,w,fp,tsumo:true,chips,pao,alice:R.lastAlice});
   finishHand([s]);
 }
 function settleRon(d,t,list){
@@ -716,7 +716,7 @@ function settleRon(d,t,list){
     else payPts(d,s,amt,"ロン",false,hb);
     if(i===0&&G.kyotaku){ G.scores[s]+=1000*G.kyotaku; R.pts.push({from:-1,to:s,n:1000*G.kyotaku,why:"供託"}); G.kyotaku=0; }
     const chips=winChips(s,w,fp,false,d);
-    R.wins.push({s,w,fp,tsumo:false,from:d,chips,pao});
+    R.wins.push({s,w,fp,tsumo:false,from:d,chips,pao,alice:R.lastAlice});
   });
   finishHand(list.map(x=>x.o));
 }
@@ -753,16 +753,17 @@ function winChips(s,w,fp,tsumo,d,dry){
   }
   if(w.pocchi){ if(pocchiIppatsu){ pay(4,"白ポッチ一発",true); dice("白ポッチ一発"); } else pay(1,"白ポッチ",true); }
   if(dry) return {lines,got};
+  R.lastAlice=null; // アリス・チューリップは和了した人ごとに持つ（ダブロンで混ざらないように）
   if(fp.fl.all.includes(37)){ // 冬：アリス（冬2枚ならチューリップ）
     // ドラ表示牌の隣（残りの山の最後）から順にめくる。嶺上牌はさわらない
-    const tulip=fp.fl.all.filter(k=>k===37).length>=2; R.tulip=tulip;
-    const src=H.live.slice().reverse(); const mult=closed?2:1; let total=0; R.aliceOut=true;
+    const tulip=fp.fl.all.filter(k=>k===37).length>=2; const AL={list:[],out:true,tulip}; R.lastAlice=AL;
+    const src=H.live.slice().reverse(); const mult=closed?2:1; let total=0;
     // チューリップ：めくった牌と前後1つ（9→1・白發中・東南西北はつながる）が当たり。抜き北も持っている北として数える
     const own=tiles.concat(P.kita); // 抜き北も持っている北として数える（アリス・チューリップとも）
     for(const t of src){
-      if(t.k>=34){ const n=fp.fl.all.length*mult; R.alice.push({t,hit:true,n}); total+=n; continue; } // 抜いた華牌＋ドラ表示・裏ドラ表示の華牌
+      if(t.k>=34){ const n=fp.fl.all.length*mult; AL.list.push({t,hit:true,n}); total+=n; continue; } // 抜いた華牌＋ドラ表示・裏ドラ表示の華牌
       const kc=(tulip?tulipKinds(t.k).reduce((a,k)=>a+own.filter(x=>x.k===k).length,0):own.filter(x=>x.k===t.k).length)+(t.fk?fp.fl.all.length:0); // 華の7は華牌としても当たり
-      if(kc>0){ R.alice.push({t,hit:true,n:kc*mult}); total+=kc*mult; } else { R.alice.push({t,hit:false}); R.aliceOut=false; break; }
+      if(kc>0){ AL.list.push({t,hit:true,n:kc*mult}); total+=kc*mult; } else { AL.list.push({t,hit:false}); AL.out=false; break; }
     }
     pay(total,tulip?"チューリップ":"アリス");
   }

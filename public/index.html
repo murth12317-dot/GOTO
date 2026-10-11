@@ -1342,21 +1342,22 @@ function showResult(page=0){
       if(P.riichi){ ura=H.dead.ura.concat(H.kanUra).map(t=>{ const dd=step(.6); const hit=t.k<34&&uraHit(t); later(()=>SE.draw(),dd+.3);
           if(hit){ const k=nextKind(t.k); later(()=>sparkle(k),dd+.55); d+=.75; } return flipHTML(t,dd,false); }).join(""); d+=.2; }
       let aliceRow="";
-      if(x.fp.fl.all.includes(37) && x===R.wins[0]){
-        const flips=R.alice; const slots=Math.max(3, flips.length+(R.aliceOut?1:0));
+      const AL=x.alice;
+      if(AL){ // アリス・チューリップは和了した人ごと（ダブロンはそれぞれのページに）
+        const flips=AL.list; const slots=Math.max(3, flips.length+(AL.out?1:0));
         let tl="";
         for(let i=0;i<slots;i++){
           if(i<flips.length){ const a=flips[i]; const dd=step(.6); later(()=>SE.draw(),dd+.3);
-            if(a.hit){ const ks=a.t.k>=34?[34]:(R.tulip?tulipKinds(a.t.k):[a.t.k]).concat(a.t.fk?[34]:[]); later(()=>sparkle(ks),dd+.55); d+=.75; }
+            if(a.hit){ const ks=a.t.k>=34?[34]:(AL.tulip?tulipKinds(a.t.k):[a.t.k]).concat(a.t.fk?[34]:[]); later(()=>sparkle(ks),dd+.55); d+=.75; }
             const f=flipHTML(a.t,dd,false,!a.hit);
             tl+= i>=3 ? `<span class="slot" style="--d:${dd-.2}s">${f}</span>` : f; }
-          else if(i===flips.length && R.aliceOut){ const dd=step(.5);
+          else if(i===flips.length && AL.out){ const dd=step(.5);
             const f=`<span class="t rv back nogo" style="--gd:${dd}s"></span>`;
             tl+= i>=3 ? `<span class="slot" style="--d:${dd-.2}s">${f}</span>` : f; }
           else tl+=`<span class="t rv back"></span>`;
         }
         const tot=flips.filter(a=>a.hit).reduce((s,a)=>s+a.n,0); const dd=step(.4);
-        aliceRow=`<div class="row"><b>${R.tulip?"チューリップ":"アリス"}</b>${tl}<span class="alit seq" style="--d:${dd}s">${tot?`+${tot}枚`:"なし"}${R.aliceOut?`<small>（めくる牌なし）</small>`:""}</span></div>`;
+        aliceRow=`<div class="row"><b>${AL.tulip?"チューリップ":"アリス"}</b>${tl}<span class="alit seq" style="--d:${dd}s">${tot?`+${tot}枚`:"なし"}${AL.out?`<small>（めくる牌なし）</small>`:""}</span></div>`;
       }
       p1+=`<div class="p1top"><div><div class="rnm">${roundName}</div><div class="who2">${NAMES[x.s]}<span class="kind">${x.tsumo?"ツモ":"ロン"}${x.w.pocchi?"・白ポッチ":""}</span>${x.tsumo?"":`<span class="from">← ${NAMES[x.from]}</span>`}</div></div>
         <div class="dbox"><div class="row"><b>ドラ表</b>${dor}</div>${P.riichi?`<div class="row"><b>裏ドラ表</b>${ura}</div>`:""}${aliceRow}</div></div>`;
