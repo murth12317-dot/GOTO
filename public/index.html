@@ -946,7 +946,7 @@ function render(){
   if(play){
     const tw=tryTsumo(0);
     if(tw) acts+=`<button data-a="tsumo" class="b-win">ツモ<small class="wcd"></small></button>`+(winEnd?`<button data-a="wincancel" class="b-skip">キャンセル</button>`:"");
-    const hasHana=P.hand.some(x=>x.k>=34);
+    const hasHana=P.hand.some(x=>x.k>=34) && !(V&&V.afterCall); // ポンの直後は抜かずに切る（次の自分の番に抜く）
     if(hasHana) acts+=`<button data-a="hana" class="b-kita">華</button>`;
     if(P.hand.some(x=>x.k===30) && !(V&&V.afterCall)) acts+=`<button data-a="kita" class="b-kita">北</button>`; // ポンのあとは抜けない
     if(!hasHana && P.riichi && V&&V.acts&&V.acts.stars) for(const id of V.acts.stars){ const t=P.hand.find(x=>x.id===id); if(t) acts+=`<button data-a="star" data-id="${id}" class="b-kita">${HON[t.fk-27]}の7を抜く</button>`; }
@@ -1079,7 +1079,7 @@ function tapTile(id){
     H.pick=H.pick===id?null:id; pickTaps=1; render(); return;
   }
   if(P.riichi) return;
-  if(P.hand.some(x=>x.k>=34)) return;
+  if(P.hand.some(x=>x.k>=34) && !(V&&V.afterCall)) return;
   const tt=P.hand.find(x=>x.id===id); if(tt&&tt.k===30) return;
   if(!discardable(0).includes(id)) return;
   if(H.sel && !riichiOptions(0,H.sel==="open").includes(id)) return;

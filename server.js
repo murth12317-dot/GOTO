@@ -122,7 +122,7 @@ function viewFor(room, seat) {
   if (H.state === "play" && H.turn === seat) {
     const tw = g.tryTsumo(seat);
     acts = { tsumo: !!tw, pocchi: !!(tw && tw.pocchi), riichi: g.riichiOptions(seat), openRiichi: g.riichiOptions(seat, true), kan: g.kanOptions(seat), shuba: g.canShuba(seat), stars: g.starOptions(seat),
-      kita: me.hand.some(t => t.k === 30), hana: me.hand.some(t => t.k >= 34) };
+      kita: me.hand.some(t => t.k === 30) && H.afterCall !== seat, hana: me.hand.some(t => t.k >= 34) && H.afterCall !== seat };
   }
   let prompt = null, othersDeciding = false;
   if (H.state === "prompt" && H.prompt) {
@@ -317,7 +317,7 @@ function kickAway(room, seat) {
   if (H.state === "prompt" && H.prompt && H.prompt.pend[seat] && !H.prompt.pend[seat].answer) g.promptAnswer(seat, "pass");
   if (H.state === "play" && H.turn === seat) {
     const P = H.p[seat];
-    while (P.hand.some(t => t.k >= 34)) g.nukiHana(seat);
+    while (P.hand.some(t => t.k >= 34)) { if (!g.nukiHana(seat)) break; } // ポンの直後は抜けない
     while (P.hand.some(t => t.k === 30)) { if (!g.nukiKita(seat)) break; } // ポンのあとは抜けない
     if (H.pchoice && H.pchoice.s === seat) return g.choosePocchi(seat, H.pchoice.timeout, true);
     if (g.doTsumo(seat)) return;
@@ -409,7 +409,7 @@ io.on("connection", socket => {
       switch (a && a.t) {
         case "discard": {
           if (H.state !== "play" || H.turn !== s) return;
-          const P = H.p[s]; if (P.hand.some(t => t.k >= 34)) return;
+          const P = H.p[s]; if (P.hand.some(t => t.k >= 34) && H.afterCall !== s) return; // ポンの直後は華牌を持ったまま切れる
           if (a.riichi && !g.riichiOptions(s, !!a.open).includes(a.id)) return;
           if (P.riichi && H.drawn && a.id !== H.drawn.id) return;
           g.discard(s, a.id, !!a.riichi, !!(a.riichi && a.open), !!(a.riichi && a.shuba)); break;

@@ -268,6 +268,7 @@ function starOptions(s){
   return P.hand.filter(t=>t.fk && (!P.riichi || t===H.drawn)).map(t=>t.id);
 }
 function nukiHana(s, id){
+  if(H.afterCall===s) return false; // ポンの直後は1枚切るだけ（手の華牌は次の自分の番に抜く）
   const P=H.p[s]; const t=id!=null ? P.hand.find(x=>x.id===id&&x.fk) : P.hand.find(x=>x.k>=34); if(!t) return false;
   if(id!=null && !starOptions(s).includes(id)) return false;
   P.hand.splice(P.hand.indexOf(t),1);
