@@ -67,6 +67,7 @@ html,body{overflow:hidden}
 .b-shuba{background:linear-gradient(180deg,#8a6cf0,#5a3fc7)} .b-shuba.on{box-shadow:0 0 0 2px #fff inset}
 .stick::after{content:"";position:absolute;left:50%;top:50%;width:calc(var(--box) * .025);height:calc(var(--box) * .025);border-radius:50%;background:var(--red);transform:translate(-50%,-50%)}
 .rvg{position:absolute;top:calc(50% + var(--box) * .545);left:50%;transform:translateX(-50%);display:grid;grid-template-columns:repeat(6,var(--rt));gap:1px 1px;width:calc(var(--rt) * 6 + 5px);justify-items:center}
+@media (orientation: portrait){ .layer.r .rvg,.layer.l .rvg{grid-auto-columns:var(--rt)} .layer.r .rvg>.t,.layer.l .rvg>.t{grid-row:var(--r);grid-column:var(--c)} } /* 縦画面：左右の河は4段目に行かず3段目を伸ばす（卓の横幅が足りないため） */
 .layer.r .edge .t.back,.layer.l .edge .t.back{--w:calc(var(--rt) * .72);margin-right:-1px}
 .edge{position:absolute;bottom:2%;left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:1px;white-space:nowrap}
 .layer.me .edge{left:auto;right:3%;transform:none}
@@ -904,7 +905,7 @@ const dispSc = s => G.scores[s]+(G.stick&&G.stick[s]?100:0);
 const SIDE = {0:" me", 1:" r", 2:" l"};
 function seatLayer(s){
   const P=H.p[s]; const on=H.turn===s && H.state!=="result";
-  const river=P.river.map(r=>tileHTML(r.t,"rv"+(r.riichi?" rot":"")+(r.called?" gone":"")+(r.tg?" tg":""))).join("");
+  const river=P.river.map((r,i)=>tileHTML(r.t,"rv"+(r.riichi?" rot":"")+(r.called?" gone":"")+(r.tg?" tg":"")).replace('class="t',`style="--r:${Math.min(3,Math.floor(i/6)+1)};--c:${i<12?i%6+1:i-11}" class="t`)).join(""); // 縦画面の左右の人は13枚目から3段目を折り返さずに横へ伸ばす（--r/--c で置き場所を決める）
   const nuki=P.kita.concat(P.hana).map(t=>tileHTML(t,"rv")).join("");
   const melds=P.melds.map(m=>`<span class="meld">${meldHTML(m,s)}</span>`).join("");
   const backs=s===0?"":P.open&&P.hand[0]&&P.hand[0].k>=0?sortHand(P.hand.slice()).map(t=>tileHTML(t,"rv")).join(""):P.hand.map(()=>`<span class="t rv back"></span>`).join("");
