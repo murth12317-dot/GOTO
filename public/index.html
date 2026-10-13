@@ -1531,8 +1531,10 @@ function showResult(page=0){
     const from=f=>R.chips.filter(c=>c.to===x.s&&c.from===f).reduce((a,c)=>a+c.n,0)+(mid[x.s]>0&&mid[f]<0?-mid[f]:0);
     const others=[0,1,2].filter(f=>f!==x.s);
     const amt=x.tsumo||x.nagashi?Math.min(...others.map(from)):from(x.from);
-    level=Math.max(level, amt>=20?2:amt>=10?1:0);
-    const total=others.reduce((a,f)=>a+from(f),0); // 和了した人がもらった祝儀の合計
+    level=Math.max(level, amt>=20?2:amt>=10?1:0); }
+  // 雷：和了した人がもらった祝儀の合計（ダブロンは多いほう）。ツモ・ロンを押した瞬間（結果画面が開いたとき）に鳴らす
+  if(!page) for(const x of R.wins){ if(x.nagashi) continue;
+    const total=R.chips.filter(c=>c.to===x.s).reduce((a,c)=>a+c.n,0)+Math.max(0,mid[x.s]);
     thLv=Math.max(thLv, total>=150?4:total>=100?3:total>=50?2:total>=30?1:0); }
   const fcls=level===2?"rainbowf":level===1?"goldf":"";
   const pgNo=nPg>1?`<span style="color:var(--muted);font-weight:700">${page+1} / ${nPg}</span>`:"<span></span>";
@@ -1544,7 +1546,7 @@ function showResult(page=0){
   document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card res anim" data-t0="${Date.now()}" data-dur="${d}" data-f="${fcls}"><div class="pg pg1 on"><div class="pgin"><div class="fitw">${p1}</div></div>${nav}</div>${pop}</div></div>`;
   fitResult(); refitResultSoon();
   if(fcls) later(()=>{ const c=document.querySelector(".card.res"); if(c) c.classList.add(fcls); },tblD);
-  if(thLv) later(()=>thunder(thLv),tblD+.15);
+  if(thLv) later(()=>thunder(thLv),.05);
   DICE.start(1);
 }
 function histHTML(){
