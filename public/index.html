@@ -427,6 +427,19 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 /* 祝儀10枚以上：金枠、20枚以上：虹枠 */
 .card.res.goldf{border:2px solid #ffd65a;box-shadow:0 0 0 1px #b8862f,0 0 28px rgba(255,214,90,.55),0 20px 50px rgba(0,0,0,.6)}
 .card.res.rainbowf{border-color:transparent}
+/* 雷（和了の祝儀合計 30/50/100/150枚以上） */
+.thunder{position:fixed;inset:0;z-index:60;pointer-events:none;overflow:hidden}
+.thunder .fl{position:absolute;inset:0;background:#e9f3ff;opacity:0;animation:thFlash var(--fd,.9s) ease-out both}
+.thunder .fl.b{background:radial-gradient(ellipse at 50% 30%,rgba(190,215,255,.95),rgba(80,110,200,.35) 60%,transparent);mix-blend-mode:screen}
+.thunder svg{position:absolute;top:-4%;overflow:visible;opacity:0;animation:thBolt var(--bd,.7s) ease-out both;filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px #9cc6ff) drop-shadow(0 0 48px #5b8cff)}
+.thunder svg path{fill:none;stroke:#fff;stroke-linejoin:round;stroke-linecap:round}
+@keyframes thFlash{0%{opacity:0}6%{opacity:.95}14%{opacity:.15}22%{opacity:.8}40%{opacity:.05}52%{opacity:.35}100%{opacity:0}}
+@keyframes thBolt{0%{opacity:0}5%{opacity:1}16%{opacity:.25}24%{opacity:1}60%{opacity:.85}100%{opacity:0}}
+.card.res.shake{animation:thShake var(--sd,.5s) cubic-bezier(.36,.07,.19,.97) both}
+@keyframes thShake{10%,90%{transform:translate(-1px,0)}20%,80%{transform:translate(3px,-1px)}30%,50%,70%{transform:translate(calc(var(--sa,4px) * -1),1px)}40%,60%{transform:translate(var(--sa,4px),-1px)}}
+.thlabel{position:fixed;left:50%;top:14%;transform:translateX(-50%);z-index:61;pointer-events:none;font-family:"Shippori Mincho B1",serif;font-weight:800;color:#fff;letter-spacing:.12em;white-space:nowrap;
+  text-shadow:0 0 10px #9cc6ff,0 0 26px #5b8cff,0 2px 0 #203a7a;animation:thLabel 2.4s ease-out both}
+@keyframes thLabel{0%{opacity:0;transform:translateX(-50%) scale(1.6)}12%{opacity:1;transform:translateX(-50%) scale(1)}75%{opacity:1}100%{opacity:0;transform:translateX(-50%) scale(1)}}
 .card.res.rainbowf::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:3px;pointer-events:none;z-index:3;
   background:conic-gradient(from var(--ang,0deg),#ff4d4d,#ffb84d,#fff04d,#5dff7a,#4dd8ff,#6b6bff,#e14dff,#ff4d4d);
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:rbspin 3s linear infinite}
@@ -837,6 +850,11 @@ const SE=(()=>{
       f.frequency.setValueAtTime(700,t0); f.frequency.exponentialRampToValueAtTime(4200,t0+.2);
       const g=c.createGain(); g.gain.value=.55; s.connect(f); f.connect(g); g.connect(c.destination); s.start(t0); },
     kiran(){ [2093,2637,3136].forEach((f,i)=>tone(f,.28,.09,i*.045,"sine")); },
+    thunder(lv){ // 雷：ピシャッという音のあとにゴロゴロ（段階が上がるほど大きく長く）
+      const n=lv>=3?3:lv;
+      for(let i=0;i<n;i++){ noise(.22,2600,.6,.35+lv*.08,i*.28); noise(.4,900,.8,.3+lv*.06,i*.28+.03); }
+      noise(1.4+lv*.6,110,.7,.7+lv*.25,.12); noise(1.8+lv*.7,70,.9,.6+lv*.25,.45); if(lv>=3) noise(2.6,55,1,.9,1.1);
+    },
     hit(){ [1318,1760].forEach((f,i)=>tone(f,.35,.12,i*.07,"sine")); },
     win(){ [523,659,784,1047].forEach((f,i)=>tone(f,.5,.18,.25+i*.09,"triangle")); },
     say(text,seat){
@@ -1324,6 +1342,27 @@ function refitResultSoon(){
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ if(document.querySelector(".card.res")) fitResult(); });
 }
 // ダブロンは和了者ごとにページを分ける（精算表は最後のページ）
+// 雷：lv 1〜4（30/50/100/150枚以上）。枚数が多いほど稲妻が太く・多く・長く、画面も大きく揺れる
+function boltPath(w,h,seg){ let x=w/2, y=0, d=`M${x},${y}`; const pts=[];
+  for(let i=1;i<=seg;i++){ x=Math.max(w*.08,Math.min(w*.92,x+(Math.random()-.5)*w*.55)); y=h*i/seg; d+=` L${x.toFixed(1)},${y.toFixed(1)}`; pts.push([x,y]); }
+  for(let k=0;k<Math.ceil(seg/3);k++){ const [bx,by]=pts[Math.floor(Math.random()*(pts.length-1))]; let ex=bx, ey=by; let b=`M${bx.toFixed(1)},${by.toFixed(1)}`;
+    for(let j=0;j<3;j++){ ex+=(Math.random()-.5)*w*.4; ey+=h/seg*.7; b+=` L${ex.toFixed(1)},${ey.toFixed(1)}`; } d+=" "+b; }
+  return d; }
+function thunder(lv){
+  if(!lv) return; document.querySelectorAll(".thunder,.thlabel").forEach(e=>e.remove());
+  const vw=innerWidth, vh=innerHeight, n=[0,1,2,3,5][lv], sw=[0,3,4.5,6.5,9][lv], dur=[0,.9,1.2,1.6,2.2][lv];
+  let svgs="";
+  for(let i=0;i<n;i++){ const w=vw*(lv>=3?.5:.38), h=vh*(lv>=2?1.05:.75), left=(n===1?vw/2-w/2:(vw-w)*(i/(n-1))+(Math.random()-.5)*vw*.08);
+    svgs+=`<svg width="${w}" height="${h}" style="left:${left}px;--bd:${dur}s;animation-delay:${(i*.13+Math.random()*.08).toFixed(2)}s" viewBox="0 0 ${w} ${h}"><path d="${boltPath(w,h,lv>=3?11:8)}" stroke-width="${sw}"/><path d="${boltPath(w,h,6)}" stroke-width="${sw*.4}" opacity=".7"/></svg>`; }
+  const el=document.createElement("div"); el.className="thunder";
+  el.innerHTML=`<div class="fl${lv>=2?" b":""}" style="--fd:${dur+.2}s"></div>${svgs}${lv>=3?`<div class="fl" style="--fd:${dur}s;animation-delay:.55s"></div>`:""}`;
+  document.body.appendChild(el); setTimeout(()=>el.remove(),(dur+1.6)*1000);
+  const lab=document.createElement("div"); lab.className="thlabel"; lab.style.fontSize=["",30,38,48,60][lv]+"px"; lab.textContent=["","雷","大雷","超雷","神雷"][lv];
+  document.body.appendChild(lab); setTimeout(()=>lab.remove(),2600);
+  const c=document.querySelector(".card.res"); if(c){ c.style.setProperty("--sa",[0,3,5,8,12][lv]+"px"); c.style.setProperty("--sd",[0,.45,.6,.8,1.1][lv]+"s"); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); setTimeout(()=>c.classList.remove("shake"),1300); }
+  SE.thunder(lv);
+  if(navigator.vibrate) try{ navigator.vibrate([0,[0,80,140,220,360][lv],60,[0,0,80,160,260][lv]]); }catch(_){}
+}
 function showResult(page=0){
   if(!page) render(); clearRT(); DICE.reset();
   const nPg=Math.max(1,R.wins.length), last=page>=nPg-1;
@@ -1427,14 +1466,16 @@ function showResult(page=0){
   if(R.msg&&last) p1+=`<p class="msg seq" style="--d:${tblD}s">${R.msg}</p>`;
   // 金枠・虹枠（サイコロのあとに付ける）
   // 金枠・虹枠：和了の祝儀＋局中の春（和了った人がもらった分）で判定
-  let level=0;
+  let level=0, thLv=0;
   const {dc:hdc}=handDelta(); const resNet=[0,0,0]; for(const c of R.chips){ resNet[c.from]-=c.n; resNet[c.to]+=c.n; }
   const mid=[0,1,2].map(s=>hdc[s]-resNet[s]);
   for(const x of pgWins){
     const from=f=>R.chips.filter(c=>c.to===x.s&&c.from===f).reduce((a,c)=>a+c.n,0)+(mid[x.s]>0&&mid[f]<0?-mid[f]:0);
     const others=[0,1,2].filter(f=>f!==x.s);
     const amt=x.tsumo||x.nagashi?Math.min(...others.map(from)):from(x.from);
-    level=Math.max(level, amt>=20?2:amt>=10?1:0); }
+    level=Math.max(level, amt>=20?2:amt>=10?1:0);
+    const total=others.reduce((a,f)=>a+from(f),0); // 和了した人がもらった祝儀の合計
+    thLv=Math.max(thLv, total>=150?4:total>=100?3:total>=50?2:total>=30?1:0); }
   const fcls=level===2?"rainbowf":level===1?"goldf":"";
   const pgNo=nPg>1?`<span style="color:var(--muted);font-weight:700">${page+1} / ${nPg}</span>`:"<span></span>";
   // オーラスの親の和了やめ：親（自分）はやめる／続けるを選ぶ
@@ -1445,6 +1486,7 @@ function showResult(page=0){
   document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card res anim" data-t0="${Date.now()}" data-dur="${d}" data-f="${fcls}"><div class="pg pg1 on"><div class="pgin"><div class="fitw">${p1}</div></div>${nav}</div>${pop}</div></div>`;
   fitResult(); refitResultSoon();
   if(fcls) later(()=>{ const c=document.querySelector(".card.res"); if(c) c.classList.add(fcls); },tblD);
+  if(thLv) later(()=>thunder(thLv),tblD+.15);
   DICE.start(1);
 }
 function histHTML(){
