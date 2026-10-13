@@ -427,6 +427,37 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 /* 祝儀10枚以上：金枠、20枚以上：虹枠 */
 .card.res.goldf{border:2px solid #ffd65a;box-shadow:0 0 0 1px #b8862f,0 0 28px rgba(255,214,90,.55),0 20px 50px rgba(0,0,0,.6)}
 .card.res.rainbowf{border-color:transparent}
+/* キャラクター（卓の各席） */
+.avsvg{display:block;width:100%;height:100%}
+.av{position:absolute;left:4%;bottom:2.5%;width:calc(var(--rt) * 2.3);height:calc(var(--rt) * 2.3);border-radius:50%;background:rgba(0,0,0,.35);box-shadow:0 0 0 2px rgba(255,255,255,.25);transform:rotate(calc(var(--rot,0deg) * -1));z-index:2}
+.layer.r .av,.layer.l .av{left:calc(max(0px, (var(--S) - var(--bh,var(--bw))) / 2) + 4%)} /* 横長の卓では左右の層が卓より長いので、卓の中に収める */
+.layer.me .av{width:calc(var(--rt) * 2.6);height:calc(var(--rt) * 2.6);left:calc((var(--S) - var(--bw)) / 2 + 4%)} /* 縦画面は自分の層が卓より縦長なので、卓の左端にそろえる */
+.av.rch{box-shadow:0 0 0 3px #ff3b3b,0 0 14px 4px rgba(255,59,59,.75);animation:avPulse 1.6s ease-in-out infinite}
+@keyframes avPulse{50%{box-shadow:0 0 0 3px #ff6b6b,0 0 22px 8px rgba(255,59,59,.5)}}
+.av .rbadge{position:absolute;left:50%;bottom:-.55em;transform:translateX(-50%);background:linear-gradient(180deg,#ff5a4a,#c81e1e);color:#fff;font-weight:900;font-size:max(9px,calc(var(--rt) * .42));padding:1px 6px;border-radius:6px;white-space:nowrap;letter-spacing:.06em;box-shadow:0 2px 6px rgba(0,0,0,.5);border:1px solid #ffd0c8}
+.av .rbadge.op{background:linear-gradient(180deg,#ff9a3a,#d8561e)}
+/* リーチのカットイン */
+.cutin{position:fixed;left:0;right:0;top:34%;height:clamp(110px,22vh,170px);z-index:58;pointer-events:none;overflow:visible}
+.cutin.me{top:auto;bottom:calc(var(--handH,90px) + 40px)}
+.cutin .band{position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--cc) 12%,#1a1010 48%,#1a1010 52%,var(--cc) 88%,transparent);opacity:.92;transform:skewY(-4deg) scaleX(0);transform-origin:left;animation:ciBand 1.9s cubic-bezier(.2,.8,.2,1) both;box-shadow:0 0 0 3px rgba(255,255,255,.15) inset}
+.cutin .band::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(110deg,rgba(255,255,255,.08) 0 10px,transparent 10px 26px)}
+.cutin .cav{position:absolute;top:50%;left:5%;width:min(26vw,22vh,160px);height:min(26vw,22vh,160px);transform:translate(-140%,-50%);animation:ciAv 1.9s cubic-bezier(.2,.8,.2,1) both;filter:drop-shadow(0 6px 10px rgba(0,0,0,.6))}
+.cutin .cav .avsvg{background:#fff8;border-radius:50%;box-shadow:0 0 0 4px #fff,0 0 0 7px var(--cc)}
+.cutin .ctx{position:absolute;top:50%;left:calc(8% + min(26vw,22vh,160px));right:4%;transform:translate(60%,-50%);opacity:0;animation:ciTx 1.9s cubic-bezier(.2,.8,.2,1) both;display:flex;flex-direction:column;gap:2px}
+.cutin .ctx b{font-family:"Shippori Mincho B1",serif;font-weight:800;font-size:min(13vw,9vh,76px);line-height:1.05;color:#fff;letter-spacing:.1em;white-space:nowrap;
+  text-shadow:0 0 0 #000,3px 3px 0 #c81e1e,-1px -1px 0 #c81e1e,0 0 18px rgba(255,80,60,.9)}
+.cutin .ctx small{font-size:clamp(12px,2.2vh,16px);font-weight:900;color:#fff;text-shadow:0 1px 3px #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@keyframes ciBand{0%{transform:skewY(-4deg) scaleX(0)}14%{transform:skewY(-4deg) scaleX(1)}82%{transform:skewY(-4deg) scaleX(1);opacity:.92}100%{transform:skewY(-4deg) scaleX(1);opacity:0}}
+@keyframes ciAv{0%{transform:translate(-140%,-50%)}18%{transform:translate(0,-50%)}80%{transform:translate(8%,-50%);opacity:1}100%{transform:translate(30%,-50%);opacity:0}}
+@keyframes ciTx{0%,10%{transform:translate(60%,-50%);opacity:0}24%{transform:translate(0,-50%) scale(1.08);opacity:1}32%{transform:translate(0,-50%) scale(1)}80%{opacity:1}100%{transform:translate(-6%,-50%);opacity:0}}
+/* キャラクター選び */
+.avpick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 4px}
+.avpick button{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px 4px;border-radius:12px;border:2px solid transparent;background:rgba(255,255,255,.05);font-size:11px;font-weight:700;color:var(--muted)}
+.avpick button .avsvg{width:48px;height:48px}
+.avpick button.on{border-color:var(--gold);background:rgba(240,198,94,.14);color:#fff}
+.seatrow .sav{width:30px;height:30px;flex:none;margin-right:8px}
+.seatrow .sn{flex:1;min-width:0}
+.avdet{margin:8px 0 2px}.avdet summary{cursor:pointer;color:var(--gold);font-weight:700;font-size:13px;padding:6px 0}
 /* 雷（和了の祝儀合計 30/50/100/150枚以上） */
 .thunder{position:fixed;inset:0;z-index:60;pointer-events:none;overflow:hidden}
 .thunder .fl{position:absolute;inset:0;background:#e9f3ff;opacity:0;animation:thFlash var(--fd,.9s) ease-out both}
@@ -647,7 +678,7 @@ html,body,.hand,.hand .t,button{touch-action:manipulation}
 .raterow b{color:var(--gold)}
 .raterow input{width:90px;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:var(--text);font:inherit;font-size:16px}
 .raterow small{flex-basis:100%;font-size:11px;color:var(--muted);font-weight:700}
-.seatrow{display:flex;justify-content:space-between;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);margin:6px 0;font-weight:700}
+.seatrow{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);margin:6px 0;font-weight:700}
 .seatrow.me{outline:1px solid var(--gold)}
 .seatrow .st{color:var(--muted);font-size:12px;font-weight:500}
 .wait{color:var(--muted);text-align:center;margin:14px 0}
@@ -931,6 +962,7 @@ function seatLayer(s){
     ${H.wareme===s?'<div class="wmband"><b>割れ目</b></div>':""}
     ${on?'<div class="turnbar"></div>':""}
     <div class="sc${on?" on":""}">${H.wareme===s?'<span class="wm" title="割れ目">割</span>':""}<span class="wd">${HON[seatWind(s)-27]}</span><span>${dispSc(s).toLocaleString()}</span><span class="cp">${fmtChip(G.chips[s])}</span></div>
+    <div class="av${P.riichi?" rch":""}">${avSVG(AVS()[s])}${P.riichi?`<span class="rbadge${P.open?" op":""}">${P.open?"オープン":"リーチ"}</span>`:""}</div>
     ${P.riichi?'<div class="stick"></div>':""}${P.shuba?'<div class="stick shb" title="シュバ棒"></div>':""}
     <div class="rvg">${river}</div>
     ${s!==0?`<div class="nm">${NAMES[s]}${P.open?'<span class="opn">オープン</span>':""}</div>`:""}
@@ -1342,6 +1374,32 @@ function refitResultSoon(){
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ if(document.querySelector(".card.res")) fitResult(); });
 }
 // ダブロンは和了者ごとにページを分ける（精算表は最後のページ）
+// ===== キャラクター（オリジナル。8種類） =====
+// 目・口は共通。体の色・耳・模様で描き分ける（100×100）
+const EYES=(y=54,dx=13,c="#2a1a12")=>`<circle cx="${50-dx}" cy="${y}" r="5" fill="${c}"/><circle cx="${50+dx}" cy="${y}" r="5" fill="${c}"/><circle cx="${51-dx}" cy="${y-2}" r="1.7" fill="#fff"/><circle cx="${51+dx}" cy="${y-2}" r="1.7" fill="#fff"/>`;
+const CHEEK=`<ellipse cx="29" cy="64" rx="6" ry="3.5" fill="#ff8f9a" opacity=".55"/><ellipse cx="71" cy="64" rx="6" ry="3.5" fill="#ff8f9a" opacity=".55"/>`;
+const MOUTH=(y=66)=>`<path d="M44 ${y} Q50 ${y+5} 56 ${y}" stroke="#2a1a12" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+const CHARS=[
+ {name:"ミケ",kind:"ネコ",col:"#f2a35a",line:"いただきにゃ！",svg:`<path d="M20 40 L26 12 L44 30Z M80 40 L74 12 L56 30Z" fill="#f2a35a"/><path d="M26 34 L28 20 L38 30Z M74 34 L72 20 L62 30Z" fill="#ffc9a8"/><circle cx="50" cy="56" r="32" fill="#f2a35a"/><path d="M50 24 Q44 34 50 40 Q56 34 50 24" fill="#c8742e"/>${EYES()}${CHEEK}<path d="M47 61 L53 61 L50 64Z" fill="#e26b7a"/>${MOUTH(66)}<path d="M18 60 H32 M18 66 H32 M68 60 H82 M68 66 H82" stroke="#5a3a24" stroke-width="1.6"/>`},
+ {name:"ポチ",kind:"イヌ",col:"#c99a6b",line:"ワンチャンあるワン！",svg:`<circle cx="50" cy="56" r="31" fill="#e8c49a"/><ellipse cx="20" cy="50" rx="10" ry="20" fill="#8a5a34" transform="rotate(15 20 50)"/><ellipse cx="80" cy="50" rx="10" ry="20" fill="#8a5a34" transform="rotate(-15 80 50)"/><ellipse cx="50" cy="67" rx="15" ry="11" fill="#fff4e4"/>${EYES(52)}<ellipse cx="50" cy="62" rx="5" ry="3.6" fill="#2a1a12"/>${MOUTH(69)}${CHEEK}`},
+ {name:"モモ",kind:"ウサギ",col:"#f6b9cf",line:"ぴょんっとリーチ！",svg:`<ellipse cx="36" cy="18" rx="8" ry="20" fill="#fff"/><ellipse cx="64" cy="18" rx="8" ry="20" fill="#fff"/><ellipse cx="36" cy="19" rx="4" ry="14" fill="#f6b9cf"/><ellipse cx="64" cy="19" rx="4" ry="14" fill="#f6b9cf"/><circle cx="50" cy="60" r="30" fill="#fff"/>${EYES(58,12,"#c2185b")}<path d="M47 64 L53 64 L50 67Z" fill="#e26b7a"/>${MOUTH(69)}${CHEEK}`},
+ {name:"ゴン",kind:"クマ",col:"#8d5b3a",line:"どっしり待つクマ",svg:`<circle cx="24" cy="30" r="12" fill="#8d5b3a"/><circle cx="76" cy="30" r="12" fill="#8d5b3a"/><circle cx="24" cy="30" r="6" fill="#d9a77c"/><circle cx="76" cy="30" r="6" fill="#d9a77c"/><circle cx="50" cy="56" r="32" fill="#8d5b3a"/><ellipse cx="50" cy="67" rx="14" ry="11" fill="#d9a77c"/>${EYES(52,13,"#1a0f08")}<ellipse cx="50" cy="62" rx="5" ry="3.5" fill="#1a0f08"/>${MOUTH(69)}`},
+ {name:"コン",kind:"キツネ",col:"#e8763a",line:"化かしてあげる♪",svg:`<path d="M18 46 L22 12 L44 32Z M82 46 L78 12 L56 32Z" fill="#e8763a"/><path d="M24 36 L25 20 L36 31Z M76 36 L75 20 L64 31Z" fill="#3a2418"/><path d="M18 46 Q20 20 50 26 Q80 20 82 46 Q82 80 50 88 Q18 80 18 46Z" fill="#e8763a"/><path d="M26 58 Q50 54 74 58 Q66 84 50 88 Q34 84 26 58Z" fill="#fff"/><path d="M38 53 Q43 49 48 53 M52 53 Q57 49 62 53" stroke="#2a1a12" stroke-width="2.6" fill="none" stroke-linecap="round"/><ellipse cx="50" cy="66" rx="4" ry="3" fill="#2a1a12"/>${MOUTH(71)}`},
+ {name:"リンリン",kind:"パンダ",col:"#f0f0f0",line:"のんびり聴牌パンダ",svg:`<circle cx="24" cy="30" r="12" fill="#222"/><circle cx="76" cy="30" r="12" fill="#222"/><circle cx="50" cy="56" r="32" fill="#fff"/><ellipse cx="36" cy="54" rx="9" ry="11" fill="#222" transform="rotate(-20 36 54)"/><ellipse cx="64" cy="54" rx="9" ry="11" fill="#222" transform="rotate(20 64 54)"/><circle cx="37" cy="53" r="3.6" fill="#fff"/><circle cx="63" cy="53" r="3.6" fill="#fff"/><ellipse cx="50" cy="65" rx="5" ry="3.5" fill="#222"/>${MOUTH(70)}${CHEEK}`},
+ {name:"ペン太",kind:"ペンギン",col:"#2f4a6b",line:"すべりこみリーチ！",svg:`<circle cx="50" cy="54" r="34" fill="#2f4a6b"/><path d="M24 58 Q26 30 50 36 Q74 30 76 58 Q74 84 50 86 Q26 84 24 58Z" fill="#fff"/>${EYES(54,12)}<path d="M42 62 L58 62 L50 71Z" fill="#f5a623"/>${CHEEK}`},
+ {name:"ケロ",kind:"カエル",col:"#6cc24a",line:"ケロッとアガるよ",svg:`<circle cx="32" cy="30" r="14" fill="#6cc24a"/><circle cx="68" cy="30" r="14" fill="#6cc24a"/><circle cx="32" cy="30" r="8" fill="#fff"/><circle cx="68" cy="30" r="8" fill="#fff"/><circle cx="33" cy="31" r="4.5" fill="#1a2a12"/><circle cx="67" cy="31" r="4.5" fill="#1a2a12"/><ellipse cx="50" cy="60" rx="36" ry="28" fill="#6cc24a"/><path d="M30 64 Q50 80 70 64" stroke="#2a4a1a" stroke-width="3" fill="none" stroke-linecap="round"/>${CHEEK}`},
+];
+const avSVG=(a,cls="")=>{ const c=CHARS[((a|0)%CHARS.length+CHARS.length)%CHARS.length]; return `<svg class="avsvg ${cls}" viewBox="0 0 100 100" aria-label="${c.name}"><circle cx="50" cy="50" r="50" fill="${c.col}" opacity=".28"/>${c.svg}</svg>`; };
+const AVS=()=>(V&&V.avatars)||[0,1,2];
+// リーチのカットイン（友達麻雀のような演出。キャラクターと「リーチ」が横から流れてくる）
+function riichiCutIn(seat,word){
+  const a=AVS()[seat]; const c=CHARS[a]||CHARS[0];
+  document.querySelectorAll(".cutin").forEach(e=>e.remove());
+  const el=document.createElement("div"); el.className="cutin"+(seat===0?" me":"");
+  el.style.setProperty("--cc",c.col);
+  el.innerHTML=`<div class="band"></div><div class="cav">${avSVG(a)}</div><div class="ctx"><b>${word}</b><small>${esc(NAMES[seat]||c.name)}「${c.line}」</small></div>`;
+  document.body.appendChild(el); setTimeout(()=>el.remove(),1900);
+}
 // 雷：lv 1〜4（30/50/100/150枚以上）。枚数が多いほど稲妻が太く・多く・長く、画面も大きく揺れる
 function boltPath(w,h,seg){ let x=w/2, y=0, d=`M${x},${y}`; const pts=[];
   for(let i=1;i<=seg;i++){ x=Math.max(w*.08,Math.min(w*.92,x+(Math.random()-.5)*w*.55)); y=h*i/seg; d+=` L${x.toFixed(1)},${y.toFixed(1)}`; pts.push([x,y]); }
@@ -1575,7 +1633,7 @@ let NAMES=["","",""];
 const socket = io();
 const LS_KEY="sanma-online";
 const saved=(()=>{ try{ return JSON.parse(localStorage.getItem(LS_KEY)||"null"); }catch(_){ return null; } })();
-let ME={ code: saved&&saved.code, token: saved&&saved.token, name: (saved&&saved.name)||"" };
+let ME={ code: saved&&saved.code, token: saved&&saved.token, name: (saved&&saved.name)||"", av: saved&&saved.av!=null?saved.av:Math.floor(Math.random()*8) };
 const save=()=>{ try{ localStorage.setItem(LS_KEY, JSON.stringify(ME)); }catch(_){} };
 const act=a=>socket.emit("act",a);
 
@@ -1617,7 +1675,7 @@ function showConn(msg){
   el.innerHTML=`<span class="spin"></span><span>${msg}</span>`;
 }
 showConn("サーバーに接続中…（最初は1分ほどかかることがあります）");
-socket.on("connect",()=>{ showConn(null); if(ME.code&&ME.token) socket.emit("join",{code:ME.code,token:ME.token,name:ME.name}); else showLobbyStart(); });
+socket.on("connect",()=>{ showConn(null); if(ME.code&&ME.token) socket.emit("join",{code:ME.code,token:ME.token,name:ME.name,av:ME.av}); else showLobbyStart(); });
 socket.on("disconnect",()=>showConn("通信が切れました。再接続中…"));
 socket.on("connect_error",()=>showConn("サーバーに接続中…（最初は1分ほどかかることがあります）"));
 // アプリに戻ってきたら、すぐにつなぎ直す
@@ -1738,7 +1796,7 @@ socket.on("ready",r=>{ document.querySelectorAll("button[data-a=next]").forEach(
   if(b.dataset.waiting && r.me===false && Date.now()-(+b.dataset.waiting||0)>2000){ delete b.dataset.waiting; b.textContent="次へ ▶"; return; } // 自分の「次へ」がサーバーに届いていない（切断中に押した等）→押し直せるように戻す
   if(b.dataset.waiting) b.textContent=`待機中 ${r.ready}/${r.total}`; }); });
 socket.on("final",d=>{ showAbort(false); R=d.R; NAMES=d.names; G=Object.assign({},G||{},d.G); TOTALS=d.totals||null; showFinal(d.order); });
-socket.on("se",e=>{ if(e.say) SE.say(e.say,e.seat); else if(e.t&&SE[e.t]) SE[e.t](); });
+socket.on("se",e=>{ if(e.say){ SE.say(e.say,e.seat); if(/リーチ|シュバ/.test(e.say)) riichiCutIn(e.seat,e.say==="シュバリー"?"シュバリー":e.say==="シュバオープン"?"シュバ<br>オープン":e.say==="オープンリーチ"?"オープン<br>リーチ":"リーチ"); } else if(e.t&&SE[e.t]) SE[e.t](); });
 
 function toast(msg){
   const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t);
@@ -1747,6 +1805,7 @@ function toast(msg){
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 // ===== ロビー =====
+const avPickHTML=()=>`<div class="avpick">${CHARS.map((c,i)=>`<button type="button" data-a="avpick" data-v="${i}" class="${i===ME.av?"on":""}" aria-label="${c.name}（${c.kind}）">${avSVG(i)}${c.name}</button>`).join("")}</div>`;
 function showLobbyStart(){ showAbort(false); showChatBtn(false);
   const q=new URLSearchParams(location.search).get("room")||"";
   const deco=[{k:34},{k:13,red:true},{k:22,gold:true},{k:31,pocchi:true},{k:30},{k:33}].map((t,i)=>tileHTML({...t,id:-10-i},"rv")).join("");
@@ -1755,6 +1814,7 @@ function showLobbyStart(){ showAbort(false); showChatBtn(false);
     <p class="ttl">三麻 ノーマル華4</p>
     <div class="deco">${deco}</div>
     <label class="fld">名前<input id="nm" maxlength="12" value="${esc(ME.name)}" placeholder="名前を入れてください"></label>
+    <div class="fld">キャラクター${avPickHTML()}</div>
     <button data-a="create" class="b-gold">ルームを作る</button>
     <div class="or">または</div>
     <div class="joinrow"><input id="rc" inputmode="numeric" maxlength="4" value="${esc(q)}" placeholder="ルーム番号（4桁）"><button data-a="join" class="b-pon">参加</button></div>
@@ -1777,7 +1837,8 @@ function showRoom(L){
   LOBBY=L;
   const me=L.mySeat;
   const humans=L.seats.filter(p=>p&&!p.cpu);
-  const rows=L.seats.map((p,i)=>`<div class="seatrow${i===me?" me":""}"><span class="sn">${p?esc(p.name):"空席"}</span><span class="st">${p?`${p.host?"ホスト　":""}${p.online?"":"（切断中）　"}${p.ready?'<b class="rdy">準備OK</b>':'<span class="nrd">準備中</span>'}`:"CPUが入ります"}</span></div>`).join("");
+  if(L.seats[me]&&L.seats[me].av!=null) ME.av=L.seats[me].av;
+  const rows=L.seats.map((p,i)=>`<div class="seatrow${i===me?" me":""}">${p&&p.av!=null?`<span class="sav">${avSVG(p.av)}</span>`:""}<span class="sn">${p?esc(p.name):"空席"}</span><span class="st">${p?`${p.host?"ホスト　":""}${p.online?"":"（切断中）　"}${p.ready?'<b class="rdy">準備OK</b>':'<span class="nrd">準備中</span>'}`:"CPUが入ります"}</span></div>`).join("");
   const n=L.seats.filter(Boolean).length;
   const myReady=L.seats[me]&&L.seats[me].ready;
   // 倍率の入力中に画面が書き換わっても、入れかけの数字を残す
@@ -1786,6 +1847,7 @@ function showRoom(L){
   document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card lob room">
     <div class="rl2"><div><div class="rnm">ルーム番号</div><div class="code">${L.code}</div></div>
     <div class="mem"><h3>メンバー（${n}/3）</h3>${rows}
+      <details class="avdet"><summary>キャラクターを変える</summary>${avPickHTML()}</details>
       ${totalsHTML(L.totals)}
       ${rulesHTML(L)}
       <div class="raterow"><b>倍率</b>${L.isHost?`<input id="rate" type="number" inputmode="decimal" min="0" step="any" value="${L.rate}">`:`<span>${L.rate}</span>`}<small>祝儀×倍率を成績表に記録</small></div></div></div>
@@ -1804,8 +1866,9 @@ document.addEventListener("change",e=>{ if(e.target.id==="rate") socket.emit("se
 document.addEventListener("click",e=>{
   const b=e.target.closest("button[data-a]"); if(!b) return;
   const a=b.dataset.a;
-  if(a==="create"){ ME.name=(document.getElementById("nm").value||"").trim(); if(!ME.name) return toast("名前を入れてください"); save(); socket.emit("create",{name:ME.name}); }
-  else if(a==="join"){ ME.name=(document.getElementById("nm").value||"").trim(); if(!ME.name) return toast("名前を入れてください"); const code=(document.getElementById("rc").value||"").trim(); if(!/^\d{4}$/.test(code)) return toast("4桁のルーム番号を入れてください"); save(); socket.emit("join",{code,name:ME.name}); }
+  if(a==="avpick"){ ME.av=+b.dataset.v; save(); document.querySelectorAll("button[data-a=avpick]").forEach(x=>x.classList.toggle("on",+x.dataset.v===ME.av)); if(LOBBY&&LOBBY.phase==="lobby"&&document.querySelector(".card.lob.room")) socket.emit("setAvatar",ME.av); return; }
+  if(a==="create"){ ME.name=(document.getElementById("nm").value||"").trim(); if(!ME.name) return toast("名前を入れてください"); save(); socket.emit("create",{name:ME.name,av:ME.av}); }
+  else if(a==="join"){ ME.name=(document.getElementById("nm").value||"").trim(); if(!ME.name) return toast("名前を入れてください"); const code=(document.getElementById("rc").value||"").trim(); if(!/^\d{4}$/.test(code)) return toast("4桁のルーム番号を入れてください"); save(); socket.emit("join",{code,name:ME.name,av:ME.av}); }
   else if(a==="start") socket.emit("start");
   else if(a==="lready") socket.emit("lobbyReady");
   else if(a==="rule"&&LOBBY){ const r={...(LOBBY.rules||{hana:4,shuba:false,wareme:false})}; const k=b.dataset.k, v=b.dataset.v; r[k]=k==="hana"?+v:v==="true"; socket.emit("setRules",r); }

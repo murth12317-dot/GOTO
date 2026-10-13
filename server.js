@@ -87,10 +87,11 @@ function addTotals(room, order) {
 if (SHEET_URL && !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(SHEET_URL)) console.log("sheet WARNING: SHEET_URL は https://script.google.com/macros/s/…/exec の形にしてください（今: " + SHEET_URL.slice(0, 60) + "…）");
 if (SHEET_URL) callSheet(null); else console.log("sheet off (SHEET_URL not set)");
 
+const AV_N = 8; // キャラクターの数（public/index.html の CHARS と同じ）
 function roomPublic(room) {
   return {
     code: room.code, phase: room.phase, rate: room.rate || 100, rules: room.rules || { hana: 4, shuba: false, wareme: false }, totals: totalsInfo(room),
-    seats: room.seats.map((p, i) => p ? { name: p.name, cpu: !!p.cpu, online: p.cpu || !!p.socket, host: p.token === room.hostToken, ready: !!p.ready } : null),
+    seats: room.seats.map((p, i) => p ? { name: p.name, av: p.av == null ? null : p.av, cpu: !!p.cpu, online: p.cpu || !!p.socket, host: p.token === room.hostToken, ready: !!p.ready } : null),
     allReady: room.seats.filter(p => p && !p.cpu).every(p => p.ready),
   };
 }
@@ -132,6 +133,7 @@ function viewFor(room, seat) {
   }
   return {
     gid: room.gameId, hid: H.id,
+    avatars: rotArr(room.avatars || [0, 1, 2], seat),
     names: rotArr(room.names.map((n, i) => room.seats[i] && !room.seats[i].cpu && (room.seats[i].away || !room.seats[i].socket) ? n + "（代打）" : n), seat), kyoku: G.dealer + 1,
     away: !!(room.seats[seat] && room.seats[seat].away),
     turnLeft: room.turnTimer && room.turnTimer.seat === seat ? Math.max(0, room.turnTimer.until - Date.now()) : null, phase: G.phase, honba: G.honba, kyotaku: G.kyotaku,
@@ -239,6 +241,9 @@ function startGame(room) {
   shuffleArr(people);
   room.seats = people;
   room.names = people.map(p => p.name);
+  // キャラクター：人間は選んだもの、CPUは人間とかぶらないものを選ぶ
+  { const used = new Set(people.filter(p => !p.cpu && p.av != null).map(p => p.av));
+    room.avatars = people.map(p => { if (!p.cpu && p.av != null) return p.av; let a; do { a = Math.floor(Math.random() * AV_N); } while (used.has(a) && used.size < AV_N); used.add(a); return a; }); }
   room.phase = "play"; room.ready = new Set();
   if (room.game) room.game.destroy();
   const SE = {
@@ -349,23 +354,24 @@ io.on("connection", socket => {
     if (r.phase === "final" && r.game && r.finalOrder) emitTo(r, s, "final", finalFor(r, s)); // 終局画面の途中で戻ってきたとき
   }
 
-  socket.on("create", ({ name }) => {
+  const avOf = a => { const n = Number(a); return Number.isInteger(n) && n >= 0 && n < AV_N ? n : null; };
+  socket.on("create", ({ name, av }) => {
     name = String(name || "").trim().slice(0, 12) || "プレイヤー";
     const code = newCode(), token = newToken();
-    const r = { code, seats: [{ name, token, socket: null, ready: false }, null, null], hostToken: token, phase: "lobby", game: null, ready: new Set(), names: [] };
+    const r = { code, seats: [{ name, av: avOf(av), token, socket: null, ready: false }, null, null], hostToken: token, phase: "lobby", game: null, ready: new Set(), names: [] };
     rooms.set(code, r);
     attach(r, 0);
   });
 
-  socket.on("join", ({ code, name, token }) => {
+  socket.on("join", ({ code, name, token, av }) => {
     const r = rooms.get(String(code || "").trim());
     if (!r) return err("そのルームは見つかりません");
-    if (token) { const s = r.seats.findIndex(p => p && p.token === token); if (s >= 0) { if (name && r.phase === "lobby") r.seats[s].name = String(name).slice(0, 12); clearTimeout(r.seats[s].awayTimer); return attach(r, s); } }
+    if (token) { const s = r.seats.findIndex(p => p && p.token === token); if (s >= 0) { if (name && r.phase === "lobby") r.seats[s].name = String(name).slice(0, 12); if (r.phase === "lobby" && avOf(av) != null) r.seats[s].av = avOf(av); clearTimeout(r.seats[s].awayTimer); return attach(r, s); } }
     if (r.phase !== "lobby") return err("このルームはもう対局が始まっています");
     const s = r.seats.findIndex(p => !p);
     if (s < 0) return err("このルームは満員です");
     name = String(name || "").trim().slice(0, 12) || "プレイヤー";
-    r.seats[s] = { name, token: newToken(), socket: null, ready: false };
+    r.seats[s] = { name, av: avOf(av), token: newToken(), socket: null, ready: false };
     attach(r, s);
   });
 
@@ -374,6 +380,13 @@ io.on("connection", socket => {
     if (room.seats[seatNow()].token !== room.hostToken) return err("開始できるのはルームを作った人です");
     if (!room.seats.filter(p => p && !p.cpu).every(p => p.ready)) return err("全員の準備OKがそろっていません");
     startGame(room);
+  });
+
+  // キャラクターを選ぶ（部屋にいる間だけ）
+  socket.on("setAvatar", a => {
+    if (!room || room.phase !== "lobby") return;
+    const p = room.seats[seatNow()]; if (!p || avOf(a) == null) return;
+    p.av = avOf(a); broadcastLobby(room);
   });
 
   // 倍率（スプレッドシートに祝儀×倍率を書く）。ルームを作った人だけが変えられる
