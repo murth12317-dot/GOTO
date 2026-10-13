@@ -1682,6 +1682,10 @@ socket.on("disconnect",()=>showConn("通信が切れました。再接続中…"
 socket.on("connect_error",()=>showConn("サーバーに接続中…（最初は1分ほどかかることがあります）"));
 // アプリに戻ってきたら、すぐにつなぎ直す
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && !socket.connected){ showConn("再接続中…"); try{ socket.connect(); }catch(_){} } });
+// 版が変わっていたら（デプロイ後に古いページのまま）、読み直す。ループしないよう1分に1回まで
+const BUILD="__BUILD__";
+socket.on("build",b=>{ if(BUILD==="__BUILD__"||b===BUILD) return; let last=0; try{ last=+sessionStorage.getItem("sanma-reload")||0; }catch(_){}
+  if(Date.now()-last<60000) return; try{ sessionStorage.setItem("sanma-reload",String(Date.now())); }catch(_){} location.reload(); });
 socket.on("joined",j=>{ ME.code=j.code; ME.token=j.token; save(); history.replaceState(null,"","?room="+j.code);
   if(document.querySelector("button[data-a=next][data-waiting]")) socket.emit("next"); // 「次へ」を押したあとに接続が切れていたら、つなぎ直したときに送り直す（届いていなかった分も数えられる）
 });

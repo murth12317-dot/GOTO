@@ -8,7 +8,15 @@ const { createGame } = require("./game.js");
 const records = require("./records.js");
 
 const app = express();
-app.use(express.static(path.join(__dirname, "public")));
+// 版の印（デプロイごとに変わる）。ページに埋めこみ、古いページのままつないだら読み直させる
+const BUILD = String(process.env.RENDER_GIT_COMMIT || Date.now()).slice(0, 12);
+const fs = require("fs");
+const sendIndex = (req, res) => {
+  res.set("Cache-Control", "no-cache, must-revalidate"); // 毎回サーバーに確かめる（古いページを出し続けないように）
+  res.type("html").send(fs.readFileSync(path.join(__dirname, "public", "index.html"), "utf8").replace("__BUILD__", BUILD));
+};
+app.get(["/", "/index.html"], sendIndex);
+app.use(express.static(path.join(__dirname, "public"), { setHeaders: res => res.set("Cache-Control", "no-cache") }));
 app.get("/game.js", (req, res) => res.sendFile(path.join(__dirname, "game.js")));
 app.get("/healthz", (req, res) => res.send("ok"));
 // 成績ページ（みんなで見られる管理表）と、その生データ
@@ -339,6 +347,7 @@ function kickAway(room, seat) {
 }
 
 io.on("connection", socket => {
+  socket.emit("build", BUILD);
   let room = null, _seat = -1;
   // 対局開始時に席がシャッフルされるので、毎回ソケットから席を引き直す
   const seatNow = () => { if (!room) return -1; const i = room.seats.findIndex(p => p && p.socket === socket); return i >= 0 ? i : _seat; };
