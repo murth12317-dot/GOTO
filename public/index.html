@@ -1032,7 +1032,7 @@ document.addEventListener("click",e=>{
     if(a==="yame"){ if(b.dataset.waiting) return; socket.emit("yame",b.dataset.v==="1"); document.querySelectorAll("button[data-a=yame]").forEach(x=>{ x.dataset.waiting="1"; x.disabled=true; }); b.textContent="待機中…"; return; }
     if(a==="hpg"){ histPage+=+b.dataset.d; const hb=document.getElementById("histbox"); if(hb) hb.innerHTML=histPagedHTML(); fitFinal(); return; }
     if(a==="skip"){ const c=b.closest(".card"); if(c) c.classList.add("instant"); DICE.finish(); clearRT(); return; }
-    if(a==="next"){ if(b.dataset.waiting) return; socket.emit("next"); document.querySelectorAll("button[data-a=next]").forEach(x=>{ x.dataset.waiting="1"; x.textContent="待機中…"; }); return; }
+    if(a==="next"){ if(b.dataset.waiting) return; if(!socket.connected){ toast("接続し直しています。少し待ってからもう一度押してください"); return; } socket.emit("next"); document.querySelectorAll("button[data-a=next]").forEach(x=>{ x.dataset.waiting=String(Date.now()); x.textContent="待機中…"; }); return; }
     return;
   }
   const t=e.target.closest("#hand .t"); if(t){ if(swallowClick){ swallowClick=false; return; } tapTile(+t.dataset.id); }
@@ -1580,7 +1580,9 @@ socket.on("disconnect",()=>showConn("通信が切れました。再接続中…"
 socket.on("connect_error",()=>showConn("サーバーに接続中…（最初は1分ほどかかることがあります）"));
 // アプリに戻ってきたら、すぐにつなぎ直す
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && !socket.connected){ showConn("再接続中…"); try{ socket.connect(); }catch(_){} } });
-socket.on("joined",j=>{ ME.code=j.code; ME.token=j.token; save(); history.replaceState(null,"","?room="+j.code); });
+socket.on("joined",j=>{ ME.code=j.code; ME.token=j.token; save(); history.replaceState(null,"","?room="+j.code);
+  if(document.querySelector("button[data-a=next][data-waiting]")) socket.emit("next"); // 「次へ」を押したあとに接続が切れていたら、つなぎ直したときに送り直す（届いていなかった分も数えられる）
+});
 // 対局終了ボタン：CPU入りの対局中だけ出す
 function showAbort(on){ const b=document.getElementById("abort"); if(b) b.style.display=on?"":"none"; }
 // ===== 対局中のコメント（定型文・音声入力つき）=====
@@ -1683,14 +1685,16 @@ socket.on("result",d=>{
   lastResultKey=key;
   R=d.R; NAMES=d.names; RS=d.snap;
   G=Object.assign({},G||{},d.G);
-  const base=H||{p:[{},{},{}]};
+  const base=H||{p:[0,1,2].map(()=>({hand:[],river:[],melds:[],kita:[],hana:[]})),turn:-1,live:[]}; // 結果画面の途中で開き直したとき（対局の画面をまだ受け取っていない）
   H=Object.assign({},base,{ state:"result",
-    p: base.p.map((P,i)=>Object.assign({},P,{ melds:RS.p[i].melds, kita:RS.p[i].kita, hana:RS.p[i].hana, riichi:RS.p[i].riichi, hand: RS.p[i].hand.length?RS.p[i].hand:P.hand })),
+    p: base.p.map((P,i)=>Object.assign({},P,{ melds:RS.p[i].melds, kita:RS.p[i].kita, hana:RS.p[i].hana, riichi:RS.p[i].riichi, hand: RS.p[i].hand.length?RS.p[i].hand:(P.hand||[]), river:P.river||[] })),
     dead:{ dora:RS.dora, ura:RS.ura }, kanDora:RS.kanDora, kanUra:RS.kanUra });
   showResult();
 });
 socket.on("yame",y=>{ if(R&&R.yame) R.yame.choice=y.stop; toast(y.msg); const m=document.querySelector(".card.res .msg"); if(m) m.textContent=y.msg; });
-socket.on("ready",r=>{ document.querySelectorAll("button[data-a=next]").forEach(b=>{ if(b.dataset.waiting) b.textContent=`待機中 ${r.ready}/${r.total}`; }); });
+socket.on("ready",r=>{ document.querySelectorAll("button[data-a=next]").forEach(b=>{
+  if(b.dataset.waiting && r.me===false && Date.now()-(+b.dataset.waiting||0)>2000){ delete b.dataset.waiting; b.textContent="次へ ▶"; return; } // 自分の「次へ」がサーバーに届いていない（切断中に押した等）→押し直せるように戻す
+  if(b.dataset.waiting) b.textContent=`待機中 ${r.ready}/${r.total}`; }); });
 socket.on("final",d=>{ showAbort(false); R=d.R; NAMES=d.names; G=Object.assign({},G||{},d.G); TOTALS=d.totals||null; showFinal(d.order); });
 socket.on("se",e=>{ if(e.say) SE.say(e.say,e.seat); else if(e.t&&SE[e.t]) SE[e.t](); });
 

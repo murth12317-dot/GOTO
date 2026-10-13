@@ -266,7 +266,8 @@ function startGame(room) {
       // 最初からCPUが入っている半荘は通算に入れない（途中の切断で代打になった人は本人の名前で入れる）
       if (RECORD_CPU_GAMES || !room.seats.some(p => p && p.cpu)) { addTotals(room, order); sendToSheet(room, order); saveRecord(room, order); }
       else console.log("sheet skip (CPU game) room " + room.code);
-      for (const s of humanSeats(room)) emitTo(room, s, "final", { gid: room.gameId, totals: totalsInfo(room), order: order.map(rotOf(s)), R: rotR(g.R, s), G: rotG(g.G, s), names: rotArr(room.names, s) });
+      room.finalOrder = order;
+      for (const s of humanSeats(room)) emitTo(room, s, "final", finalFor(room, s));
     },
   });
   broadcastLobby(room);
@@ -283,13 +284,17 @@ function backToRoom(room) {
 function shuffleArr(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function schedulePush(room) { if (room._push) return; room._push = setImmediate(() => { room._push = null; pushViews(room); }); }
 
-function readyState(room) {
+function finalFor(room, s) {
+  const g = room.game, order = room.finalOrder;
+  return { gid: room.gameId, totals: totalsInfo(room), order: order.map(rotOf(s)), R: rotR(g.R, s), G: rotG(g.G, s), names: rotArr(room.names, s) };
+}
+function readyState(room, seat) {
   const need = humanSeats(room).filter(s => room.seats[s].socket && !room.seats[s].away);
-  return { ready: need.filter(s => room.ready.has(s)).length, total: need.length };
+  return { ready: need.filter(s => room.ready.has(s)).length, total: need.length, me: room.ready.has(seat) }; // me：自分の「次へ」が届いているか（届いていなければ押し直せるように）
 }
 function checkReady(room) {
   const need = humanSeats(room).filter(s => room.seats[s].socket && !room.seats[s].away);
-  for (const s of humanSeats(room)) emitTo(room, s, "ready", readyState(room));
+  for (const s of humanSeats(room)) emitTo(room, s, "ready", readyState(room, s));
   // オーラスの親の和了やめ：親がまだ選んでいなければ待つ（CPU・代打・切断中なら自動で決める）
   const Y = room.phase === "result" && room.game && room.game.R.yame;
   if (Y && Y.choice == null) {
@@ -298,6 +303,7 @@ function checkReady(room) {
     const G = room.game.G;
     room.game.decideYame(G.scores[Y.s] === Math.max(...G.scores)); // 代打はトップならやめる
   }
+  if (!need.length) return; // 全員が切断・代打中なら、誰かが戻って「次へ」を押すまで待つ（いない間に半荘が進まないように）
   if (need.every(s => room.ready.has(s))) {
     room.ready = new Set();
     if (room.phase === "result") {
@@ -339,7 +345,8 @@ io.on("connection", socket => {
     socket.emit("joined", { code: r.code, token: p.token, seat: s });
     broadcastLobby(r);
     if (r.phase === "play" && r.game) emitTo(r, s, "view", viewFor(r, s));
-    if (r.phase === "result" && r.game) { emitTo(r, s, "result", resultFor(r, s)); emitTo(r, s, "ready", readyState(r)); }
+    if (r.phase === "result" && r.game) { emitTo(r, s, "view", viewFor(r, s)); emitTo(r, s, "result", resultFor(r, s)); emitTo(r, s, "ready", readyState(r, s)); }
+    if (r.phase === "final" && r.game && r.finalOrder) emitTo(r, s, "final", finalFor(r, s)); // 終局画面の途中で戻ってきたとき
   }
 
   socket.on("create", ({ name }) => {
