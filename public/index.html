@@ -55,7 +55,7 @@ html,body{overflow:hidden}
 .box .rl{font-family:"Shippori Mincho B1",serif;font-weight:800;font-size:calc(var(--box) * .133);letter-spacing:.06em;line-height:1.1}
 .box .sub{font-size:max(8.5px, calc(var(--box) * .067));color:var(--muted)}
 .box .rest{font-size:max(9.5px, calc(var(--box) * .072));color:var(--gold);font-weight:700}
-.sc{position:absolute;left:calc(50% - var(--box) / 2);width:var(--box);top:calc(50% + var(--box) * .31);display:flex;align-items:baseline;justify-content:center;gap:5px;
+.sc{position:absolute;left:calc(50% - var(--box) * .29);width:calc(var(--box) * .58);white-space:nowrap;overflow:visible;transform-origin:center;justify-content:center;top:calc(50% + var(--box) * .31);display:flex;align-items:baseline;justify-content:center;gap:5px;
   font-size:max(10px, calc(var(--box) * .089));font-weight:900;font-variant-numeric:tabular-nums;color:#dfe8e4}
 .sc .wd{font-family:"Shippori Mincho B1",serif;color:var(--gold);font-size:1.05em}
 .sc .cp{font-size:max(8px, .72em);font-weight:700;color:var(--muted)}
@@ -972,7 +972,7 @@ function seatLayer(s){
   return `<div class="layer${SIDE[s]}">
     ${H.wareme===s?'<div class="wmband"><b>割れ目</b></div>':""}
     ${on?'<div class="turnbar"></div>':""}
-    <div class="sc${on?" on":""}">${H.wareme===s?'<span class="wm" title="割れ目">割</span>':""}${seatWind(s)===27?'<span class="oyab">親</span>':""}<span class="wd${seatWind(s)===27?" oya":""}">${HON[seatWind(s)-27]}</span><span>${dispSc(s).toLocaleString()}</span><span class="cp">${fmtChip(G.chips[s])}</span></div>
+    <div class="sc${on?" on":""}"><span class="wd${seatWind(s)===27?" oya":""}">${HON[seatWind(s)-27]}</span><span>${dispSc(s).toLocaleString()}</span><span class="cp">${fmtChip(G.chips[s])}</span></div>
     <div class="av${P.riichi?" rch":""}">${avSVG(AVS()[s])}${seatWind(s)===27?'<span class="oyatag">親</span>':""}${P.riichi?`<span class="rbadge${P.open?" op":""}">${P.open?"オープン":"リーチ"}</span>`:""}</div>
     ${P.riichi?'<div class="stick"></div>':""}${P.shuba?'<div class="stick shb" title="シュバ棒"></div>':""}
     <div class="rvg">${river}</div>
@@ -981,6 +981,8 @@ function seatLayer(s){
     <div class="edge">${backs}${nuki||melds?`<span class="ex">${nuki?`<span class="nkE">${nuki}</span>`:""}${melds}</span>`:""}</div>
   </div>`;
 }
+// 点数の行が長いとき（大きい点数・祝儀）は、その行だけ文字を縮めて箱の内側に収める
+function fitSc(){ document.querySelectorAll(".sc").forEach(e=>{ e.style.transform=""; const w=e.clientWidth, kids=[...e.children], gap=parseFloat(getComputedStyle(e).columnGap)||0, sw=kids.reduce((a,k)=>a+k.offsetWidth,0)+gap*Math.max(0,kids.length-1); if(sw>w+1) e.style.transform=`scale(${(w/sw).toFixed(3)})`; }); } // 行全体を同じ割合で縮める
 function render(){
   if(!H) return;
   const P=H.p[0];
@@ -1047,6 +1049,7 @@ function render(){
       <div class="subrow"><button data-a="nonaki" class="tog${H.noNaki?" on":""}" aria-pressed="${H.noNaki}">${H.noNaki?"✓ ":""}鳴きなし</button><div class="hint"></div></div>
       <div class="hand" id="hand">${hand}</div>
     </div>`;
+  fitSc();
 }
 document.addEventListener("click",e=>{
   SE.unlock();
@@ -1378,7 +1381,7 @@ function fitResult(){
   apply(lo);
   w.style.marginBottom=`${-Math.ceil(w.scrollHeight*(1-lo))}px`; // 縮めた分の空きでスクロールが出ないように
 }
-addEventListener("resize",()=>{ if(document.querySelector(".card.res")) fitResult(); });
+addEventListener("resize",()=>{ if(document.querySelector(".card.res")) fitResult(); fitSc(); });
 // 文字の読み込みや折り返しで高さが変わるので、少しあとにも測り直す（iPhoneのLINEなどで下が切れないように）
 function refitResultSoon(){
   [120,500,1200,2500].forEach(ms=>setTimeout(()=>{ if(document.querySelector(".card.res")) fitResult(); },ms));
