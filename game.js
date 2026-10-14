@@ -747,8 +747,13 @@ function winChips(s,w,fp,tsumo,d,dry){
   {
     const atWin=fp.fl.ind.concat(fp.fl.ura,fp.fl.hand), indF=atWin.length, ownS=P.hana.filter(t=>fkOf(t)===34).length;
     const springs=ownS+atWin.filter(k=>k===34).length, allF=P.hana.length+indF;
-    if(ownS>=1 && indF) pay(indF,"春（表示牌の華牌）",true);
-    if(ownS===0 && springs>=1) pay(allF,"表示牌の春",true); // 1枚目の春が表示牌のとき
+    // 名前は、華牌がどこから来たか（ドラ・裏ドラ表示か、手牌の華の7か）に合わせる
+    const nInd=fp.fl.ind.length+fp.fl.ura.length, nHand=fp.fl.hand.length;
+    const where=nInd&&nHand?"表示牌・手牌":nHand?"手牌":"表示牌";
+    if(ownS>=1 && indF) pay(indF,`春（${where}の華牌）`,true);
+    if(ownS===0 && springs>=1){ // 1枚目の春が、表示牌か手牌の華の7のとき
+      const sInd=fp.fl.ind.concat(fp.fl.ura).includes(34), sHand=fp.fl.hand.includes(34);
+      pay(allF,sHand&&!sInd?"手牌の春":sHand&&sInd?"表示牌・手牌の春":"表示牌の春",true); }
     if(springs>=2) pay(allF,"2枚目の春",true);
   }
   if(w.pocchi){ if(pocchiIppatsu){ pay(4,"白ポッチ一発",true); dice("白ポッチ一発"); } else pay(1,"白ポッチ",true); }
