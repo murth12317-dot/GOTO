@@ -13,8 +13,21 @@ const BUILD = String(process.env.RENDER_GIT_COMMIT || Date.now()).slice(0, 12);
 const fs = require("fs");
 const sendIndex = (req, res) => {
   res.set("Cache-Control", "no-cache, must-revalidate"); // 毎回サーバーに確かめる（古いページを出し続けないように）
-  res.type("html").send(fs.readFileSync(path.join(__dirname, "public", "index.html"), "utf8").replace("__BUILD__", BUILD).replace("__MODE__", FRIENDS_ONLY ? "friends" : "cpu"));
+  res.type("html").send(fs.readFileSync(path.join(__dirname, "public", "index.html"), "utf8").replace("__BUILD__", BUILD).replaceAll("__MODE__", FRIENDS_ONLY ? "friends" : "cpu").replaceAll("__APPNAME__", appName()));
 };
+// ホーム画面のアイコンと名前（本番＝緑、テスト版＝青に「テスト」の帯）
+const appName = () => FRIENDS_ONLY ? "三麻" : "三麻テスト"; // FRIENDS_ONLY は下で決まるので、使うときに読む
+const ICON = sz => path.join(__dirname, "public", "icons", `${FRIENDS_ONLY ? "main" : "test"}-${sz}.png`);
+app.get("/apple-touch-icon.png", (req, res) => res.sendFile(ICON(180)));
+app.get("/apple-touch-icon-precomposed.png", (req, res) => res.sendFile(ICON(180)));
+app.get("/icon-192.png", (req, res) => res.sendFile(ICON(192)));
+app.get("/icon-512.png", (req, res) => res.sendFile(ICON(512)));
+app.get("/favicon.ico", (req, res) => res.sendFile(ICON(192)));
+app.get("/manifest.webmanifest", (req, res) => res.type("application/manifest+json").send(JSON.stringify({
+  name: appName(), short_name: appName(), start_url: "/", scope: "/", display: "standalone", orientation: "any",
+  background_color: FRIENDS_ONLY ? "#0b3326" : "#16305a", theme_color: FRIENDS_ONLY ? "#0b3326" : "#16305a", lang: "ja",
+  icons: [{ src: "/icon-192.png", sizes: "192x192", type: "image/png" }, { src: "/icon-512.png", sizes: "512x512", type: "image/png" }],
+})));
 app.get(["/", "/index.html"], sendIndex);
 app.use(express.static(path.join(__dirname, "public"), { setHeaders: res => res.set("Cache-Control", "no-cache") }));
 app.get("/game.js", (req, res) => res.sendFile(path.join(__dirname, "game.js")));
