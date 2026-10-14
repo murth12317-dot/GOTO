@@ -64,11 +64,11 @@ html,body{overflow:hidden}
 .stick{position:absolute;left:calc(50% - var(--box) * .19);width:calc(var(--box) * .39);top:calc(50% + var(--box) * .517);height:calc(var(--box) * .036);border-radius:4px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.4)}
 .stick.shb{width:calc(var(--box) * .2);left:calc(50% - var(--box) * .1);top:calc(50% + var(--box) * .565);background:#fff}
 .stick.shb::after{background:transparent;width:auto;height:auto;border-radius:0;content:"• • •";color:#333;font-size:calc(var(--box) * .03);line-height:1;letter-spacing:-1px}
-/* 割れ目の人：その人の側全体に、薄い白の斜線と「割れ目」の文字（赤は親の印に使うので、割れ目は赤にしない） */
+/* 割れ目の人：その人の側全体に、薄い赤の斜線と「割れ目」の文字（点棒・真ん中の箱より外側） */
 .wmband{position:absolute;left:4%;right:4%;top:calc(50% + var(--box) * .6);bottom:1%;border-radius:10px;
-  background:repeating-linear-gradient(-55deg,rgba(255,255,255,.12) 0 10px,rgba(255,255,255,.03) 10px 22px);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.22);display:grid;place-items:center}
+  background:repeating-linear-gradient(-55deg,rgba(226,64,44,.22) 0 10px,rgba(226,64,44,.05) 10px 22px);box-shadow:inset 0 0 0 1.5px rgba(226,64,44,.35);display:grid;place-items:center}
 .wmband b{font-family:"Shippori Mincho B1",serif;font-size:calc(var(--box) * .2);font-weight:900;color:rgba(255,225,77,.28);letter-spacing:.4em;padding-left:.4em}
-.sc .wm{display:inline-grid;place-items:center;background:transparent;color:#e8eef0;border:1px solid rgba(255,255,255,.55);border-radius:4px;font-size:.8em;padding:0 3px;margin-right:4px;font-weight:900}
+.sc .wm{display:inline-grid;place-items:center;background:#d8402c;color:#fff;border-radius:4px;font-size:.8em;padding:0 4px;margin-right:4px;font-weight:900}
 /* 親：風を赤くして「親」の札を付ける */
 .sc .wd.oya{color:#ff4b3e;text-shadow:0 0 6px rgba(255,75,62,.45)}
 .sc .oyab{display:inline-grid;place-items:center;background:linear-gradient(180deg,#ff5a4a,#c81e1e);color:#fff;border-radius:4px;font-size:.72em;padding:0 4px;margin-right:2px;font-weight:900;letter-spacing:0}
