@@ -451,6 +451,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 @keyframes ciAv{0%{transform:translate(-140%,-50%)}18%{transform:translate(0,-50%)}80%{transform:translate(8%,-50%);opacity:1}100%{transform:translate(30%,-50%);opacity:0}}
 @keyframes ciTx{0%,10%{transform:translate(60%,-50%);opacity:0}24%{transform:translate(0,-50%) scale(1.08);opacity:1}32%{transform:translate(0,-50%) scale(1)}80%{opacity:1}100%{transform:translate(-6%,-50%);opacity:0}}
 /* キャラクター選び */
+.modetag{display:inline-block;margin-left:8px;font-size:11px;font-family:inherit;font-weight:900;color:#1a1a1a;background:#9ad0ff;border-radius:6px;padding:1px 6px;vertical-align:middle;letter-spacing:0}
 .avpick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 4px}
 .avpick button{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px 4px;border-radius:12px;border:2px solid transparent;background:rgba(255,255,255,.05);font-size:11px;font-weight:700;color:var(--muted)}
 .avpick button .avsvg{width:48px;height:48px}
@@ -1683,7 +1684,7 @@ socket.on("connect_error",()=>showConn("サーバーに接続中…（最初は1
 // アプリに戻ってきたら、すぐにつなぎ直す
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && !socket.connected){ showConn("再接続中…"); try{ socket.connect(); }catch(_){} } });
 // 版が変わっていたら（デプロイ後に古いページのまま）、読み直す。ループしないよう1分に1回まで
-const BUILD="__BUILD__";
+const BUILD="__BUILD__", MODE="__MODE__"; // MODE：friends＝友達専用（CPUなし）／cpu＝CPU対戦のテスト用
 socket.on("build",b=>{ if(BUILD==="__BUILD__"||b===BUILD) return; let last=0; try{ last=+sessionStorage.getItem("sanma-reload")||0; }catch(_){}
   if(Date.now()-last<60000) return; try{ sessionStorage.setItem("sanma-reload",String(Date.now())); }catch(_){} location.reload(); });
 socket.on("joined",j=>{ ME.code=j.code; ME.token=j.token; save(); history.replaceState(null,"","?room="+j.code);
@@ -1817,7 +1818,7 @@ function showLobbyStart(){ showAbort(false); showChatBtn(false);
   const deco=[{k:34},{k:13,red:true},{k:22,gold:true},{k:31,pocchi:true},{k:30},{k:33}].map((t,i)=>tileHTML({...t,id:-10-i},"rv")).join("");
   document.getElementById("app").innerHTML="";
   document.getElementById("ov").innerHTML=`<div class="overlay"><div class="card lob start">
-    <p class="ttl">三麻 ノーマル華4</p>
+    <p class="ttl">三麻 ノーマル華4${MODE==="cpu"?'<small class="modetag">CPU対戦テスト用</small>':""}</p>
     <div class="deco">${deco}</div>
     <label class="fld">名前<input id="nm" maxlength="12" value="${esc(ME.name)}" placeholder="名前を入れてください"></label>
     <div class="fld">キャラクター${avPickHTML()}</div>
@@ -1844,7 +1845,7 @@ function showRoom(L){
   const me=L.mySeat;
   const humans=L.seats.filter(p=>p&&!p.cpu);
   if(L.seats[me]&&L.seats[me].av!=null) ME.av=L.seats[me].av;
-  const rows=L.seats.map((p,i)=>`<div class="seatrow${i===me?" me":""}">${p&&p.av!=null?`<span class="sav">${avSVG(p.av)}</span>`:""}<span class="sn">${p?esc(p.name):"空席"}</span><span class="st">${p?`${p.host?"ホスト　":""}${p.online?"":"（切断中）　"}${p.ready?'<b class="rdy">準備OK</b>':'<span class="nrd">準備中</span>'}`:"CPUが入ります"}</span></div>`).join("");
+  const rows=L.seats.map((p,i)=>`<div class="seatrow${i===me?" me":""}">${p&&p.av!=null?`<span class="sav">${avSVG(p.av)}</span>`:""}<span class="sn">${p?esc(p.name):"空席"}</span><span class="st">${p?`${p.host?"ホスト　":""}${p.online?"":"（切断中）　"}${p.ready?'<b class="rdy">準備OK</b>':'<span class="nrd">準備中</span>'}`:(L.friendsOnly?"招待を待っています":"CPUが入ります")}</span></div>`).join("");
   const n=L.seats.filter(Boolean).length;
   const myReady=L.seats[me]&&L.seats[me].ready;
   // 倍率の入力中に画面が書き換わっても、入れかけの数字を残す
@@ -1860,7 +1861,7 @@ function showRoom(L){
     <div class="lbtns">
       ${n<3?`<button data-a="share" data-url="${esc(location.origin+location.pathname+"?room="+L.code+"&openExternalBrowser=1")}" class="b-pon">招待リンクを送る</button>`:""}
       <button data-a="lready" class="${myReady?"b-skip":"b-kita"}">${myReady?"準備OKを取り消す":"準備OK"}</button>
-      ${L.isHost?`<button data-a="start" class="b-gold" ${L.allReady?"":"disabled"}>${n<3?`CPUを${3-n}人入れて開始`:"対局開始"}</button>`:`<p class="wait">${L.allReady?"ホストの開始を待っています…":"全員の準備OKを待っています…"}</p>`}
+      ${L.isHost?`<button data-a="start" class="b-gold" ${L.allReady?"":"disabled"}>${n<3?(L.friendsOnly?`あと${3-n}人で開始できます`:`CPUを${3-n}人入れて開始`):"対局開始"}</button>`:`<p class="wait">${L.allReady?"ホストの開始を待っています…":"全員の準備OKを待っています…"}</p>`}
       <button data-a="leave" class="b-skip">ルームを出る</button>
     </div>
     <a class="statlink" href="/stats" target="_blank" rel="noopener">成績表を見る</a>

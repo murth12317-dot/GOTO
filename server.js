@@ -13,7 +13,7 @@ const BUILD = String(process.env.RENDER_GIT_COMMIT || Date.now()).slice(0, 12);
 const fs = require("fs");
 const sendIndex = (req, res) => {
   res.set("Cache-Control", "no-cache, must-revalidate"); // 毎回サーバーに確かめる（古いページを出し続けないように）
-  res.type("html").send(fs.readFileSync(path.join(__dirname, "public", "index.html"), "utf8").replace("__BUILD__", BUILD));
+  res.type("html").send(fs.readFileSync(path.join(__dirname, "public", "index.html"), "utf8").replace("__BUILD__", BUILD).replace("__MODE__", FRIENDS_ONLY ? "friends" : "cpu"));
 };
 app.get(["/", "/index.html"], sendIndex);
 app.use(express.static(path.join(__dirname, "public"), { setHeaders: res => res.set("Cache-Control", "no-cache") }));
@@ -39,6 +39,10 @@ const rotArr = (arr, me) => [0, 1, 2].map(i => arr[(i + me) % 3]);
 const SHEET_URL = (process.env.SHEET_URL || "").trim(), SHEET_SECRET = (process.env.SHEET_SECRET || "").trim();
 // テスト用：true の間は、最初からCPUが入っている半荘も記録する（確認が終わったら false に戻す）
 const RECORD_CPU_GAMES = true;
+// 友達専用モード（FRIENDS_ONLY=1 の Render サービス）：CPUを入れず3人そろったときだけ開始。成績はこちらだけ記録する
+// それ以外（CPU対戦のテスト用）は記録しない。テスト用でも記録したいときは RECORD_ALL=1
+const FRIENDS_ONLY = process.env.FRIENDS_ONLY === "1";
+const RECORD_ON = FRIENDS_ONLY || process.env.RECORD_ALL === "1";
 async function callSheet(body) {
   for (let i = 0; i < 3; i++) {
     try {
@@ -100,7 +104,8 @@ function roomPublic(room) {
   return {
     code: room.code, phase: room.phase, rate: room.rate || 100, rules: room.rules || { hana: 4, shuba: false, wareme: false }, totals: totalsInfo(room),
     seats: room.seats.map((p, i) => p ? { name: p.name, av: p.av == null ? null : p.av, cpu: !!p.cpu, online: p.cpu || !!p.socket, host: p.token === room.hostToken, ready: !!p.ready } : null),
-    allReady: room.seats.filter(p => p && !p.cpu).every(p => p.ready),
+    allReady: room.seats.filter(p => p && !p.cpu).every(p => p.ready) && (!FRIENDS_ONLY || room.seats.filter(p => p && !p.cpu).length === 3),
+    friendsOnly: FRIENDS_ONLY,
   };
 }
 function broadcastLobby(room) {
@@ -277,7 +282,7 @@ function startGame(room) {
       room.phase = "final"; room.ready = new Set();
       const g = room.game;
       // 最初からCPUが入っている半荘は通算に入れない（途中の切断で代打になった人は本人の名前で入れる）
-      if (RECORD_CPU_GAMES || !room.seats.some(p => p && p.cpu)) { addTotals(room, order); sendToSheet(room, order); saveRecord(room, order); }
+      if (RECORD_CPU_GAMES || !room.seats.some(p => p && p.cpu)) { addTotals(room, order); if (RECORD_ON) { sendToSheet(room, order); saveRecord(room, order); } }
       else console.log("sheet skip (CPU game) room " + room.code);
       room.finalOrder = order;
       for (const s of humanSeats(room)) emitTo(room, s, "final", finalFor(room, s));
@@ -388,6 +393,7 @@ io.on("connection", socket => {
     if (!room || room.phase !== "lobby") return;
     if (room.seats[seatNow()].token !== room.hostToken) return err("開始できるのはルームを作った人です");
     if (!room.seats.filter(p => p && !p.cpu).every(p => p.ready)) return err("全員の準備OKがそろっていません");
+    if (FRIENDS_ONLY && room.seats.filter(p => p && !p.cpu).length < 3) return err("3人そろうと開始できます");
     startGame(room);
   });
 
