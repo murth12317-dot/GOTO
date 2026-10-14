@@ -9,7 +9,7 @@
 - `game.js` … 対局のルール処理（点数・祝儀・華牌など）
 - `public/index.html` … 画面
 - `package.json` … 必要なライブラリ（express / socket.io）
-- `records.js` … 成績を GitHub の data ブランチに保存する
+- `records.js` … 成績を GitHub に保存する（本番＝友達専用は data-friends ブランチ、テスト版は data ブランチ）
 - `public/stats.html` … 成績表ページ（/stats）
 - `gas/Code.gs` … 通算成績をスプレッドシートに記録する Apps Script（任意・旧方式）
 

@@ -4,7 +4,8 @@
 
 const TOKEN = (process.env.GITHUB_TOKEN || "").trim();
 const REPO = (process.env.GITHUB_REPO || "murth12317-dot/GOTO").trim();
-const BRANCH = (process.env.DATA_BRANCH || "data").trim();
+// 保存先：本番（友達専用 FRIENDS_ONLY=1）は data-friends、テスト版は data（今までの記録）。DATA_BRANCH で上書きできる
+const BRANCH = (process.env.DATA_BRANCH || (process.env.FRIENDS_ONLY === "1" ? "data-friends" : "data")).trim();
 const DIR = "records";
 const API = (process.env.GITHUB_API || "https://api.github.com") + "/repos/" + REPO;
 const enabled = !!TOKEN;
