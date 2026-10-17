@@ -1,0 +1,38 @@
+[
+ {
+  "id": "6552-1792211138441",
+  "at": "2026-10-17T04:30:05.417Z",
+  "room": "6552",
+  "rate": 50,
+  "rules": {
+   "hana": 7,
+   "shuba": true,
+   "wareme": true
+  },
+  "fee": 1,
+  "feeTo": "あつや",
+  "players": [
+   {
+    "name": "あつや",
+    "rank": 2,
+    "score": 21000,
+    "chips": -11,
+    "cpu": false
+   },
+   {
+    "name": "まさき",
+    "rank": 3,
+    "score": -1000,
+    "chips": -37,
+    "cpu": false
+   },
+   {
+    "name": "ゆじも@東北",
+    "rank": 1,
+    "score": 85000,
+    "chips": 48,
+    "cpu": false
+   }
+  ]
+ }
+]
