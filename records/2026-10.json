@@ -34,5 +34,41 @@
     "cpu": false
    }
   ]
+ },
+ {
+  "id": "9757-1792211465496",
+  "at": "2026-10-17T04:36:05.996Z",
+  "room": "9757",
+  "rate": 50,
+  "rules": {
+   "hana": 7,
+   "shuba": true,
+   "wareme": true
+  },
+  "fee": 1,
+  "feeTo": "あつや",
+  "players": [
+   {
+    "name": "ゆじも@東北",
+    "rank": 3,
+    "score": -2000,
+    "chips": -43,
+    "cpu": false
+   },
+   {
+    "name": "まさき",
+    "rank": 1,
+    "score": 72000,
+    "chips": 26,
+    "cpu": false
+   },
+   {
+    "name": "あつや",
+    "rank": 2,
+    "score": 35000,
+    "chips": 17,
+    "cpu": false
+   }
+  ]
  }
 ]
