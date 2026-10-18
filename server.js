@@ -394,14 +394,15 @@ io.on("connection", socket => {
     const r = rooms.get(String(code || "").trim());
     if (!r) return err("そのルームは見つかりません");
     if (token) { const s = r.seats.findIndex(p => p && p.token === token); if (s >= 0) { if (name && r.phase === "lobby") r.seats[s].name = String(name).slice(0, 12); if (r.phase === "lobby" && avOf(av) != null) r.seats[s].av = avOf(av); clearTimeout(r.seats[s].awayTimer); return attach(r, s); } }
-    // 対局中：目印（token）がなくても、同じ名前の人間の席があればその席に戻す
+    // 対局中：目印（token）がなくても、同じ名前の人間の席が「つながっていない」ならその席に戻す
     // （LINEの中のブラウザを閉じた・別のブラウザで開き直した等で、端末に残した目印が消えたとき）
     if (r.phase !== "lobby") {
       const nm = String(name || "").trim().slice(0, 12);
       const s2 = nm ? r.seats.findIndex(p => p && !p.cpu && p.name === nm) : -1;
       if (s2 >= 0) {
+        // 乗っ取り防止：その席の人がいまつながっているときは入れない（落ちた人だけ戻れる）
         const old = r.seats[s2].socket;
-        if (old && old !== socket) { old.emit("err", "別の画面でこの席に戻ったので、こちらは切りました"); old.disconnect(true); } // 前の画面が残っていたら切る
+        if (old && old !== socket && old.connected) return err("その名前の人は今つながっています。落ちた直後なら、1分ほど待ってからもう一度「参加」を押してください");
         clearTimeout(r.seats[s2].awayTimer); return attach(r, s2);
       }
       return err("このルームはもう対局が始まっています。対局中の人は、参加したときと同じ名前を入れて「参加」を押すと自分の席に戻れます");
