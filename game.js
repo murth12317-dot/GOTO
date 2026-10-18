@@ -351,6 +351,7 @@ function canShuba(s){ return !!(RULES.shuba && G.shubaUsed && !G.shubaUsed[s] &&
 function riichiOptions(s,open){
   const P=H.p[s];
   if(P.riichi||!isClosed(P)||G.scores[s]<(open?2000:1000)||H.live.length<3||P.hand.some(x=>x.k>=34)) return [];
+  if(open && [0,1,2].filter(o=>o!==s).every(o=>H.p[o].riichi)) return []; // 3人目の追っかけリーチ（ほかの2人がもうリーチ）はオープンにできない
   const ids=[];
   const ok=discardable(s);
   for(const t of P.hand){ if(t.k===30||t.k>=34||!ok.includes(t.id)) continue; const rest=P.hand.filter(x=>x!==t); if(shanten(rest,P.melds.length)===0 && waits(s,rest).length) ids.push(t.id); }
