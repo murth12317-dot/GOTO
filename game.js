@@ -458,6 +458,7 @@ function riichiAuto(s){
 
 // ===== 打牌 =====
 function discard(s, id, riichi, open, shuba){
+  if((H.state!=="play"&&H.state!=="cpu")||H.turn!==s) return; // 自分の番の「切る前」だけ（切ったあと次のツモまでの間は受け付けない）
   const P=H.p[s]; const t=P.hand.find(x=>x.id===id); if(!t||t.k===30||t.k>=34) return;
   if(!P.riichi && !discardable(s).includes(id)) return;
   P.hand.splice(P.hand.indexOf(t),1); sortHand(P.hand);
@@ -468,6 +469,7 @@ function discard(s, id, riichi, open, shuba){
   if(!P.riichi) P.tempF=false;
   P.river.push({t,riichi,tg:t===H.drawn}); H.drawn=null; H.winAt=null; H.afterCall=null; // tg：ツモ切り（引いた牌をそのまま切った） H.rinshan=false; H.last={s,t}; SE.clack();
   log(`${NAMES[s]}：${tName(t)}を切った`);
+  H.state="wait"; // 切った瞬間に「次の人を待つ」にする（次のツモまでの間に2枚目を切れないように。北・華・ツモも受け付けない）
   afterDiscard(s,t);
 }
 function furiten(o){
